@@ -248,15 +248,15 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ onRestore }) => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-1 space-y-4">
                 <div className="p-4 bg-black/60 border border-slate-800 rounded-lg">
-                  <div className="text-[10px] text-slate-500 font-mono uppercase mb-1">พื้นที่ใช้งานรวม</div>
+                  <div className="text-[10px] text-slate-500 font-mono uppercase mb-1">พื้นที่ใช้งาน (Cloud + Local Cache)</div>
                   <div className="text-3xl font-bold text-white font-mono">{formatBytes(storageInfo.totalBytes)}</div>
                   <div className="w-full bg-slate-800 h-1.5 mt-3 rounded-full overflow-hidden">
                     <div
-                      className={`h-full transition-all duration-1000 ${storageInfo.totalBytes > 4 * 1024 * 1024 ? 'bg-red-500' : 'bg-cyan-500'}`}
-                      style={{ width: `${Math.min(100, (storageInfo.totalBytes / (5 * 1024 * 1024)) * 100)}%` }}
+                      className={`h-full transition-all duration-1000 ${storageInfo.totalBytes > 45 * 1024 * 1024 ? 'bg-red-500' : 'bg-cyan-500'}`}
+                      style={{ width: `${Math.min(100, (storageInfo.totalBytes / (50 * 1024 * 1024)) * 100)}%` }}
                     ></div>
                   </div>
-                  <div className="text-[9px] text-slate-600 mt-2 font-mono uppercase">ขีดจำกัดโดยประมาณ: 5.00 MB</div>
+                  <div className="text-[9px] text-cyan-600 mt-2 font-mono uppercase font-bold">ขีดจำกัดขยายเป็น: 50.00 MB (Render Cloud)</div>
                 </div>
                 <Button
                   variant="ghost"
@@ -326,9 +326,9 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ onRestore }) => {
           <ShieldCheck className="h-8 w-8 text-cyan-400" />
         </div>
         <div>
-          <h4 className="text-white font-bold font-display uppercase tracking-widest">ความปลอดภัยของข้อมูล</h4>
+          <h4 className="text-white font-bold font-display uppercase tracking-widest">ความปลอดภัยและพื้นที่จัดเก็บ</h4>
           <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-            ข้อมูลของคุณจะถูกเก็บไว้ที่ <span className="text-cyan-600 font-mono">Local Browser Storage</span> เท่านั้น ไฟล์สำรองที่ Export ออกมาจะไม่ถูกส่งขึ้น Server ใดๆ เพื่อความเป็นส่วนตัวและความปลอดภัยสูงสุดขององค์กร
+            ข้อมูลของคุณถูกขยายพื้นที่เป็น <span className="text-cyan-400 font-mono">50MB</span> และจัดเก็บอย่างปลอดภัยบน <span className="text-cyan-600 font-mono">Render Cloud Backend</span> เพื่อให้เข้าถึงได้จากทุกที่และป้องกันข้อมูลสูญหาย โดยระบบยังคงเก็บ Cache ไว้ในเครื่องเพื่อให้ใช้งานออฟไลน์ได้ชั่วคราว
           </p>
         </div>
       </div>
