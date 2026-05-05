@@ -16,6 +16,7 @@ import { SimAisManager } from './components/SimAisManager';
 import { CalendarManager } from './components/CalendarManager';
 import { SaveIndicator } from './components/SaveIndicator';
 import { safeSetItem, STORAGE_KEYS, checkStorageQuota } from './utils/storageUtils';
+import { fetchAllData, saveAllData, AppData } from './services/syncService';
 
 import { AppMode, MaintenanceTicket, StockItem, MaritimeItem, TrackedAsset, MeetingReport, ProcurementFolder, InventorySelection, SimCard, TicketMachine } from './types';
 
@@ -366,6 +367,25 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : INITIAL_TICKET_MACHINES;
   });
 
+  // 🔄 Initial Sync from Backend (Render)
+  useEffect(() => {
+    const syncFromBackend = async () => {
+      const remoteData = await fetchAllData();
+      if (remoteData) {
+        if (remoteData.tickets?.length) setTickets(remoteData.tickets);
+        if (remoteData.stock?.length) setStockItems(remoteData.stock);
+        if (remoteData.assets?.length) setTrackedAssets(remoteData.assets);
+        if (remoteData.maritime?.length) setMaritimeItems(remoteData.maritime);
+        if (remoteData.reports?.length) setMeetingReports(remoteData.reports);
+        if (remoteData.folders?.length) setProcurementFolders(remoteData.folders);
+        if (remoteData.simCards?.length) setSimCards(remoteData.simCards);
+        if (remoteData.ticketMachines?.length) setTicketMachines(remoteData.ticketMachines);
+        console.log('✅ Backend Data Synced');
+      }
+    };
+    syncFromBackend();
+  }, []);
+
   // Persistence with error handling and save indicator
   useEffect(() => {
     const saveData = async () => {
@@ -373,7 +393,7 @@ const App: React.FC = () => {
       setSaveError(null);
 
       try {
-        // Save all data with error handling
+        // 1. Save to LocalStorage (for offline cache)
         const results = [
           safeSetItem(STORAGE_KEYS.TICKETS, JSON.stringify(tickets)),
           safeSetItem(STORAGE_KEYS.STOCK, JSON.stringify(stockItems)),
@@ -385,9 +405,22 @@ const App: React.FC = () => {
           safeSetItem(STORAGE_KEYS.TICKET_MACHINES, JSON.stringify(ticketMachines)),
         ];
 
+        // 2. Save to Backend (Render) - Expanded Storage
+        const appData: AppData = {
+          tickets,
+          stock: stockItems,
+          assets: trackedAssets,
+          maritime: maritimeItems,
+          reports: meetingReports,
+          folders: procurementFolders,
+          simCards,
+          ticketMachines
+        };
+        const backendSuccess = await saveAllData(appData);
+
         // Check for any errors
         const errors = results.filter(r => !r.success);
-        if (errors.length > 0) {
+        if (errors.length > 0 && !backendSuccess) {
           setSaveError(errors[0].error || 'เกิดข้อผิดพลาดในการบันทึก');
           console.error('Storage errors:', errors);
         } else {
