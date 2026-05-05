@@ -2,7 +2,7 @@
 import { TicketMachine } from '../types';
 
 // ⚠️ เปลี่ยน URL นี้เป็น URL ของ Render หลัง deploy เสร็จ
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://it-center-i291.onrender.com';
 
 const API_URL = `${API_BASE}/api/ticket-machines`;
 
