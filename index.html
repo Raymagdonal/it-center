@@ -1,0 +1,174 @@
+
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IT // Chaophrayatouristboat</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@500;600;700&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --neon-blue: #00f2ff;
+        --neon-purple: #bc13fe;
+        --neon-green: #0aff60;
+        --neon-red: #ff0055;
+        --bg-deep: #030712;
+        --glass-panel: rgba(10, 20, 40, 0.75);
+      }
+
+      body {
+        font-family: 'Sarabun', sans-serif;
+        background-color: var(--bg-deep);
+        color: #e2e8f0;
+        overflow: hidden;
+      }
+
+      h1, h2, h3, h4, .font-display {
+        font-family: 'Orbitron', sans-serif;
+        letter-spacing: 0.1em;
+      }
+      
+      .font-tech {
+        font-family: 'Rajdhani', sans-serif;
+      }
+
+      .font-mono {
+        font-family: 'JetBrains Mono', monospace;
+      }
+
+      /* --- ANIMATED BACKGROUND GRID --- */
+      .cyber-grid {
+        position: fixed;
+        top: 0; left: 0; width: 200vw; height: 200vh;
+        background-image: 
+          linear-gradient(rgba(0, 242, 255, 0.05) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0, 242, 255, 0.05) 1px, transparent 1px);
+        background-size: 60px 60px;
+        transform: perspective(500px) rotateX(60deg) translateY(-100px) translateZ(-200px);
+        animation: grid-move 20s linear infinite;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      @keyframes grid-move {
+        0% { transform: perspective(500px) rotateX(60deg) translateY(0) translateZ(-200px); }
+        100% { transform: perspective(500px) rotateX(60deg) translateY(60px) translateZ(-200px); }
+      }
+
+      /* --- GLOW EFFECTS --- */
+      .text-neon {
+        text-shadow: 0 0 5px var(--neon-blue), 0 0 10px var(--neon-blue);
+      }
+      
+      .box-neon {
+        box-shadow: 0 0 10px rgba(0, 242, 255, 0.2), inset 0 0 20px rgba(0, 242, 255, 0.05);
+      }
+
+      /* --- SCROLLBAR --- */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #020617;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #1e293b;
+        border-radius: 0;
+        border: 1px solid var(--neon-blue);
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--neon-blue);
+        box-shadow: 0 0 15px var(--neon-blue);
+      }
+
+      /* --- ANIMATIONS --- */
+      @keyframes scanline {
+        0% { transform: translateY(-100%); }
+        100% { transform: translateY(100%); }
+      }
+      
+      .scanline-effect::after {
+        content: "";
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: linear-gradient(to bottom, transparent 50%, rgba(0, 242, 255, 0.02) 51%);
+        background-size: 100% 4px;
+        pointer-events: none;
+        z-index: 50;
+      }
+
+      .holo-card {
+        background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(0, 242, 255, 0.2);
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+      }
+      
+      .holo-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: -100%;
+        width: 50%; height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(0, 242, 255, 0.1), transparent);
+        transform: skewX(-25deg);
+        transition: 0.5s;
+      }
+      
+      .holo-card:hover::before {
+        left: 150%;
+        transition: 0.7s;
+      }
+
+      .clip-corner {
+        clip-path: polygon(
+          15px 0, 100% 0, 
+          100% calc(100% - 15px), calc(100% - 15px) 100%, 
+          0 100%, 0 15px
+        );
+      }
+
+      .animate-pulse-fast {
+        animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+
+      @keyframes glitch {
+        0% { transform: translate(0); }
+        20% { transform: translate(-2px, 2px); }
+        40% { transform: translate(-2px, -2px); }
+        60% { transform: translate(2px, 2px); }
+        80% { transform: translate(2px, -2px); }
+        100% { transform: translate(0); }
+      }
+
+      .glitch-hover:hover {
+        animation: glitch 0.2s cubic-bezier(.25, .46, .45, .94) both infinite;
+        color: var(--neon-blue);
+      }
+
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
+    "three": "https://esm.sh/three@^0.182.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="antialiased selection:bg-cyan-500 selection:text-black">
+    <div class="cyber-grid"></div>
+    <div id="root" class="h-screen w-screen relative z-10 scanline-effect"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

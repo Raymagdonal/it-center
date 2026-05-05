@@ -1,0 +1,17 @@
+{
+  "name": "it-repair-server",
+  "version": "1.0.0",
+  "description": "IT Repair Backend API - JSON File Storage",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

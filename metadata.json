@@ -1,0 +1,8 @@
+{
+  "name": "TechFix - ระบบแจ้งซ่อม",
+  "description": "ระบบแจ้งซ่อมบำรุงอุปกรณ์อิเล็กทรอนิกส์ด้วย AI สำหรับเครื่องขายตั๋ว กล้องวงจรปิด และที่ชาร์จไฟ",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}
