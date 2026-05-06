@@ -458,7 +458,7 @@ const App: React.FC = () => {
     setMode('REPORT');
   };
 
-  const handleTicketSubmit = (ticketData: Omit<MaintenanceTicket, 'id' | 'status' | 'timestamp'>, editId?: string) => {
+  const handleTicketSubmit = (ticketData: Omit<MaintenanceTicket, 'id' | 'status'>, editId?: string) => {
     if (editId) {
       setTickets(tickets.map(t => t.id === editId ? { ...t, ...ticketData } : t));
       setEditingTicket(null);
@@ -467,11 +467,26 @@ const App: React.FC = () => {
         ...ticketData,
         id: Math.random().toString(36).substr(2, 9),
         status: 'PENDING',
-        timestamp: new Date().toISOString(),
+        timestamp: ticketData.timestamp || new Date().toISOString(),
       };
       setTickets([newTicket, ...tickets]);
     }
     handleNavigate('TRACK', 'ALL');
+  };
+
+  const handleBatchDateUpdate = (ticketIds: string[], newDateStr: string) => {
+    const [y, m, d] = newDateStr.split('-').map(Number);
+    setTickets(prevTickets => prevTickets.map(t => {
+      if (ticketIds.includes(t.id)) {
+        const oldDate = new Date(t.timestamp);
+        const newDate = new Date(oldDate);
+        newDate.setFullYear(y);
+        newDate.setMonth(m - 1);
+        newDate.setDate(d);
+        return { ...t, timestamp: newDate.toISOString() };
+      }
+      return t;
+    }));
   };
 
   const handleLocateAsset = (sn: string) => {
@@ -565,6 +580,7 @@ const App: React.FC = () => {
                   };
                 }))}
                 onEdit={handleEditTicket}
+                onBatchDateUpdate={handleBatchDateUpdate}
               />
             </div>
           )}
@@ -640,6 +656,7 @@ const App: React.FC = () => {
                   };
                 }))}
                 onEdit={handleEditTicket}
+                onBatchDateUpdate={handleBatchDateUpdate}
               />
             </div>
           )}

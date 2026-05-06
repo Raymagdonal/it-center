@@ -13,7 +13,7 @@ import { compressImage } from '../utils/storageUtils';
 
 
 interface ReportFormProps {
-  onSubmit: (ticket: Omit<MaintenanceTicket, 'id' | 'status' | 'timestamp'>) => void;
+  onSubmit: (ticket: Omit<MaintenanceTicket, 'id' | 'status'>) => void;
   onCancel: () => void;
   initialData?: MaintenanceTicket | null;
 }
@@ -263,6 +263,7 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, init
       imageUrls: images.length > 0 ? images : undefined,
       fixedImageUrls: afterImages.length > 0 ? afterImages : undefined,
       contactName: formData.contactName,
+      timestamp: new Date(incidentDate).toISOString(),
     });
   };
 

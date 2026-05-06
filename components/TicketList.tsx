@@ -16,6 +16,7 @@ interface TicketListProps {
   onDelete?: (id: string) => void;
   onFixedImageUpdate?: (id: string, fixedImageUrl: string | string[]) => void;
   onEdit?: (ticket: MaintenanceTicket) => void;
+  onBatchDateUpdate?: (ticketIds: string[], newDate: string) => void;
 }
 
 interface GroupedTicketFolder {
@@ -64,7 +65,7 @@ interface TicketItemComponentProps {
   onEdit?: (ticket: MaintenanceTicket) => void;
 }
 
-export const TicketList: React.FC<TicketListProps> = ({ tickets, isAdmin, onStatusUpdate, onDelete, initialFilter, onFixedImageUpdate, onEdit }) => {
+export const TicketList: React.FC<TicketListProps> = ({ tickets, isAdmin, onStatusUpdate, onDelete, initialFilter, onFixedImageUpdate, onEdit, onBatchDateUpdate }) => {
   const [viewMode, setViewMode] = useState<'LIST' | 'GRID' | 'TABLE'>('LIST');
   const [isGrouped, setIsGrouped] = useState(true);
   const [filterStatus, setFilterStatus] = useState<string>(initialFilter || 'ALL');
@@ -72,6 +73,7 @@ export const TicketList: React.FC<TicketListProps> = ({ tickets, isAdmin, onStat
   const [sortBy, setSortBy] = useState<'NEWEST' | 'OLDEST' | 'SEVERITY'>('NEWEST');
   const [zoomState, setZoomState] = useState<{ images: string[], currentIndex: number } | null>(null);
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
+  const [isEditingBatchDate, setIsEditingBatchDate] = useState(false);
 
   // Keyboard navigation for lightbox
   useEffect(() => {
@@ -284,9 +286,41 @@ export const TicketList: React.FC<TicketListProps> = ({ tickets, isAdmin, onStat
             </div>
           )}
           <div>
-            <h2 className="text-lg font-bold text-white tracking-tight font-['Rajdhani'] uppercase leading-none">
-              {activeFolderId && activeFolder ? `วันที่: ${new Date(activeFolder.year, activeFolder.month, activeFolder.day).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}` : (isAdmin ? 'System_Admin' : 'Status_Tracker')}
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-bold text-white tracking-tight font-['Rajdhani'] uppercase leading-none">
+                {activeFolderId && activeFolder ? (
+                  <div className="flex items-center gap-2">
+                    <span>วันที่:</span>
+                    {isEditingBatchDate ? (
+                      <input
+                        type="date"
+                        autoFocus
+                        defaultValue={`${activeFolder.year}-${String(activeFolder.month + 1).padStart(2, '0')}-${String(activeFolder.day).padStart(2, '0')}`}
+                        onBlur={() => setIsEditingBatchDate(false)}
+                        onChange={(e) => {
+                          if (onBatchDateUpdate && activeFolder) {
+                            onBatchDateUpdate(activeFolder.tickets.map(t => t.id), e.target.value);
+                            setIsEditingBatchDate(false);
+                            // The folder ID will change, so we might want to clear or update it.
+                            // But usually the parent update will trigger a re-grouping.
+                            setActiveFolderId(null); 
+                          }
+                        }}
+                        className="bg-black border border-cyan-500/50 text-cyan-400 text-xs px-2 py-1 rounded outline-none focus:ring-1 focus:ring-cyan-500"
+                      />
+                    ) : (
+                      <button 
+                        onClick={() => setIsEditingBatchDate(true)}
+                        className="hover:text-cyan-400 transition-colors flex items-center gap-2 group/date"
+                      >
+                        {new Date(activeFolder.year, activeFolder.month, activeFolder.day).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        <Edit className="w-3.5 h-3.5 opacity-0 group-hover/date:opacity-100" />
+                      </button>
+                    )}
+                  </div>
+                ) : (isAdmin ? 'System_Admin' : 'Status_Tracker')}
+              </h2>
+            </div>
             <p className="text-[10px] text-slate-500 font-mono tracking-widest mt-1">
               {activeFolderId && activeFolder ? `BATCH_RECORDS_FOUND: ${activeFolder.tickets.length}` : (isAdmin ? 'TICKET_MANAGEMENT_CONSOLE' : 'USER_HISTORY_LOGS')}
             </p>
