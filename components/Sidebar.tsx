@@ -6,11 +6,13 @@ import { AppMode } from '../types';
 interface SidebarProps {
   currentMode: AppMode;
   onModeChange: (mode: AppMode) => void;
+  badges?: Partial<Record<AppMode, number>>;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   currentMode,
-  onModeChange
+  onModeChange,
+  badges = {}
 }) => {
   const navItems = [
     { mode: 'HOME', label: 'แดชบอร์ด', subLabel: 'ภาพรวมระบบ', icon: LayoutDashboard },
@@ -85,11 +87,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </div>
               </div>
 
-              {isActive && (
+              {isActive ? (
                 <div className="relative">
                   <div className="w-2 h-2 bg-cyan-400 rounded-full animate-ping absolute"></div>
                   <div className="w-2 h-2 bg-cyan-400 rounded-full relative z-10"></div>
                 </div>
+              ) : (
+                badges[item.mode as AppMode] && badges[item.mode as AppMode]! > 0 && (
+                  <div className="relative animate-in zoom-in duration-300">
+                    <div className="absolute -inset-1 bg-red-500 blur-sm opacity-50 animate-pulse"></div>
+                    <div className="min-w-[18px] h-[18px] px-1 bg-red-600 rounded-full flex items-center justify-center relative z-10 border border-red-400 shadow-[0_0_10px_#ef4444]">
+                      <span className="text-[10px] font-bold text-white leading-none font-mono">
+                        {badges[item.mode as AppMode]}
+                      </span>
+                    </div>
+                  </div>
+                )
               )}
             </button>
           );

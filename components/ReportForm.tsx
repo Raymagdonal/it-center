@@ -16,6 +16,8 @@ interface ReportFormProps {
   onSubmit: (ticket: Omit<MaintenanceTicket, 'id' | 'status'>) => void;
   onCancel: () => void;
   initialData?: MaintenanceTicket | null;
+  newTicketsCount?: number;
+  onClearNewTickets?: () => void;
 }
 
 interface FormScrollGalleryProps {
@@ -105,7 +107,7 @@ const FormScrollGallery: React.FC<FormScrollGalleryProps> = ({ label, count, the
   );
 };
 
-export const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, initialData }) => {
+export const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, initialData, newTicketsCount, onClearNewTickets }) => {
   const [images, setImages] = useState<string[]>([]);  // Before images
   const [afterImages, setAfterImages] = useState<string[]>([]);  // After images
   const [formData, setFormData] = useState({
@@ -282,16 +284,24 @@ export const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, onCancel, init
             <p className="text-slate-500 text-sm font-mono uppercase">{initialData ? 'Edit Maintenance Ticket' : 'New Maintenance Request Ticket'}</p>
           </div>
           
-          <a 
-            href="https://docs.google.com/spreadsheets/d/1M6f-xHA9E0mqdTbvIFkROLbL4d6gJaC0JC8QRhHYmh0/edit?pli=1&gid=2077750642#gid=2077750642" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/30 rounded text-green-400 hover:bg-green-500 hover:text-black transition-all group"
-          >
-            <TableProperties className="w-4 h-4 group-hover:scale-110 transition-transform" />
-            <span className="text-xs font-bold uppercase tracking-widest font-['Rajdhani']">Google Sheets Log</span>
-            <ExternalLink className="w-3 h-3 opacity-50" />
-          </a>
+          <div className="relative">
+            <a 
+              href="https://docs.google.com/spreadsheets/d/1M6f-xHA9E0mqdTbvIFkROLbL4d6gJaC0JC8QRhHYmh0/edit?pli=1&gid=2077750642#gid=2077750642" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              onClick={onClearNewTickets}
+              className="flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/30 rounded text-green-400 hover:bg-green-500 hover:text-black transition-all group"
+            >
+              <TableProperties className="w-4 h-4 group-hover:scale-110 transition-transform" />
+              <span className="text-xs font-bold uppercase tracking-widest font-['Rajdhani']">Google Sheets Log</span>
+              <ExternalLink className="w-3 h-3 opacity-50" />
+            </a>
+            {!!newTicketsCount && newTicketsCount > 0 && (
+              <div className="absolute -top-2 -right-2 bg-red-600 border-2 border-slate-900 rounded-full w-5 h-5 flex items-center justify-center animate-bounce shadow-[0_0_10px_#ef4444]">
+                <span className="text-white text-[9px] font-bold font-mono">{newTicketsCount}</span>
+              </div>
+            )}
+          </div>
         </div>
 
       </div>

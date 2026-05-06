@@ -17,9 +17,11 @@ interface LandingProps {
   assets: TrackedAsset[];
   procurementFolders: ProcurementFolder[];
   onNavigateToFolder?: (folderId: string) => void;
+  newTicketsCount?: number;
+  onClearNewTickets?: () => void;
 }
 
-export const Landing: React.FC<LandingProps> = ({ onNavigate, tickets, assets, procurementFolders, onNavigateToFolder }) => {
+export const Landing: React.FC<LandingProps> = ({ onNavigate, tickets, assets, procurementFolders, onNavigateToFolder, newTicketsCount, onClearNewTickets }) => {
   const [filterType, setFilterType] = useState<'ALL' | 'MONTHLY' | 'WEEKLY' | 'DAILY'>('ALL');
 
   // Stats Calculation
@@ -86,19 +88,27 @@ export const Landing: React.FC<LandingProps> = ({ onNavigate, tickets, assets, p
         </div>
 
         <div className="flex flex-col md:flex-row items-center gap-4">
-          <a 
-            href="https://docs.google.com/spreadsheets/d/1M6f-xHA9E0mqdTbvIFkROLbL4d6gJaC0JC8QRhHYmh0/edit?pli=1&gid=2077750642#gid=2077750642" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/30 rounded text-green-400 hover:bg-green-500 hover:text-black transition-all group h-14"
-          >
-            <TableProperties className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            <div className="flex flex-col">
-              <span className="text-[10px] font-mono uppercase tracking-tighter opacity-70">External Link</span>
-              <span className="text-xs font-bold uppercase tracking-widest">Google Sheets Log</span>
-            </div>
-            <ExternalLink className="w-3 h-3 opacity-50 ml-1" />
-          </a>
+          <div className="relative">
+            <a 
+              href="https://docs.google.com/spreadsheets/d/1M6f-xHA9E0mqdTbvIFkROLbL4d6gJaC0JC8QRhHYmh0/edit?pli=1&gid=2077750642#gid=2077750642" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              onClick={onClearNewTickets}
+              className="flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/30 rounded text-green-400 hover:bg-green-500 hover:text-black transition-all group h-14"
+            >
+              <TableProperties className="w-5 h-5 group-hover:scale-110 transition-transform" />
+              <div className="flex flex-col">
+                <span className="text-[10px] font-mono uppercase tracking-tighter opacity-70">External Link</span>
+                <span className="text-xs font-bold uppercase tracking-widest">Google Sheets Log</span>
+              </div>
+              <ExternalLink className="w-3 h-3 opacity-50 ml-1" />
+            </a>
+            {!!newTicketsCount && newTicketsCount > 0 && (
+              <div className="absolute -top-2 -right-2 bg-red-600 border-2 border-slate-900 rounded-full w-6 h-6 flex items-center justify-center animate-bounce shadow-[0_0_10px_#ef4444]">
+                <span className="text-white text-[10px] font-bold font-mono">{newTicketsCount}</span>
+              </div>
+            )}
+          </div>
 
           <div className="bg-black/40 border border-cyan-500/30 px-6 py-2 rounded-sm clip-corner flex items-center gap-4 h-14">
             <div className="text-right">

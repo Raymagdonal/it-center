@@ -50,10 +50,72 @@ function writeDb(db) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(db, null, 2), 'utf-8');
 }
 
+// ========== Google Sheets Integration ==========
+const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1M6f-xHA9E0mqdTbvIFkROLbL4d6gJaC0JC8QRhHYmh0/export?format=csv&gid=2077750642';
+
+async function syncWithGoogleSheets() {
+  try {
+    console.log('🔄 Syncing with Google Sheets...');
+    const response = await fetch(SHEET_CSV_URL);
+    if (!response.ok) throw new Error('Failed to fetch sheet');
+    const csv = await response.text();
+    
+    // Simple CSV parser (assuming comma separated and quoted)
+    const lines = csv.split('\n').map(l => l.trim()).filter(l => l);
+    if (lines.length <= 1) return; // Only header
+
+    const db = readDb();
+    let addedCount = 0;
+
+    // Skip header line
+    for (let i = 1; i < lines.length; i++) {
+      const parts = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(p => p.replace(/^"|"$/g, ''));
+      const [timestamp, reporter, message, , , , rawStatus] = parts;
+      if (!message || !reporter) continue;
+      
+      let status = 'PENDING';
+      if (rawStatus) {
+        if (rawStatus.includes('กำลังแก้ไข')) status = 'IN_PROGRESS';
+        else if (rawStatus.includes('เสร็จ') || rawStatus.includes('เรียบร้อย')) status = 'COMPLETED';
+      }
+
+      // Use message and reporter as unique key
+      const existing = db.tickets.find(t => 
+        t.issueDescription === message && t.contactName === reporter
+      );
+
+      if (!existing) {
+        db.tickets.push({
+          id: `sheet_${Date.now()}_${i}`,
+          deviceType: 'EXTERNAL',
+          deviceId: 'SHEET_FORM',
+          issueDescription: message,
+          contactName: reporter,
+          status: status,
+          timestamp: new Date(timestamp || Date.now()).toISOString(),
+          location: 'แจ้งผ่าน Google Form'
+        });
+        addedCount++;
+      } else if (existing.deviceId === 'SHEET_FORM' && existing.status !== status) {
+        existing.status = status;
+        addedCount++; // treat updates as changes to persist
+      }
+    }
+
+    if (addedCount > 0) {
+      writeDb(db);
+      console.log(`✅ Synced ${addedCount} changes from Google Sheets`);
+    }
+  } catch (err) {
+    console.error('❌ Google Sheets Sync Error:', err);
+  }
+}
+
 // ========== Universal API Routes ==========
 
 // GET all data (Initial Sync)
-app.get('/api/sync', (req, res) => {
+app.get('/api/sync', async (req, res) => {
+  await syncWithGoogleSheets();
   res.json(readDb());
 });
 

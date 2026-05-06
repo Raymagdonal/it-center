@@ -15,6 +15,7 @@ import { MediaMap } from './components/MediaMap';
 import { SimAisManager } from './components/SimAisManager';
 import { CalendarManager } from './components/CalendarManager';
 import { SaveIndicator } from './components/SaveIndicator';
+import { Activity } from 'lucide-react';
 import { safeSetItem, STORAGE_KEYS, checkStorageQuota } from './utils/storageUtils';
 import { fetchAllData, saveAllData, AppData } from './services/syncService';
 
@@ -316,6 +317,8 @@ const App: React.FC = () => {
   const [lastSavedTime, setLastSavedTime] = useState<Date | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [newTicketsCount, setNewTicketsCount] = useState(0);
+  const prevTicketsCountRef = React.useRef<number>(0);
 
   // State initialization
   const [tickets, setTickets] = useState<MaintenanceTicket[]>(() => {
@@ -367,24 +370,120 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : INITIAL_TICKET_MACHINES;
   });
 
-  // 🔄 Initial Sync from Backend (Render)
-  useEffect(() => {
-    const syncFromBackend = async () => {
-      const remoteData = await fetchAllData();
-      if (remoteData) {
-        if (remoteData.tickets?.length) setTickets(remoteData.tickets);
-        if (remoteData.stock?.length) setStockItems(remoteData.stock);
-        if (remoteData.assets?.length) setTrackedAssets(remoteData.assets);
-        if (remoteData.maritime?.length) setMaritimeItems(remoteData.maritime);
-        if (remoteData.reports?.length) setMeetingReports(remoteData.reports);
-        if (remoteData.folders?.length) setProcurementFolders(remoteData.folders);
-        if (remoteData.simCards?.length) setSimCards(remoteData.simCards);
-        if (remoteData.ticketMachines?.length) setTicketMachines(remoteData.ticketMachines);
-        console.log('✅ Backend Data Synced');
+  const syncWithGoogleSheetsDirect = async () => {
+    try {
+      const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1M6f-xHA9E0mqdTbvIFkROLbL4d6gJaC0JC8QRhHYmh0/export?format=csv&gid=2077750642';
+      const response = await fetch(SHEET_CSV_URL);
+      if (!response.ok) return [];
+      const csv = await response.text();
+      const lines = csv.split('\n').map(l => l.trim()).filter(l => l);
+      if (lines.length <= 1) return [];
+
+      const newTickets: MaintenanceTicket[] = [];
+      for (let i = 1; i < lines.length; i++) {
+        const parts = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(p => p.replace(/^"|"$/g, ''));
+        const [timestamp, reporter, message, , , , rawStatus] = parts;
+        if (!message || !reporter) continue;
+        
+        let status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' = 'PENDING';
+        if (rawStatus) {
+          if (rawStatus.includes('กำลังแก้ไข')) status = 'IN_PROGRESS';
+          else if (rawStatus.includes('เสร็จ') || rawStatus.includes('เรียบร้อย')) status = 'COMPLETED';
+        }
+
+        newTickets.push({
+          id: `sheet_direct_${reporter}_${i}`, // Using a stable ID base if possible
+          deviceType: 'EXTERNAL',
+          deviceId: 'SHEET_FORM',
+          issueDescription: message,
+          contactName: reporter,
+          status,
+          timestamp: new Date(timestamp || Date.now()).toISOString(),
+          location: 'แจ้งผ่าน Google Form',
+          // We can attach the raw status if needed, but standard status is fine
+        });
       }
-    };
-    syncFromBackend();
+      return newTickets;
+    } catch (e) {
+      return [];
+    }
+  };
+
+  // 🔄 Initial Sync from Backend (Render)
+  const syncFromBackend = useCallback(async (isPolling = false) => {
+    const remoteData = await fetchAllData();
+    const sheetTickets = await syncWithGoogleSheetsDirect();
+
+    setTickets(prevTickets => {
+      const remoteTickets = remoteData?.tickets || [];
+      let combinedTickets = [...prevTickets];
+      let changesDetected = 0;
+      
+      // 1. Update from remote backend data
+      remoteTickets.forEach(rt => {
+        const idx = combinedTickets.findIndex(t => t.id === rt.id);
+        if (idx >= 0) {
+          if (combinedTickets[idx].status !== rt.status) {
+            combinedTickets[idx] = { ...combinedTickets[idx], ...rt };
+            changesDetected++;
+          }
+        } else {
+          combinedTickets = [rt, ...combinedTickets];
+          changesDetected++;
+        }
+      });
+
+      // 2. Merge sheet tickets
+      sheetTickets.forEach(st => {
+        const existingIndex = combinedTickets.findIndex(t => 
+          t.issueDescription === st.issueDescription && t.contactName === st.contactName
+        );
+        
+        if (existingIndex >= 0) {
+          // Check if status changed
+          if (combinedTickets[existingIndex].status !== st.status && combinedTickets[existingIndex].deviceId === 'SHEET_FORM') {
+            combinedTickets[existingIndex] = { ...combinedTickets[existingIndex], status: st.status };
+            changesDetected++;
+          }
+        } else {
+          // New ticket from sheet
+          combinedTickets = [st, ...combinedTickets];
+          changesDetected++;
+        }
+      });
+
+      const currentCount = prevTickets.length;
+      if (changesDetected > 0 && currentCount > 0) {
+        setNewTicketsCount(prev => prev + changesDetected);
+      }
+      
+      return combinedTickets;
+    });
+
+    if (remoteData) {
+      if (remoteData.stock?.length) setStockItems(remoteData.stock);
+      if (remoteData.assets?.length) setTrackedAssets(remoteData.assets);
+      if (remoteData.maritime?.length) setMaritimeItems(remoteData.maritime);
+      if (remoteData.reports?.length) setMeetingReports(remoteData.reports);
+      if (remoteData.folders?.length) setProcurementFolders(remoteData.folders);
+      if (remoteData.simCards?.length) setSimCards(remoteData.simCards);
+      if (remoteData.ticketMachines?.length) setTicketMachines(remoteData.ticketMachines);
+      
+      if (!isPolling) console.log('✅ Backend + Sheet Data Sync Complete');
+    }
   }, []);
+
+  useEffect(() => {
+    // Initial sync
+    syncFromBackend();
+
+    // Set up polling every 15 seconds
+    const pollInterval = setInterval(() => {
+      syncFromBackend(true);
+    }, 15000);
+
+    return () => clearInterval(pollInterval);
+  }, [syncFromBackend]);
 
   // Persistence with error handling and save indicator
   useEffect(() => {
@@ -546,19 +645,25 @@ const App: React.FC = () => {
       <Sidebar
         currentMode={mode}
         onModeChange={(newMode) => handleNavigate(newMode, 'ALL')}
+        badges={{
+          TRACK: tickets.filter(t => t.status !== 'COMPLETED').length,
+          ADMIN: tickets.filter(t => t.status !== 'COMPLETED').length,
+        }}
       />
 
       <main className="flex-1 overflow-y-auto h-screen relative scroll-smooth bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')]">
         <div className="absolute inset-0 bg-gradient-to-br from-cyan-900/10 via-slate-950 to-purple-900/10 pointer-events-none fixed" />
 
         <div className="relative z-10 h-full">
-          {mode === 'HOME' && <Landing onNavigate={handleNavigate} tickets={tickets} assets={trackedAssets} procurementFolders={procurementFolders} onNavigateToFolder={handleNavigateToFolder} />}
+          {mode === 'HOME' && <Landing onNavigate={handleNavigate} tickets={tickets} assets={trackedAssets} procurementFolders={procurementFolders} onNavigateToFolder={handleNavigateToFolder} newTicketsCount={newTicketsCount} onClearNewTickets={() => setNewTicketsCount(0)} />}
           {mode === 'REPORT' && (
             <div className="py-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <ReportForm
                 onSubmit={(data) => handleTicketSubmit(data, editingTicket?.id)}
                 onCancel={() => handleNavigate('HOME')}
                 initialData={editingTicket}
+                newTicketsCount={newTicketsCount}
+                onClearNewTickets={() => setNewTicketsCount(0)}
               />
             </div>
           )}
@@ -674,6 +779,18 @@ const App: React.FC = () => {
               <span className="text-[10px] text-red-400 mt-0.5 uppercase tracking-wider font-bold">โปรดไปที่เมนู Backup เพื่อจัดการพื้นที่</span>
             </div>
             <button onClick={() => setSaveError(null)} className="text-red-400 hover:text-white transition-colors ml-2">✕</button>
+          </div>
+        </div>
+      )}
+      {/* New Data Notification */}
+      {newTicketsCount > 0 && (
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] animate-in slide-in-from-top duration-500">
+          <div className="bg-red-600/90 border border-red-400 text-white px-6 py-3 rounded-full shadow-[0_0_20px_#ef4444] backdrop-blur-md flex items-center gap-3">
+            <Activity className="w-5 h-5 animate-pulse" />
+            <span className="font-bold tracking-wider font-['Rajdhani'] uppercase">
+              ตรวจพบข้อมูลใหม่ {newTicketsCount} รายการ!
+            </span>
+            <button onClick={() => setNewTicketsCount(0)} className="ml-2 hover:scale-125 transition-transform">✕</button>
           </div>
         </div>
       )}
