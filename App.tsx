@@ -782,18 +782,7 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
-      {/* New Data Notification */}
-      {newTicketsCount > 0 && (
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] animate-in slide-in-from-top duration-500">
-          <div className="bg-red-600/90 border border-red-400 text-white px-6 py-3 rounded-full shadow-[0_0_20px_#ef4444] backdrop-blur-md flex items-center gap-3">
-            <Activity className="w-5 h-5 animate-pulse" />
-            <span className="font-bold tracking-wider font-['Rajdhani'] uppercase">
-              ตรวจพบข้อมูลใหม่ {newTicketsCount} รายการ!
-            </span>
-            <button onClick={() => setNewTicketsCount(0)} className="ml-2 hover:scale-125 transition-transform">✕</button>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 };
