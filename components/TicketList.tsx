@@ -21,11 +21,22 @@ interface TicketListProps {
 
 interface GroupedTicketFolder {
   id: string;
-  day: number;
   month: number;
   year: number;
   tickets: MaintenanceTicket[];
 }
+
+const THAI_MONTHS = [
+  'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+  'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+];
+
+const THAI_MONTHS_SHORT = [
+  'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
+  'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
+];
+
+const YEAR_OPTIONS = [2026, 2027, 2028, 2029, 2030];
 
 // --- Helpers ---
 
@@ -74,6 +85,7 @@ export const TicketList: React.FC<TicketListProps> = ({ tickets, isAdmin, onStat
   const [zoomState, setZoomState] = useState<{ images: string[], currentIndex: number } | null>(null);
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
   const [isEditingBatchDate, setIsEditingBatchDate] = useState(false);
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
   // Keyboard navigation for lightbox
   useEffect(() => {
@@ -121,36 +133,34 @@ export const TicketList: React.FC<TicketListProps> = ({ tickets, isAdmin, onStat
       });
   }, [tickets, filterStatus, searchTerm, sortBy]);
 
-  // Grouped Folders (Group strictly by Date)
+  // Grouped Folders (Group by Month — show all 12 months for selected year)
   const groupedFolders = useMemo(() => {
-    const folders: Record<string, GroupedTicketFolder> = {};
+    // Build a map of tickets grouped by month for the selected year
+    const ticketsByMonth: Record<number, MaintenanceTicket[]> = {};
 
     filteredTickets.forEach(t => {
       const date = new Date(t.timestamp);
       const year = date.getFullYear();
       const month = date.getMonth();
-      const day = date.getDate();
-      const folderKey = `${year}-${month}-${day}`;
-
-      if (!folders[folderKey]) {
-        folders[folderKey] = {
-          id: folderKey,
-          day,
-          month,
-          year,
-          tickets: []
-        };
+      if (year === selectedYear) {
+        if (!ticketsByMonth[month]) ticketsByMonth[month] = [];
+        ticketsByMonth[month].push(t);
       }
-      folders[folderKey].tickets.push(t);
     });
 
-    // Sort folders by date descending
-    return Object.values(folders).sort((a, b) => {
-      const dateA = new Date(a.year, a.month, a.day).getTime();
-      const dateB = new Date(b.year, b.month, b.day).getTime();
-      return dateB - dateA;
-    });
-  }, [filteredTickets]);
+    // Create all 12 month folders
+    const allFolders: GroupedTicketFolder[] = [];
+    for (let m = 0; m < 12; m++) {
+      allFolders.push({
+        id: `${selectedYear}-${m}`,
+        month: m,
+        year: selectedYear,
+        tickets: ticketsByMonth[m] || []
+      });
+    }
+
+    return allFolders;
+  }, [filteredTickets, selectedYear]);
 
   const activeFolder = useMemo(() =>
     groupedFolders.find(f => f.id === activeFolderId),
@@ -165,7 +175,7 @@ export const TicketList: React.FC<TicketListProps> = ({ tickets, isAdmin, onStat
   }, [activeFolderId, activeFolder]);
 
   // Added explicit type union to handle switching between folder view and direct list view
-  const displayedItems: (GroupedTicketFolder[] | MaintenanceTicket[]) = isGrouped && !activeFolderId ? groupedFolders : (activeFolderId ? activeFolder?.tickets || [] : filteredTickets);
+  const displayedItems: (GroupedTicketFolder[] | MaintenanceTicket[]) = isGrouped && !activeFolderId ? groupedFolders : (activeFolderId ? (activeFolder?.tickets || []) : filteredTickets);
 
   const exportToExcel = () => {
     if (!(window as any).XLSX) {
@@ -290,50 +300,39 @@ export const TicketList: React.FC<TicketListProps> = ({ tickets, isAdmin, onStat
               <h2 className="text-lg font-bold text-white tracking-tight font-['Rajdhani'] uppercase leading-none">
                 {activeFolderId && activeFolder ? (
                   <div className="flex items-center gap-2">
-                    <span>วันที่:</span>
-                    {isEditingBatchDate ? (
-                      <input
-                        type="date"
-                        autoFocus
-                        defaultValue={`${activeFolder.year}-${String(activeFolder.month + 1).padStart(2, '0')}-${String(activeFolder.day).padStart(2, '0')}`}
-                        onBlur={() => setIsEditingBatchDate(false)}
-                        onChange={(e) => {
-                          if (onBatchDateUpdate && activeFolder) {
-                            onBatchDateUpdate(activeFolder.tickets.map(t => t.id), e.target.value);
-                            setIsEditingBatchDate(false);
-                            // The folder ID will change, so we might want to clear or update it.
-                            // But usually the parent update will trigger a re-grouping.
-                            setActiveFolderId(null); 
-                          }
-                        }}
-                        className="bg-black border border-cyan-500/50 text-cyan-400 text-xs px-2 py-1 rounded outline-none focus:ring-1 focus:ring-cyan-500"
-                      />
-                    ) : (
-                      <button 
-                        onClick={() => setIsEditingBatchDate(true)}
-                        className="hover:text-cyan-400 transition-colors flex items-center gap-2 group/date"
-                      >
-                        {new Date(activeFolder.year, activeFolder.month, activeFolder.day).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        <Edit className="w-3.5 h-3.5 opacity-0 group-hover/date:opacity-100" />
-                      </button>
-                    )}
+                    <span>{THAI_MONTHS[activeFolder.month]} {activeFolder.year + 543}</span>
                   </div>
                 ) : (isAdmin ? 'System_Admin' : 'Status_Tracker')}
               </h2>
             </div>
             <p className="text-[10px] text-slate-500 font-mono tracking-widest mt-1">
-              {activeFolderId && activeFolder ? `BATCH_RECORDS_FOUND: ${activeFolder.tickets.length}` : (isAdmin ? 'TICKET_MANAGEMENT_CONSOLE' : 'USER_HISTORY_LOGS')}
+              {activeFolderId && activeFolder ? `MONTHLY_RECORDS: ${activeFolder.tickets.length} รายการ` : (isAdmin ? 'TICKET_MANAGEMENT_CONSOLE' : 'USER_HISTORY_LOGS')}
             </p>
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {/* Year Selector — always visible when in folder grid */}
+          {!activeFolderId && isGrouped && (
+            <div className="flex items-center gap-2 bg-black/50 border border-slate-700 rounded px-2">
+              <Calendar className="w-3 h-3 text-cyan-500" />
+              <select
+                value={selectedYear}
+                onChange={e => setSelectedYear(Number(e.target.value))}
+                className="bg-transparent text-xs text-cyan-400 outline-none py-2 cursor-pointer font-bold font-mono"
+              >
+                {YEAR_OPTIONS.map(y => (
+                  <option key={y} value={y}>พ.ศ. {y + 543}</option>
+                ))}
+              </select>
+            </div>
+          )}
           {!activeFolderId && (
             <button
               onClick={() => setIsGrouped(!isGrouped)}
               className={`h-8 px-3 rounded border text-[10px] font-bold uppercase transition-all flex items-center gap-2 ${isGrouped ? 'bg-cyan-500/10 border-cyan-500 text-cyan-400' : 'bg-slate-900 border-slate-700 text-slate-500'}`}
             >
-              <Folder className="w-3.5 h-3.5" /> {isGrouped ? 'จัดกลุ่มตามวันที่' : 'ปิดจัดกลุ่ม'}
+              <Folder className="w-3.5 h-3.5" /> {isGrouped ? 'จัดกลุ่มตามเดือน' : 'ปิดจัดกลุ่ม'}
             </button>
           )}
           <Button
@@ -379,7 +378,7 @@ export const TicketList: React.FC<TicketListProps> = ({ tickets, isAdmin, onStat
 
           <div className="flex items-center gap-3 w-full lg:w-auto justify-between lg:justify-end">
             <div className="text-[10px] text-slate-500 font-mono hidden sm:block">
-              SHOWING: <span className="text-white font-bold">{isGrouped ? (displayedItems as GroupedTicketFolder[]).length : (displayedItems as MaintenanceTicket[]).length}</span> {isGrouped ? 'DAYS' : 'RECORDS'}
+              SHOWING: <span className="text-white font-bold">{isGrouped ? (displayedItems as GroupedTicketFolder[]).length : (displayedItems as MaintenanceTicket[]).length}</span> {isGrouped ? 'MONTHS' : 'RECORDS'}
             </div>
 
             {!isGrouped && (
@@ -402,7 +401,7 @@ export const TicketList: React.FC<TicketListProps> = ({ tickets, isAdmin, onStat
         ) : (
           <>
             {isGrouped && !activeFolderId ? (
-              /* Folder Grid View: Group by Date only */
+              /* Folder Grid View: Group by Month */
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {(displayedItems as GroupedTicketFolder[]).map((folder: GroupedTicketFolder) => (
                   <TicketFolderCard
@@ -491,27 +490,32 @@ export const TicketList: React.FC<TicketListProps> = ({ tickets, isAdmin, onStat
 // --- Sub Components ---
 
 const TicketFolderCard: React.FC<{ folder: GroupedTicketFolder, onClick: () => void }> = ({ folder, onClick }) => {
-  const dateObj = new Date(folder.year, folder.month, folder.day);
-  const fullDateThai = dateObj.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+  const monthName = THAI_MONTHS[folder.month];
+  const monthShort = THAI_MONTHS_SHORT[folder.month];
+  const buddhistYear = folder.year + 543;
+  const isEmpty = folder.tickets.length === 0;
 
   const hasInProgress = folder.tickets.some(t => t.status === 'IN_PROGRESS');
   const hasPending = folder.tickets.some(t => t.status === 'PENDING');
+  const completedCount = folder.tickets.filter(t => t.status === 'COMPLETED').length;
+  const pendingCount = folder.tickets.filter(t => t.status === 'PENDING').length;
+  const inProgressCount = folder.tickets.filter(t => t.status === 'IN_PROGRESS').length;
 
   const uniqueTypes = Array.from(new Set(folder.tickets.map(t => t.deviceType)));
-  const typeLabel = uniqueTypes.length > 1 ? `อุปกรณ์ ${uniqueTypes.length} ประเภท` : getDeviceVisuals(uniqueTypes[0] as string).label;
+  const typeLabel = isEmpty ? 'ไม่มีรายการ' : uniqueTypes.length > 1 ? `อุปกรณ์ ${uniqueTypes.length} ประเภท` : getDeviceVisuals(uniqueTypes[0] as string).label;
 
   return (
     <div
       onClick={onClick}
-      className="group cursor-pointer relative"
+      className={`group cursor-pointer relative ${isEmpty ? 'opacity-50 hover:opacity-80' : ''}`}
     >
       <div className="absolute inset-0 bg-cyan-500 rounded-lg blur-xl opacity-0 group-hover:opacity-20 transition-all duration-500"></div>
-      <div className={`relative bg-slate-900/60 border-2 ${hasPending ? 'border-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.1)]' : hasInProgress ? 'border-cyan-500/40' : 'border-slate-800'} rounded-lg p-5 flex flex-col items-center gap-3 hover:scale-105 transition-all duration-300 backdrop-blur-md hover:border-cyan-500/50`}>
+      <div className={`relative bg-slate-900/60 border-2 ${hasPending ? 'border-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.1)]' : hasInProgress ? 'border-cyan-500/40' : isEmpty ? 'border-slate-800/50' : 'border-slate-800'} rounded-lg p-5 flex flex-col items-center gap-3 hover:scale-105 transition-all duration-300 backdrop-blur-md hover:border-cyan-500/50`}>
         <div className="relative">
-          <Folder className={`w-16 h-16 text-slate-700 group-hover:hidden transition-all duration-300 ${hasPending ? 'text-amber-500/60' : hasInProgress ? 'text-cyan-500/60' : ''}`} />
+          <Folder className={`w-16 h-16 text-slate-700 group-hover:hidden transition-all duration-300 ${hasPending ? 'text-amber-500/60' : hasInProgress ? 'text-cyan-500/60' : isEmpty ? 'text-slate-800' : ''}`} />
           <FolderOpen className={`w-16 h-16 text-cyan-400 hidden group-hover:block drop-shadow-[0_0_8px_rgba(34,211,238,0.6)]`} />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pt-2">
-            <Calendar className="w-5 h-5 text-slate-950" />
+            <span className={`text-xs font-bold font-mono ${isEmpty ? 'text-slate-800' : 'text-slate-950'}`}>{folder.month + 1}</span>
           </div>
           {hasPending && (
             <div className="absolute -top-1 -right-1">
@@ -521,11 +525,19 @@ const TicketFolderCard: React.FC<{ folder: GroupedTicketFolder, onClick: () => v
         </div>
 
         <div className="text-center w-full">
-          <h3 className="text-white font-bold text-lg font-display uppercase tracking-wider group-hover:text-cyan-300 transition-colors truncate">{fullDateThai}</h3>
-          <div className="flex flex-col items-center gap-1 mt-1">
-            <span className="text-[10px] font-mono font-bold uppercase text-cyan-500">{typeLabel}</span>
+          <h3 className="text-white font-bold text-lg font-display uppercase tracking-wider group-hover:text-cyan-300 transition-colors truncate">{monthName}</h3>
+          <div className="text-[10px] text-slate-500 font-mono">{buddhistYear}</div>
+          <div className="flex flex-col items-center gap-1 mt-2">
+            <span className={`text-[10px] font-mono font-bold uppercase ${isEmpty ? 'text-slate-600' : 'text-cyan-500'}`}>{typeLabel}</span>
+            {!isEmpty && (
+              <div className="flex items-center gap-1.5 mt-1">
+                {pendingCount > 0 && <span className="text-[9px] px-1.5 py-0.5 rounded font-bold border bg-amber-950/30 border-amber-500/30 text-amber-400">{pendingCount} รอ</span>}
+                {inProgressCount > 0 && <span className="text-[9px] px-1.5 py-0.5 rounded font-bold border bg-cyan-950/30 border-cyan-500/30 text-cyan-400">{inProgressCount} ซ่อม</span>}
+                {completedCount > 0 && <span className="text-[9px] px-1.5 py-0.5 rounded font-bold border bg-green-950/30 border-green-500/30 text-green-400">{completedCount} เสร็จ</span>}
+              </div>
+            )}
             <div className="mt-1">
-              <span className={`text-[10px] px-2 py-1 rounded font-bold border bg-slate-950 border-slate-800 text-slate-400`}>
+              <span className={`text-[10px] px-2 py-1 rounded font-bold border bg-slate-950 ${isEmpty ? 'border-slate-800/50 text-slate-600' : 'border-slate-800 text-slate-400'}`}>
                 {folder.tickets.length} รายการ
               </span>
             </div>
@@ -533,7 +545,7 @@ const TicketFolderCard: React.FC<{ folder: GroupedTicketFolder, onClick: () => v
         </div>
 
         <div className="mt-2 w-full pt-3 border-t border-slate-800/50 flex justify-between items-center">
-          <span className="text-[8px] font-mono text-slate-600 uppercase">View Daily Batch</span>
+          <span className="text-[8px] font-mono text-slate-600 uppercase">View Monthly Batch</span>
           <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-white group-hover:translate-x-1 transition-all" />
         </div>
       </div>
