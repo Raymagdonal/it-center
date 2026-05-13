@@ -319,6 +319,7 @@ const App: React.FC = () => {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [newTicketsCount, setNewTicketsCount] = useState(0);
   const prevTicketsCountRef = React.useRef<number>(0);
+  const isIncomingSyncRef = React.useRef(false);
 
   // State initialization
   const [tickets, setTickets] = useState<MaintenanceTicket[]>(() => {
@@ -452,6 +453,8 @@ const App: React.FC = () => {
         }
       });
 
+      // Avoid showing notification popup again as requested
+      // The notification popup was removed, but we keep the logical counter just in case
       const currentCount = prevTickets.length;
       if (changesDetected > 0 && currentCount > 0) {
         setNewTicketsCount(prev => prev + changesDetected);
@@ -477,10 +480,76 @@ const App: React.FC = () => {
     // Initial sync
     syncFromBackend();
 
-    // Set up polling every 15 seconds
+    // Setup Socket.IO for real-time updates
+    import('socket.io-client').then(({ io }) => {
+      const socket = io(import.meta.env.VITE_API_URL || 'https://it-center-i291.onrender.com');
+      
+      socket.on('database_updated', (remoteData) => {
+        console.log('⚡ Real-time update received from server');
+        isIncomingSyncRef.current = true;
+
+        if (remoteData.stock?.length) setStockItems(remoteData.stock);
+        if (remoteData.assets?.length) setTrackedAssets(remoteData.assets);
+        if (remoteData.maritime?.length) setMaritimeItems(remoteData.maritime);
+        if (remoteData.reports?.length) setMeetingReports(remoteData.reports);
+        if (remoteData.folders?.length) setProcurementFolders(remoteData.folders);
+        if (remoteData.simCards?.length) setSimCards(remoteData.simCards);
+        if (remoteData.ticketMachines?.length) setTicketMachines(remoteData.ticketMachines);
+        
+        // Use functional state update for tickets to merge
+        setTickets(prevTickets => {
+          const remoteTickets = remoteData.tickets || [];
+          let combinedTickets = [...prevTickets];
+          
+          remoteTickets.forEach((rt: any) => {
+            const idx = combinedTickets.findIndex(t => t.id === rt.id);
+            if (idx >= 0) {
+              if (combinedTickets[idx].status !== rt.status) {
+                combinedTickets[idx] = { ...combinedTickets[idx], ...rt };
+              }
+            } else {
+              combinedTickets = [rt, ...combinedTickets];
+            }
+          });
+          return combinedTickets;
+        });
+
+        // Reset the flag after the React states have settled and the save debounce (300ms) has triggered
+        setTimeout(() => {
+          isIncomingSyncRef.current = false;
+        }, 1000);
+      });
+
+      return () => {
+        socket.disconnect();
+      };
+    }).catch(err => console.error('Failed to load socket.io-client', err));
+
+    // Poll Google Sheets specifically every 30 seconds since it doesn't emit websockets
     const pollInterval = setInterval(() => {
-      syncFromBackend(true);
-    }, 15000);
+      syncWithGoogleSheetsDirect().then(sheetTickets => {
+        if (sheetTickets.length === 0) return;
+        setTickets(prevTickets => {
+          let combinedTickets = [...prevTickets];
+          let changed = false;
+          sheetTickets.forEach(st => {
+            const existingIndex = combinedTickets.findIndex(t => 
+              t.issueDescription === st.issueDescription && t.contactName === st.contactName
+            );
+            if (existingIndex >= 0) {
+              if (combinedTickets[existingIndex].status !== st.status && combinedTickets[existingIndex].deviceId === 'SHEET_FORM') {
+                combinedTickets[existingIndex] = { ...combinedTickets[existingIndex], status: st.status };
+                changed = true;
+              }
+            } else {
+              combinedTickets = [st, ...combinedTickets];
+              changed = true;
+            }
+          });
+          return changed ? combinedTickets : prevTickets;
+        });
+      });
+    }, 30000);
 
     return () => clearInterval(pollInterval);
   }, [syncFromBackend]);
@@ -488,6 +557,8 @@ const App: React.FC = () => {
   // Persistence with error handling and save indicator
   useEffect(() => {
     const saveData = async () => {
+      if (isIncomingSyncRef.current) return;
+
       setIsSaving(true);
       setSaveError(null);
 

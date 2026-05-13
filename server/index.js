@@ -3,8 +3,18 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const http = require('http');
+const { Server } = require('socket.io');
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE"]
+  }
+});
+
 const PORT = process.env.PORT || 5000;
 const DATA_FILE = path.join(__dirname, 'data', 'app_database.json');
 
@@ -48,6 +58,8 @@ function readDb() {
 function writeDb(db) {
   ensureDataDir();
   fs.writeFileSync(DATA_FILE, JSON.stringify(db, null, 2), 'utf-8');
+  // Broadcast updated database to all connected clients
+  io.emit('database_updated', db);
 }
 
 // ========== Google Sheets Integration ==========
@@ -169,8 +181,17 @@ app.post('/api/ticket-machines/reset', (req, res) => {
   res.json({ message: 'Reset successful', total: db.ticketMachines.length });
 });
 
+// ========== WebSockets (Real-time) ==========
+io.on('connection', (socket) => {
+  console.log(`🔌 Client connected: ${socket.id}`);
+  
+  socket.on('disconnect', () => {
+    console.log(`🔌 Client disconnected: ${socket.id}`);
+  });
+});
+
 // Start
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`🚀 IT-Repair Server running on port ${PORT}`);
   console.log(`💾 Database: ${DATA_FILE}`);
 });
