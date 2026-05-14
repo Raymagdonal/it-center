@@ -105,7 +105,8 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
   }, []);
 
   useEffect(() => {
-    loadFromApi();
+    // We skip automatic load on mount because App.tsx already handles the initial sync
+    // loadFromApi(); 
   }, []);
 
   // Get unique locations from data

@@ -320,6 +320,7 @@ const App: React.FC = () => {
   const [newTicketsCount, setNewTicketsCount] = useState(0);
   const prevTicketsCountRef = React.useRef<number>(0);
   const isIncomingSyncRef = React.useRef(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // State initialization
   const [tickets, setTickets] = useState<MaintenanceTicket[]>(() => {
@@ -412,6 +413,7 @@ const App: React.FC = () => {
 
   // 🔄 Initial Sync from Backend (Render)
   const syncFromBackend = useCallback(async (isPolling = false) => {
+    isIncomingSyncRef.current = true;
     const remoteData = await fetchAllData();
     const sheetTickets = await syncWithGoogleSheetsDirect();
 
@@ -474,6 +476,12 @@ const App: React.FC = () => {
       
       if (!isPolling) console.log('✅ Backend + Sheet Data Sync Complete');
     }
+    
+    setIsInitialized(true);
+    // Wait for state updates to settle before allowing saves
+    setTimeout(() => {
+      isIncomingSyncRef.current = false;
+    }, 1000);
   }, []);
 
   useEffect(() => {
@@ -557,7 +565,9 @@ const App: React.FC = () => {
   // Persistence with error handling and save indicator
   useEffect(() => {
     const saveData = async () => {
-      if (isIncomingSyncRef.current) return;
+      // Don't save until we've fetched the latest from the server
+      // and don't save if the change came from a remote sync
+      if (!isInitialized || isIncomingSyncRef.current) return;
 
       setIsSaving(true);
       setSaveError(null);
