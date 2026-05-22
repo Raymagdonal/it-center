@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Tablet, Search, Plus, Edit, Trash2, X, Save,
-  Hash, Calendar, FileText, MapPin, ExternalLink, TableProperties,
+  Hash, Calendar, FileText, MapPin,
   Filter, RefreshCcw, Loader2, CloudOff, Cloud
 } from 'lucide-react';
 import { TicketMachine } from '../types';
@@ -242,18 +242,6 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
               <div className="text-[9px] text-cyan-600 uppercase font-bold tracking-wider">สถานที่</div>
             </div>
           </div>
-
-          {/* Google Sheet Link */}
-          <a
-            href="https://docs.google.com/spreadsheets/d/1M6f-xHA9E0mqdTbvIFkROLbL4d6gJaC0JC8QRhHYmh0/edit?pli=1&gid=2077750642#gid=2077750642"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-3 bg-green-500/10 border border-green-500/30 rounded text-green-400 hover:bg-green-500 hover:text-black transition-all group"
-          >
-            <TableProperties className="w-4 h-4 group-hover:scale-110 transition-transform" />
-            <span className="text-xs font-bold uppercase tracking-widest">Google Sheets</span>
-            <ExternalLink className="w-3 h-3 opacity-50" />
-          </a>
 
           {/* Reload from API */}
           <Button variant="ghost" onClick={loadFromApi} disabled={isLoading} className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10">

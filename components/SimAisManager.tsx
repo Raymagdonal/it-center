@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { SimCard } from '../types';
-import { Search, Edit, Plus, Check, X, Smartphone, Signal, Calendar, MapPin, Hash, FileText, SmartphoneNfc, Tag, Phone, ArrowUpDown, ChevronUp, ChevronDown, ArrowUp, ArrowDown, Mail, Store } from 'lucide-react';
+import { Search, Edit, Plus, Check, X, Smartphone, Signal, Calendar, MapPin, Hash, FileText, SmartphoneNfc, Tag, Phone, ArrowUpDown, ChevronUp, ChevronDown, ArrowUp, ArrowDown, Mail, Store, LayoutGrid, ExternalLink } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 
@@ -138,9 +138,24 @@ export const SimAisManager: React.FC<SimAisManagerProps> = ({ items, onUpdate })
                         </p>
                     </div>
                 </div>
-                <Button onClick={handleAddNew} className="bg-green-600 hover:bg-green-500 text-white border-none shadow-[0_0_15px_rgba(34,197,94,0.4)]">
-                    <Plus className="w-4 h-4 mr-2" /> REGISTER NEW SIM
-                </Button>
+                <div className="flex items-center gap-4 relative z-10">
+                    <a
+                        href="https://docs.google.com/spreadsheets/d/1gehAaireKFtj75uFyvmY3fua9udZKKcKHczEEFCDbJs/edit?gid=0#gid=0"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 h-12 px-5 bg-green-950/20 hover:bg-green-950/40 border border-green-500/30 hover:border-green-500/60 rounded-xl text-green-400 transition-all duration-300 shadow-[0_0_15px_rgba(34,197,94,0.05)] hover:shadow-[0_0_20px_rgba(34,197,94,0.15)] group shrink-0"
+                    >
+                        <LayoutGrid className="w-5 h-5 text-green-400 group-hover:scale-105 transition-transform" />
+                        <div className="flex flex-col text-left">
+                            <span className="text-[9px] font-bold tracking-widest text-green-500/70 font-mono leading-none mb-1">EXTERNAL LINK</span>
+                            <span className="text-xs font-black tracking-wider text-green-400 leading-none">GOOGLE SHEETS LOG</span>
+                        </div>
+                        <ExternalLink className="w-3.5 h-3.5 text-green-500/50 group-hover:text-green-400 transition-colors ml-1" />
+                    </a>
+                    <Button onClick={handleAddNew} className="bg-green-600 hover:bg-green-500 text-white border-none shadow-[0_0_15px_rgba(34,197,94,0.4)]">
+                        <Plus className="w-4 h-4 mr-2" /> REGISTER NEW SIM
+                    </Button>
+                </div>
             </div>
 
             {/* Toolbar */}
@@ -155,6 +170,7 @@ export const SimAisManager: React.FC<SimAisManagerProps> = ({ items, onUpdate })
                         className="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-200 focus:outline-none focus:border-green-500/50 focus:ring-1 focus:ring-green-500/50 transition-all font-mono"
                     />
                 </div>
+
             </div>
 
             {/* Table */}
