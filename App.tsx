@@ -490,31 +490,46 @@ const App: React.FC = () => {
 
     // Setup Socket.IO for real-time updates
     import('socket.io-client').then(({ io }) => {
-      const socket = io(import.meta.env.VITE_API_URL || 'https://it-center-i291.onrender.com');
+      const SERVER_URL = import.meta.env.VITE_API_URL || 'https://it-center-i291.onrender.com';
+      console.log(`🔌 Connecting Socket.IO to: ${SERVER_URL}`);
       
+      const socket = io(SERVER_URL, {
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionAttempts: Infinity,
+        transports: ['websocket', 'polling'],
+      });
+
+      socket.on('connect', () => {
+        console.log('✅ Socket.IO connected:', socket.id);
+      });
+
+      socket.on('disconnect', (reason) => {
+        console.log('❌ Socket.IO disconnected:', reason);
+      });
+
       socket.on('database_updated', (remoteData) => {
         console.log('⚡ Real-time update received from server');
         isIncomingSyncRef.current = true;
 
-        if (remoteData.stock?.length) setStockItems(remoteData.stock);
-        if (remoteData.assets?.length) setTrackedAssets(remoteData.assets);
-        if (remoteData.maritime?.length) setMaritimeItems(remoteData.maritime);
-        if (remoteData.reports?.length) setMeetingReports(remoteData.reports);
-        if (remoteData.folders?.length) setProcurementFolders(remoteData.folders);
-        if (remoteData.simCards?.length) setSimCards(remoteData.simCards);
-        if (remoteData.ticketMachines?.length) setTicketMachines(remoteData.ticketMachines);
+        // Sync all data (including empty arrays to clear stale data)
+        if (remoteData.stock !== undefined) setStockItems(remoteData.stock);
+        if (remoteData.assets !== undefined) setTrackedAssets(remoteData.assets);
+        if (remoteData.maritime !== undefined) setMaritimeItems(remoteData.maritime);
+        if (remoteData.reports !== undefined) setMeetingReports(remoteData.reports);
+        if (remoteData.folders !== undefined) setProcurementFolders(remoteData.folders);
+        if (remoteData.simCards !== undefined) setSimCards(remoteData.simCards);
+        if (remoteData.ticketMachines !== undefined) setTicketMachines(remoteData.ticketMachines);
         
-        // Use functional state update for tickets to merge
+        // Merge tickets (keep local tickets not yet on server)
         setTickets(prevTickets => {
-          const remoteTickets = remoteData.tickets || [];
+          const remoteTickets: any[] = remoteData.tickets || [];
           let combinedTickets = [...prevTickets];
           
           remoteTickets.forEach((rt: any) => {
             const idx = combinedTickets.findIndex(t => t.id === rt.id);
             if (idx >= 0) {
-              if (combinedTickets[idx].status !== rt.status) {
-                combinedTickets[idx] = { ...combinedTickets[idx], ...rt };
-              }
+              combinedTickets[idx] = { ...combinedTickets[idx], ...rt };
             } else {
               combinedTickets = [rt, ...combinedTickets];
             }
@@ -522,7 +537,6 @@ const App: React.FC = () => {
           return combinedTickets;
         });
 
-        // Reset the flag after the React states have settled and the save debounce (300ms) has triggered
         setTimeout(() => {
           isIncomingSyncRef.current = false;
         }, 1000);
