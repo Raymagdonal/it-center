@@ -15,6 +15,7 @@ import { MediaMap } from './components/MediaMap';
 import { SimAisManager } from './components/SimAisManager';
 import { CalendarManager } from './components/CalendarManager';
 import { RadioManager, RadioData } from './components/RadioManager';
+import { ViabusManager, ViabusData } from './components/ViabusManager';
 import { SaveIndicator } from './components/SaveIndicator';
 import { Activity } from 'lucide-react';
 import { safeSetItem, STORAGE_KEYS, checkStorageQuota } from './utils/storageUtils';
@@ -378,6 +379,11 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : { faultLogs: [], signalLogs: [] };
   });
 
+  const [viabusData, setViabusData] = useState<ViabusData>(() => {
+    const saved = localStorage.getItem('techfix_viabus_data');
+    return saved ? JSON.parse(saved) : { faultLogs: [], signalLogs: [] };
+  });
+
 
   const syncWithGoogleSheetsDirect = async () => {
     try {
@@ -481,6 +487,7 @@ const App: React.FC = () => {
       if (remoteData.simCards?.length) setSimCards(remoteData.simCards);
       if (remoteData.ticketMachines?.length) setTicketMachines(remoteData.ticketMachines);
       if (remoteData.radioData) setRadioData(remoteData.radioData);
+      if (remoteData.viabusData) setViabusData(remoteData.viabusData);
       
       if (!isPolling) console.log('✅ Backend + Sheet Data Sync Complete');
     }
@@ -529,6 +536,7 @@ const App: React.FC = () => {
         if (remoteData.simCards !== undefined) setSimCards(remoteData.simCards);
         if (remoteData.ticketMachines !== undefined) setTicketMachines(remoteData.ticketMachines);
         if (remoteData.radioData !== undefined) setRadioData(remoteData.radioData);
+        if (remoteData.viabusData !== undefined) setViabusData(remoteData.viabusData);
         
         // Merge tickets (keep local tickets not yet on server)
         setTickets(prevTickets => {
@@ -607,6 +615,7 @@ const App: React.FC = () => {
           safeSetItem(STORAGE_KEYS.SIM_CARDS, JSON.stringify(simCards)),
           safeSetItem(STORAGE_KEYS.TICKET_MACHINES, JSON.stringify(ticketMachines)),
           safeSetItem('techfix_radio_data', JSON.stringify(radioData)),
+          safeSetItem('techfix_viabus_data', JSON.stringify(viabusData)),
         ];
 
         // 2. Save to Backend (Render) - Expanded Storage
@@ -619,7 +628,8 @@ const App: React.FC = () => {
           folders: procurementFolders,
           simCards,
           ticketMachines,
-          radioData
+          radioData,
+          viabusData
         } as any;
         const backendSuccess = await saveAllData(appData);
 
@@ -648,7 +658,7 @@ const App: React.FC = () => {
     // Debounce saving to avoid too frequent writes
     const timeoutId = setTimeout(saveData, 300);
     return () => clearTimeout(timeoutId);
-  }, [tickets, stockItems, trackedAssets, maritimeItems, meetingReports, procurementFolders, simCards, ticketMachines, radioData]);
+  }, [tickets, stockItems, trackedAssets, maritimeItems, meetingReports, procurementFolders, simCards, ticketMachines, radioData, viabusData]);
 
   // Handlers
   const handleNavigate = (newMode: AppMode, filter: string = 'ALL') => {
@@ -842,6 +852,11 @@ const App: React.FC = () => {
           {mode === 'RADIO' && (
             <div className="animate-in fade-in duration-500">
               <RadioManager data={radioData} onUpdate={setRadioData} />
+            </div>
+          )}
+          {mode === 'VIABUS' && (
+            <div className="animate-in fade-in duration-500">
+              <ViabusManager data={viabusData} onUpdate={setViabusData} />
             </div>
           )}
           {mode === 'ADMIN' && (

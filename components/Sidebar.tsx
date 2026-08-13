@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, ShieldCheck, PlusCircle, LayoutDashboard, ShoppingCart, Map as MapIcon, Database, MapPin, Anchor, Cpu, List, HardDrive, FileText, ClipboardList, Package, Smartphone, Calendar, Tablet, Radio } from 'lucide-react';
+import { Activity, ShieldCheck, PlusCircle, LayoutDashboard, ShoppingCart, Map as MapIcon, Database, MapPin, Anchor, Cpu, List, HardDrive, FileText, ClipboardList, Package, Smartphone, Calendar, Tablet, Radio, Navigation } from 'lucide-react';
 import { AppMode } from '../types';
 
 interface SidebarProps {
@@ -24,6 +24,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { mode: 'CALENDAR', label: 'ปฏิทิน', subLabel: 'กิจกรรมรายวัน', icon: Calendar },
     { mode: 'SIM_AIS', label: 'SIM AIS', subLabel: 'จัดการซิมการ์ด', icon: Smartphone },
     { mode: 'RADIO', label: 'วิทยุสื่อสาร', subLabel: 'Radio Communication', icon: Radio },
+    { mode: 'VIABUS', label: 'Viabus', subLabel: 'Viabus System', icon: Navigation },
   ];
 
 
