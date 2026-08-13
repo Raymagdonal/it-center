@@ -28,20 +28,21 @@ export const CCTV_VESSELS = ['CTB1', 'CTB2', 'CTB3', 'R1', 'R2', 'R3', 'R4'] as 
 
 export type CctvLocationType = 'ท่าเรือ' | 'ในเรือ';
 
-export type CctvMemorySize = '32GB' | '64GB' | '128GB' | '256GB';
+export type CctvMemorySize = '32 GB' | '64 GB' | '128 GB' | '256 GB';
 
 export type CctvFaultCause =
   | 'กล้องดับ'
   | 'กระตุก'
   | 'ดู Online ไม่ได้'
-  | 'กล้องไม่บันทึก';
+  | 'กล้องไม่บันทึก'
+  | 'ใช้งานได้ปกติ';
 
 export interface CctvFaultLog {
   id: string;
   locationType: CctvLocationType;
   locationName: string;          // ชื่อท่าเรือ หรือ ชื่อเรือ
   cameraCount: number;           // จำนวนกล้อง (1-8 ตัว)
-  memorySize: CctvMemorySize;    // ความจุเมมโมรี่การ์ด (32GB-256GB)
+  memorySize: CctvMemorySize;    // ความจุเมมโมรี่การ์ด (32 GB-256 GB)
   reportDate: string;            // วันที่แจ้ง
   reporterName: string;          // ชื่อผู้แจ้ง
   faultCauses: CctvFaultCause[]; // เสีย: สาเหตุ (multiple)
@@ -64,6 +65,7 @@ const FAULT_CAUSES: CctvFaultCause[] = [
   'กระตุก',
   'ดู Online ไม่ได้',
   'กล้องไม่บันทึก',
+  'ใช้งานได้ปกติ',
 ];
 
 const FAULT_COLORS: Record<CctvFaultCause, string> = {
@@ -71,9 +73,10 @@ const FAULT_COLORS: Record<CctvFaultCause, string> = {
   'กระตุก':            'bg-amber-500/15 text-amber-300 border-amber-500/30',
   'ดู Online ไม่ได้':   'bg-purple-500/15 text-purple-300 border-purple-500/30',
   'กล้องไม่บันทึก':     'bg-orange-500/15 text-orange-300 border-orange-500/30',
+  'ใช้งานได้ปกติ':     'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
 };
 
-const MEMORY_SIZES: CctvMemorySize[] = ['32GB', '64GB', '128GB', '256GB'];
+const MEMORY_SIZES: CctvMemorySize[] = ['32 GB', '64 GB', '128 GB', '256 GB'];
 
 // ─────────────────────────────────────────────
 // Props
@@ -112,7 +115,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
     locationType: 'ท่าเรือ',
     locationName: CCTV_PIERS[0],
     cameraCount: 1,
-    memorySize: '64GB',
+    memorySize: '64 GB',
     reportDate: todayDate(),
     reporterName: '',
     faultCauses: [],
