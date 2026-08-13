@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, ShieldCheck, PlusCircle, LayoutDashboard, ShoppingCart, Map as MapIcon, Database, MapPin, Anchor, Cpu, List, HardDrive, FileText, ClipboardList, Package, Smartphone, Calendar, Tablet, Radio, Navigation } from 'lucide-react';
+import { Activity, ShieldCheck, PlusCircle, LayoutDashboard, ShoppingCart, Map as MapIcon, Database, MapPin, Anchor, Cpu, List, HardDrive, FileText, ClipboardList, Package, Smartphone, Calendar, Tablet, Radio, Navigation, Video } from 'lucide-react';
 import { AppMode } from '../types';
 
 interface SidebarProps {
@@ -21,6 +21,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { mode: 'ADMIN', label: 'ติดตาม/จัดการซ่อม', subLabel: 'ตรวจสอบ & อัปเดต', icon: Activity },
     { mode: 'RADIO', label: 'วิทยุสื่อสาร', subLabel: 'Radio Communication', icon: Radio },
     { mode: 'VIABUS', label: 'Viabus', subLabel: 'Viabus System', icon: Navigation },
+    { mode: 'CCTV_MANAGEMENT', label: 'CCTV', subLabel: 'CCTV System', icon: Video },
     { mode: 'MARITIME', label: 'ตรวจอุปกรณ์ในเรือ/บนท่า', subLabel: 'ตรวจกองเรือ', icon: Anchor },
     { mode: 'CALENDAR', label: 'ปฏิทิน', subLabel: 'กิจกรรมรายวัน', icon: Calendar },
     { mode: 'SIM_AIS', label: 'SIM AIS', subLabel: 'จัดการซิมการ์ด', icon: Smartphone },
