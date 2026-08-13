@@ -19,12 +19,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { mode: 'ASSET_TRACKING', label: 'เครื่องจำหน่ายตั๋ว', subLabel: 'Ticket Machine', icon: Tablet },
     { mode: 'REPORT', label: 'แจ้งซ่อมใหม่', subLabel: 'เริ่มกระบวนการ', icon: PlusCircle },
     { mode: 'ADMIN', label: 'ติดตาม/จัดการซ่อม', subLabel: 'ตรวจสอบ & อัปเดต', icon: Activity },
-    { mode: 'MARITIME', label: 'ตรวจอุปกรณ์ในเรือ/บนท่า', subLabel: 'ตรวจกองเรือ', icon: Anchor },
-    { mode: 'MEETING_REPORT', label: 'รายงานการประชุม', subLabel: 'ติดตามงานติดตั้ง/ซ่อม', icon: FileText },
-    { mode: 'CALENDAR', label: 'ปฏิทิน', subLabel: 'กิจกรรมรายวัน', icon: Calendar },
-    { mode: 'SIM_AIS', label: 'SIM AIS', subLabel: 'จัดการซิมการ์ด', icon: Smartphone },
     { mode: 'RADIO', label: 'วิทยุสื่อสาร', subLabel: 'Radio Communication', icon: Radio },
     { mode: 'VIABUS', label: 'Viabus', subLabel: 'Viabus System', icon: Navigation },
+    { mode: 'MARITIME', label: 'ตรวจอุปกรณ์ในเรือ/บนท่า', subLabel: 'ตรวจกองเรือ', icon: Anchor },
+    { mode: 'CALENDAR', label: 'ปฏิทิน', subLabel: 'กิจกรรมรายวัน', icon: Calendar },
+    { mode: 'SIM_AIS', label: 'SIM AIS', subLabel: 'จัดการซิมการ์ด', icon: Smartphone },
   ];
 
 
