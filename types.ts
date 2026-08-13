@@ -167,7 +167,8 @@ export interface TicketMachine {
   status?: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
 }
 
-export type AppMode = 'HOME' | 'REPORT' | 'TRACK' | 'ADMIN' | 'PROCUREMENT' | 'ASSET_TRACKING' | 'MARITIME' | 'BACKUP' | 'ALL_DEVICES' | 'MEETING_REPORT' | 'SIM_AIS' | 'CALENDAR';
+export type AppMode = 'HOME' | 'REPORT' | 'TRACK' | 'ADMIN' | 'PROCUREMENT' | 'ASSET_TRACKING' | 'MARITIME' | 'BACKUP' | 'ALL_DEVICES' | 'MEETING_REPORT' | 'SIM_AIS' | 'CALENDAR' | 'RADIO';
+
 
 
 export type LoadingState = 'idle' | 'analyzing' | 'submitting' | 'error' | 'success' | 'generating';

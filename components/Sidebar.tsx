@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { Activity, ShieldCheck, PlusCircle, LayoutDashboard, ShoppingCart, Map as MapIcon, Database, MapPin, Anchor, Cpu, List, HardDrive, FileText, ClipboardList, Package, Smartphone, Calendar, Tablet } from 'lucide-react';
+import { Activity, ShieldCheck, PlusCircle, LayoutDashboard, ShoppingCart, Map as MapIcon, Database, MapPin, Anchor, Cpu, List, HardDrive, FileText, ClipboardList, Package, Smartphone, Calendar, Tablet, Radio } from 'lucide-react';
 import { AppMode } from '../types';
 
 interface SidebarProps {
@@ -21,11 +20,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { mode: 'REPORT', label: 'แจ้งซ่อมใหม่', subLabel: 'เริ่มกระบวนการ', icon: PlusCircle },
     { mode: 'ADMIN', label: 'ติดตาม/จัดการซ่อม', subLabel: 'ตรวจสอบ & อัปเดต', icon: Activity },
     { mode: 'MARITIME', label: 'ตรวจอุปกรณ์ในเรือ/บนท่า', subLabel: 'ตรวจกองเรือ', icon: Anchor },
-
     { mode: 'MEETING_REPORT', label: 'รายงานการประชุม', subLabel: 'ติดตามงานติดตั้ง/ซ่อม', icon: FileText },
     { mode: 'CALENDAR', label: 'ปฏิทิน', subLabel: 'กิจกรรมรายวัน', icon: Calendar },
     { mode: 'SIM_AIS', label: 'SIM AIS', subLabel: 'จัดการซิมการ์ด', icon: Smartphone },
+    { mode: 'RADIO', label: 'วิทยุสื่อสาร', subLabel: 'Radio Communication', icon: Radio },
   ];
+
 
   return (
     <aside className="w-full md:w-80 h-auto md:h-screen sticky top-0 z-40 flex flex-col bg-[#050b14]/80 backdrop-blur-xl border-r border-cyan-900/50 shadow-[5px_0_30px_rgba(0,0,0,0.5)]">

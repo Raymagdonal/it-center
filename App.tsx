@@ -14,6 +14,7 @@ import { TicketMachineManager } from './components/TicketMachineManager';
 import { MediaMap } from './components/MediaMap';
 import { SimAisManager } from './components/SimAisManager';
 import { CalendarManager } from './components/CalendarManager';
+import { RadioManager, RadioData } from './components/RadioManager';
 import { SaveIndicator } from './components/SaveIndicator';
 import { Activity } from 'lucide-react';
 import { safeSetItem, STORAGE_KEYS, checkStorageQuota } from './utils/storageUtils';
@@ -372,6 +373,12 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : INITIAL_TICKET_MACHINES;
   });
 
+  const [radioData, setRadioData] = useState<RadioData>(() => {
+    const saved = localStorage.getItem('techfix_radio_data');
+    return saved ? JSON.parse(saved) : { faultLogs: [], signalLogs: [] };
+  });
+
+
   const syncWithGoogleSheetsDirect = async () => {
     try {
       const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1M6f-xHA9E0mqdTbvIFkROLbL4d6gJaC0JC8QRhHYmh0/export?format=csv&gid=2077750642';
@@ -473,6 +480,7 @@ const App: React.FC = () => {
       if (remoteData.folders?.length) setProcurementFolders(remoteData.folders);
       if (remoteData.simCards?.length) setSimCards(remoteData.simCards);
       if (remoteData.ticketMachines?.length) setTicketMachines(remoteData.ticketMachines);
+      if (remoteData.radioData) setRadioData(remoteData.radioData);
       
       if (!isPolling) console.log('✅ Backend + Sheet Data Sync Complete');
     }
@@ -520,6 +528,7 @@ const App: React.FC = () => {
         if (remoteData.folders !== undefined) setProcurementFolders(remoteData.folders);
         if (remoteData.simCards !== undefined) setSimCards(remoteData.simCards);
         if (remoteData.ticketMachines !== undefined) setTicketMachines(remoteData.ticketMachines);
+        if (remoteData.radioData !== undefined) setRadioData(remoteData.radioData);
         
         // Merge tickets (keep local tickets not yet on server)
         setTickets(prevTickets => {
@@ -597,6 +606,7 @@ const App: React.FC = () => {
           safeSetItem(STORAGE_KEYS.PROCUREMENT_FOLDERS, JSON.stringify(procurementFolders)),
           safeSetItem(STORAGE_KEYS.SIM_CARDS, JSON.stringify(simCards)),
           safeSetItem(STORAGE_KEYS.TICKET_MACHINES, JSON.stringify(ticketMachines)),
+          safeSetItem('techfix_radio_data', JSON.stringify(radioData)),
         ];
 
         // 2. Save to Backend (Render) - Expanded Storage
@@ -608,8 +618,9 @@ const App: React.FC = () => {
           reports: meetingReports,
           folders: procurementFolders,
           simCards,
-          ticketMachines
-        };
+          ticketMachines,
+          radioData
+        } as any;
         const backendSuccess = await saveAllData(appData);
 
         // Check for any errors
@@ -637,7 +648,7 @@ const App: React.FC = () => {
     // Debounce saving to avoid too frequent writes
     const timeoutId = setTimeout(saveData, 300);
     return () => clearTimeout(timeoutId);
-  }, [tickets, stockItems, trackedAssets, maritimeItems, meetingReports, procurementFolders, simCards, ticketMachines]);
+  }, [tickets, stockItems, trackedAssets, maritimeItems, meetingReports, procurementFolders, simCards, ticketMachines, radioData]);
 
   // Handlers
   const handleNavigate = (newMode: AppMode, filter: string = 'ALL') => {
@@ -826,6 +837,11 @@ const App: React.FC = () => {
           {mode === 'SIM_AIS' && (
             <div className="py-8 animate-in fade-in duration-500">
               <SimAisManager items={simCards} onUpdate={setSimCards} />
+            </div>
+          )}
+          {mode === 'RADIO' && (
+            <div className="animate-in fade-in duration-500">
+              <RadioManager data={radioData} onUpdate={setRadioData} />
             </div>
           )}
           {mode === 'ADMIN' && (
