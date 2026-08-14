@@ -166,8 +166,14 @@ export const RadioManager: React.FC<RadioManagerProps> = ({ data, onUpdate }) =>
         log.radioId.toString().includes(searchTerm);
       const matchRadio = filterRadioId === '' || log.radioId === filterRadioId;
       const matchCause = filterFaultCause === '' || log.faultCauses.includes(filterFaultCause as RadioFaultCause);
-      return matchSearch && matchRadio && matchCause;
-    }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }).sort((a, b) => {
+      const numA = parseInt(a.radioId, 10) || 0;
+      const numB = parseInt(b.radioId, 10) || 0;
+      if (numA !== numB) {
+        return numA - numB;
+      }
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
   }, [data.faultLogs, searchTerm, filterRadioId, filterFaultCause]);
 
   // ── Fault CRUD ──
