@@ -161,11 +161,12 @@ export const RadioManager: React.FC<RadioManagerProps> = ({ data, onUpdate }) =>
   const filteredFaultLogs = useMemo(() => {
     return data.faultLogs.filter(log => {
       const matchSearch = searchTerm === '' ||
-        log.reporterName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.locationDetail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.radioId.toString().includes(searchTerm);
+        (log.reporterName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (log.locationDetail || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (log.radioId || '').toString().includes(searchTerm);
       const matchRadio = filterRadioId === '' || log.radioId === filterRadioId;
-      const matchCause = filterFaultCause === '' || log.faultCauses.includes(filterFaultCause as RadioFaultCause);
+      const matchCause = filterFaultCause === '' || (log.faultCauses && log.faultCauses.includes(filterFaultCause as RadioFaultCause));
+      return matchSearch && matchRadio && matchCause;
     }).sort((a, b) => {
       const numA = parseInt(a.radioId, 10) || 0;
       const numB = parseInt(b.radioId, 10) || 0;
