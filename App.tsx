@@ -387,7 +387,7 @@ const App: React.FC = () => {
 
   const [cctvData, setCctvData] = useState<CctvData>(() => {
     const saved = localStorage.getItem('techfix_cctv_data');
-    return saved ? JSON.parse(saved) : { faultLogs: [] };
+    return saved ? JSON.parse(saved) : { cameras: [], faultLogs: [] };
   });
 
 
