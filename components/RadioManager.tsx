@@ -18,7 +18,9 @@ export type RadioFaultCause =
   | 'เครื่องร้อน'
   | 'เปิดเครื่องไม่ติด'
   | 'สัญญาณขาดๆหายๆ'
-  | 'แบตเสื่อม';
+  | 'แบตเสื่อม'
+  | 'จอไม่ติด'
+  | 'ตกน้ำ/สูญหาย';
 
 export interface RadioFaultLog {
   id: string;
@@ -60,6 +62,8 @@ const FAULT_CAUSES: RadioFaultCause[] = [
   'เปิดเครื่องไม่ติด',
   'สัญญาณขาดๆหายๆ',
   'แบตเสื่อม',
+  'จอไม่ติด',
+  'ตกน้ำ/สูญหาย',
 ];
 
 const FAULT_COLORS: Record<RadioFaultCause, string> = {
@@ -69,6 +73,8 @@ const FAULT_COLORS: Record<RadioFaultCause, string> = {
   'เปิดเครื่องไม่ติด':  'bg-rose-500/15 text-rose-300 border-rose-500/30',
   'สัญญาณขาดๆหายๆ':   'bg-purple-500/15 text-purple-300 border-purple-500/30',
   'แบตเสื่อม':         'bg-amber-500/15 text-amber-300 border-amber-500/30',
+  'จอไม่ติด':          'bg-blue-500/15 text-blue-300 border-blue-500/30',
+  'ตกน้ำ/สูญหาย':      'bg-cyan-500/15 text-cyan-300 border-cyan-500/30',
 };
 
 // ─────────────────────────────────────────────
