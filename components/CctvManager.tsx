@@ -1,11 +1,14 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Video, Plus, X, Save, Search, Edit, Trash2, AlertTriangle,
   CheckCircle, MapPin, Ship, User, Calendar, HardDrive,
-  Camera, Eye, Layers, ShieldCheck, Database, Wifi, WifiOff
+  Camera, Eye, Layers, ShieldCheck, Database, Smartphone,
+  Upload, Image as ImageIcon, Maximize2, ChevronLeft, ChevronRight, Loader2,
+  WifiOff
 } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
+import { compressImage } from '../utils/storageUtils';
 
 // ─────────────────────────────────────────────
 // Types
@@ -33,6 +36,7 @@ export type VesselName = typeof CCTV_VESSELS[number];
 export type CctvMemorySize = '32 GB' | '64 GB' | '128 GB' | '256 GB';
 export type CctvLocationType = 'ท่าเรือ' | 'ในเรือ';
 export type CctvStatus = 'ปกติ' | 'มีปัญหา' | 'ซ่อมบำรุง' | 'ออฟไลน์';
+export type CctvAppType = 'EZVIZ' | 'DMSS';
 
 export type CctvFaultCause =
   | 'กล้องดับ'
@@ -53,8 +57,9 @@ export interface CctvCamera {
   nvrCapacity?: '4TB';            // for Dahua
   installDate?: string;
   status: CctvStatus;
-  ipAddress?: string;
+  appType?: CctvAppType;          // EZVIZ or DMSS
   notes?: string;
+  images?: string[];              // Unlimited photos
   createdAt: string;
   updatedAt: string;
 }
@@ -71,6 +76,7 @@ export interface CctvFaultLog {
   fixedDate?: string;
   isFixed: boolean;
   causeDetails?: string;
+  images?: string[];              // Unlimited photos for fault report
   createdAt: string;
 }
 
@@ -95,8 +101,9 @@ export const DEFAULT_CCTV_CAMERAS: CctvCamera[] = [
     memorySize: '64 GB',
     status: 'ปกติ',
     installDate: '2026-01-10',
-    ipAddress: '192.168.10.21',
+    appType: 'EZVIZ',
     notes: 'กล้อง IP Camera EZVIZ ทางเข้า-ออกท่าเรือ',
+    images: [],
     createdAt: '2026-01-10T08:00:00.000Z',
     updatedAt: '2026-01-10T08:00:00.000Z',
   },
@@ -110,8 +117,9 @@ export const DEFAULT_CCTV_CAMERAS: CctvCamera[] = [
     memorySize: '128 GB',
     status: 'ปกติ',
     installDate: '2026-01-12',
-    ipAddress: '192.168.10.22',
+    appType: 'EZVIZ',
     notes: 'กล้อง EZVIZ ส่องโป๊ะเทียบเรือและจุดจำหน่ายตั๋ว',
+    images: [],
     createdAt: '2026-01-12T08:00:00.000Z',
     updatedAt: '2026-01-12T08:00:00.000Z',
   },
@@ -125,8 +133,9 @@ export const DEFAULT_CCTV_CAMERAS: CctvCamera[] = [
     memorySize: '64 GB',
     status: 'ปกติ',
     installDate: '2026-01-15',
-    ipAddress: '192.168.10.23',
+    appType: 'EZVIZ',
     notes: 'กล้อง EZVIZ ส่องทางเดินและโป๊ะเรือ',
+    images: [],
     createdAt: '2026-01-15T08:00:00.000Z',
     updatedAt: '2026-01-15T08:00:00.000Z',
   },
@@ -140,8 +149,9 @@ export const DEFAULT_CCTV_CAMERAS: CctvCamera[] = [
     memorySize: '128 GB',
     status: 'ปกติ',
     installDate: '2026-01-18',
-    ipAddress: '192.168.10.24',
+    appType: 'EZVIZ',
     notes: 'กล้อง EZVIZ จุดต่อแถวผู้โดยสาร 4 มุม',
+    images: [],
     createdAt: '2026-01-18T08:00:00.000Z',
     updatedAt: '2026-01-18T08:00:00.000Z',
   },
@@ -155,8 +165,9 @@ export const DEFAULT_CCTV_CAMERAS: CctvCamera[] = [
     memorySize: '64 GB',
     status: 'ปกติ',
     installDate: '2026-01-20',
-    ipAddress: '192.168.10.25',
+    appType: 'EZVIZ',
     notes: 'กล้อง EZVIZ หน้าวัดและโป๊ะเทียบเรือ',
+    images: [],
     createdAt: '2026-01-20T08:00:00.000Z',
     updatedAt: '2026-01-20T08:00:00.000Z',
   },
@@ -170,8 +181,9 @@ export const DEFAULT_CCTV_CAMERAS: CctvCamera[] = [
     memorySize: '64 GB',
     status: 'ปกติ',
     installDate: '2026-01-22',
-    ipAddress: '192.168.10.26',
+    appType: 'EZVIZ',
     notes: 'กล้อง EZVIZ ทางเชื่อม MRT สนามไชย',
+    images: [],
     createdAt: '2026-01-22T08:00:00.000Z',
     updatedAt: '2026-01-22T08:00:00.000Z',
   },
@@ -185,8 +197,9 @@ export const DEFAULT_CCTV_CAMERAS: CctvCamera[] = [
     memorySize: '128 GB',
     status: 'ปกติ',
     installDate: '2026-01-25',
-    ipAddress: '192.168.10.27',
+    appType: 'EZVIZ',
     notes: 'กล้อง EZVIZ โซนเยาวราชและทางขึ้นเรือ',
+    images: [],
     createdAt: '2026-01-25T08:00:00.000Z',
     updatedAt: '2026-01-25T08:00:00.000Z',
   },
@@ -200,8 +213,9 @@ export const DEFAULT_CCTV_CAMERAS: CctvCamera[] = [
     memorySize: '256 GB',
     status: 'ปกติ',
     installDate: '2026-01-28',
-    ipAddress: '192.168.10.28',
+    appType: 'EZVIZ',
     notes: 'กล้อง EZVIZ หน้าห้างไอคอนสยาม 4 จุด',
+    images: [],
     createdAt: '2026-01-28T08:00:00.000Z',
     updatedAt: '2026-01-28T08:00:00.000Z',
   },
@@ -215,8 +229,9 @@ export const DEFAULT_CCTV_CAMERAS: CctvCamera[] = [
     memorySize: '256 GB',
     status: 'ปกติ',
     installDate: '2026-02-01',
-    ipAddress: '192.168.10.29',
+    appType: 'EZVIZ',
     notes: 'ศูนย์กลางท่าเรือสาทร กล้อง EZVIZ 4 ตัว',
+    images: [],
     createdAt: '2026-02-01T08:00:00.000Z',
     updatedAt: '2026-02-01T08:00:00.000Z',
   },
@@ -230,8 +245,9 @@ export const DEFAULT_CCTV_CAMERAS: CctvCamera[] = [
     memorySize: '128 GB',
     status: 'ปกติ',
     installDate: '2026-02-03',
-    ipAddress: '192.168.10.30',
+    appType: 'EZVIZ',
     notes: 'กล้อง EZVIZ บันไดทางเชื่อมสถานี BTS',
+    images: [],
     createdAt: '2026-02-03T08:00:00.000Z',
     updatedAt: '2026-02-03T08:00:00.000Z',
   },
@@ -245,8 +261,9 @@ export const DEFAULT_CCTV_CAMERAS: CctvCamera[] = [
     memorySize: '128 GB',
     status: 'ปกติ',
     installDate: '2026-02-05',
-    ipAddress: '192.168.10.31',
+    appType: 'EZVIZ',
     notes: 'กล้อง EZVIZ โซนลานกิจกรรมและโป๊ะเรือ',
+    images: [],
     createdAt: '2026-02-05T08:00:00.000Z',
     updatedAt: '2026-02-05T08:00:00.000Z',
   },
@@ -262,8 +279,9 @@ export const DEFAULT_CCTV_CAMERAS: CctvCamera[] = [
     nvrCapacity: '4TB',
     status: 'ปกติ',
     installDate: '2026-01-10',
-    ipAddress: '192.168.20.11',
+    appType: 'DMSS',
     notes: 'ระบบกล้อง Dahua 4 จุด หัวเรือ, ท้ายเรือ, ห้องโดยสาร, ห้องกัปตัน พร้อมเครื่องบันทึก NVR 4TB',
+    images: [],
     createdAt: '2026-01-10T08:00:00.000Z',
     updatedAt: '2026-01-10T08:00:00.000Z',
   },
@@ -277,8 +295,9 @@ export const DEFAULT_CCTV_CAMERAS: CctvCamera[] = [
     nvrCapacity: '4TB',
     status: 'ปกติ',
     installDate: '2026-01-12',
-    ipAddress: '192.168.20.12',
+    appType: 'DMSS',
     notes: 'ระบบกล้อง Dahua 4 จุด พร้อมเครื่องบันทึก NVR 4TB',
+    images: [],
     createdAt: '2026-01-12T08:00:00.000Z',
     updatedAt: '2026-01-12T08:00:00.000Z',
   },
@@ -292,8 +311,9 @@ export const DEFAULT_CCTV_CAMERAS: CctvCamera[] = [
     nvrCapacity: '4TB',
     status: 'ปกติ',
     installDate: '2026-01-15',
-    ipAddress: '192.168.20.13',
+    appType: 'DMSS',
     notes: 'ระบบกล้อง Dahua 4 จุด พร้อมเครื่องบันทึก NVR 4TB',
+    images: [],
     createdAt: '2026-01-15T08:00:00.000Z',
     updatedAt: '2026-01-15T08:00:00.000Z',
   },
@@ -307,8 +327,9 @@ export const DEFAULT_CCTV_CAMERAS: CctvCamera[] = [
     nvrCapacity: '4TB',
     status: 'ปกติ',
     installDate: '2026-01-18',
-    ipAddress: '192.168.20.14',
+    appType: 'DMSS',
     notes: 'ระบบกล้อง Dahua 4 จุด พร้อมเครื่องบันทึก NVR 4TB',
+    images: [],
     createdAt: '2026-01-18T08:00:00.000Z',
     updatedAt: '2026-01-18T08:00:00.000Z',
   },
@@ -322,8 +343,9 @@ export const DEFAULT_CCTV_CAMERAS: CctvCamera[] = [
     nvrCapacity: '4TB',
     status: 'ปกติ',
     installDate: '2026-01-20',
-    ipAddress: '192.168.20.15',
+    appType: 'DMSS',
     notes: 'ระบบกล้อง Dahua 4 จุด พร้อมเครื่องบันทึก NVR 4TB',
+    images: [],
     createdAt: '2026-01-20T08:00:00.000Z',
     updatedAt: '2026-01-20T08:00:00.000Z',
   },
@@ -337,8 +359,9 @@ export const DEFAULT_CCTV_CAMERAS: CctvCamera[] = [
     nvrCapacity: '4TB',
     status: 'ปกติ',
     installDate: '2026-01-22',
-    ipAddress: '192.168.20.16',
+    appType: 'DMSS',
     notes: 'ระบบกล้อง Dahua 4 จุด พร้อมเครื่องบันทึก NVR 4TB',
+    images: [],
     createdAt: '2026-01-22T08:00:00.000Z',
     updatedAt: '2026-01-22T08:00:00.000Z',
   },
@@ -352,8 +375,9 @@ export const DEFAULT_CCTV_CAMERAS: CctvCamera[] = [
     nvrCapacity: '4TB',
     status: 'ปกติ',
     installDate: '2026-01-25',
-    ipAddress: '192.168.20.17',
+    appType: 'DMSS',
     notes: 'ระบบกล้อง Dahua 4 จุด พร้อมเครื่องบันทึก NVR 4TB',
+    images: [],
     createdAt: '2026-01-25T08:00:00.000Z',
     updatedAt: '2026-01-25T08:00:00.000Z',
   },
@@ -420,6 +444,14 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
   const [editingCamera, setEditingCamera] = useState<CctvCamera | null>(null);
   const [editingFault, setEditingFault] = useState<CctvFaultLog | null>(null);
 
+  // Uploading status & Lightbox viewer state
+  const [isUploading, setIsUploading] = useState(false);
+  const [lightboxImages, setLightboxImages] = useState<string[] | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  const cameraFileInputRef = useRef<HTMLInputElement | null>(null);
+  const faultFileInputRef = useRef<HTMLInputElement | null>(null);
+
   // Safe references
   const rawCameras = data?.cameras;
   const cameras: CctvCamera[] = useMemo(() => {
@@ -443,7 +475,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
     }
   }, []);
 
-  // ── Camera form ──
+  // ── Camera form state ──
   const emptyCameraPier = (): Omit<CctvCamera, 'id' | 'createdAt' | 'updatedAt'> => ({
     locationType: 'ท่าเรือ',
     locationName: CCTV_PIERS[0],
@@ -453,8 +485,9 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
     memorySize: '64 GB',
     status: 'ปกติ',
     installDate: '',
-    ipAddress: '',
+    appType: 'EZVIZ',
     notes: '',
+    images: [],
   });
 
   const emptyCameraVessel = (): Omit<CctvCamera, 'id' | 'createdAt' | 'updatedAt'> => ({
@@ -466,15 +499,16 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
     nvrCapacity: '4TB',
     status: 'ปกติ',
     installDate: '',
-    ipAddress: '',
+    appType: 'DMSS',
     notes: '',
+    images: [],
   });
 
   const [cameraForm, setCameraForm] = useState(
     registryTab === 'pier' ? emptyCameraPier() : emptyCameraVessel()
   );
 
-  // ── Fault form ──
+  // ── Fault form state ──
   const emptyFault = (): Omit<CctvFaultLog, 'id' | 'createdAt'> => ({
     locationType: 'ท่าเรือ',
     locationName: CCTV_PIERS[0],
@@ -484,6 +518,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
     fixedDate: '',
     isFixed: false,
     causeDetails: '',
+    images: [],
   });
 
   const [faultForm, setFaultForm] = useState(emptyFault());
@@ -509,6 +544,94 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
   const faultyCameras = cameras.filter(c => c.status !== 'ปกติ').length;
   const activeFaults = faultLogs.filter(l => !l.isFixed).length;
 
+  // ── Image Upload Handlers ──
+  const handleCameraImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    const newImages: string[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      try {
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        const compressed = await compressImage(base64, 1024, 0.75);
+        newImages.push(compressed);
+      } catch (err) {
+        console.error('Error compressing image:', err);
+      }
+    }
+
+    setCameraForm(prev => ({
+      ...prev,
+      images: [...(prev.images || []), ...newImages],
+    }));
+
+    setIsUploading(false);
+    if (cameraFileInputRef.current) {
+      cameraFileInputRef.current.value = '';
+    }
+  };
+
+  const removeCameraImage = (indexToRemove: number) => {
+    setCameraForm(prev => ({
+      ...prev,
+      images: (prev.images || []).filter((_, idx) => idx !== indexToRemove),
+    }));
+  };
+
+  const handleFaultImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    const newImages: string[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      try {
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        const compressed = await compressImage(base64, 1024, 0.75);
+        newImages.push(compressed);
+      } catch (err) {
+        console.error('Error compressing image:', err);
+      }
+    }
+
+    setFaultForm(prev => ({
+      ...prev,
+      images: [...(prev.images || []), ...newImages],
+    }));
+
+    setIsUploading(false);
+    if (faultFileInputRef.current) {
+      faultFileInputRef.current.value = '';
+    }
+  };
+
+  const removeFaultImage = (indexToRemove: number) => {
+    setFaultForm(prev => ({
+      ...prev,
+      images: (prev.images || []).filter((_, idx) => idx !== indexToRemove),
+    }));
+  };
+
+  const openLightbox = (images: string[], startIndex = 0) => {
+    setLightboxImages(images);
+    setLightboxIndex(startIndex);
+  };
+
   // ── Camera CRUD ──
   const openAddCamera = () => {
     setEditingCamera(null);
@@ -528,8 +651,9 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
       nvrCapacity: cam.nvrCapacity,
       status: cam.status,
       installDate: cam.installDate || '',
-      ipAddress: cam.ipAddress || '',
+      appType: cam.appType || (cam.brand === 'EZVIZ' ? 'EZVIZ' : 'DMSS'),
       notes: cam.notes || '',
+      images: cam.images || [],
     });
     setShowCameraModal(true);
   };
@@ -578,6 +702,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
       fixedDate: log.fixedDate || '',
       isFixed: log.isFixed,
       causeDetails: log.causeDetails || '',
+      images: log.images || [],
     });
     setShowFaultModal(true);
   };
@@ -618,114 +743,149 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
     const isPier = cam.locationType === 'ท่าเรือ';
     const statusCfg = STATUS_CONFIG[cam.status] || STATUS_CONFIG['ปกติ'];
     const StatusIcon = statusCfg.icon;
+    const hasImages = Array.isArray(cam.images) && cam.images.length > 0;
+    const currentApp = cam.appType || (isPier ? 'EZVIZ' : 'DMSS');
 
     return (
-      <div key={cam.id} className={`group relative bg-slate-900/60 border rounded-xl overflow-hidden transition-all hover:border-sky-500/30 hover:shadow-[0_0_20px_rgba(56,189,248,0.1)] ${
+      <div key={cam.id} className={`group relative bg-slate-900/60 border rounded-xl overflow-hidden transition-all hover:border-sky-500/30 hover:shadow-[0_0_20px_rgba(56,189,248,0.1)] flex flex-col justify-between ${
         cam.status !== 'ปกติ' ? 'border-red-500/40' : 'border-slate-700/60'
       }`}>
-        {/* Brand banner */}
-        <div className={`px-4 py-2.5 flex items-center justify-between ${
-          isPier
-            ? 'bg-gradient-to-r from-sky-900/40 to-slate-900/20 border-b border-sky-800/30'
-            : 'bg-gradient-to-r from-indigo-900/40 to-slate-900/20 border-b border-indigo-800/30'
-        }`}>
-          <div className="flex items-center gap-2">
-            <div className={`p-1.5 rounded-lg ${isPier ? 'bg-sky-500/20' : 'bg-indigo-500/20'}`}>
-              <Camera className={`w-4 h-4 ${isPier ? 'text-sky-400' : 'text-indigo-400'}`} />
-            </div>
-            <div>
-              <p className={`text-xs font-black uppercase tracking-widest font-mono ${isPier ? 'text-sky-300' : 'text-indigo-300'}`}>
-                {cam.brand}
-              </p>
-              <p className="text-[9px] text-slate-500 uppercase tracking-wider">
-                {isPier ? 'IP Camera' : 'CCTV Camera'}
-              </p>
-            </div>
-          </div>
-          {/* Status badge */}
-          <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold ${statusCfg.color}`}>
-            <StatusIcon className="w-3 h-3" />
-            {statusCfg.label}
-          </span>
-        </div>
-
-        {/* Location */}
-        <div className="px-4 py-3">
-          <div className="flex items-center gap-2 mb-3">
-            {isPier
-              ? <MapPin className="w-4 h-4 text-cyan-400 shrink-0" />
-              : <Ship className="w-4 h-4 text-blue-400 shrink-0" />
-            }
-            <div>
-              <p className="text-white font-bold text-sm">{cam.locationName}</p>
-              <p className={`text-[10px] font-mono uppercase tracking-wider ${isPier ? 'text-cyan-600' : 'text-blue-600'}`}>
-                {cam.locationType}
-              </p>
-            </div>
-          </div>
-
-          {/* Specs grid */}
-          <div className="grid grid-cols-2 gap-2">
-            {/* Camera count */}
-            <div className="bg-black/30 rounded-lg p-2.5 border border-slate-800">
-              <p className="text-[9px] text-slate-500 uppercase tracking-wider mb-1 font-mono">จำนวนกล้อง</p>
-              <div className="flex items-center gap-1.5">
-                <Camera className="w-3.5 h-3.5 text-sky-400" />
-                <p className="text-sky-300 font-bold font-mono text-sm">{cam.cameraCount} ตัว</p>
+        <div>
+          {/* Brand banner */}
+          <div className={`px-4 py-2.5 flex items-center justify-between ${
+            isPier
+              ? 'bg-gradient-to-r from-sky-900/40 to-slate-900/20 border-b border-sky-800/30'
+              : 'bg-gradient-to-r from-indigo-900/40 to-slate-900/20 border-b border-indigo-800/30'
+          }`}>
+            <div className="flex items-center gap-2">
+              <div className={`p-1.5 rounded-lg ${isPier ? 'bg-sky-500/20' : 'bg-indigo-500/20'}`}>
+                <Camera className={`w-4 h-4 ${isPier ? 'text-sky-400' : 'text-indigo-400'}`} />
               </div>
-            </div>
-
-            {/* Storage */}
-            <div className="bg-black/30 rounded-lg p-2.5 border border-slate-800">
-              <p className="text-[9px] text-slate-500 uppercase tracking-wider mb-1 font-mono">
-                {isPier ? 'SD Card' : 'NVR Storage'}
-              </p>
-              <div className="flex items-center gap-1.5">
-                {isPier
-                  ? <Database className="w-3.5 h-3.5 text-purple-400" />
-                  : <HardDrive className="w-3.5 h-3.5 text-amber-400" />
-                }
-                <p className={`font-bold font-mono text-sm ${isPier ? 'text-purple-300' : 'text-amber-300'}`}>
-                  {isPier ? cam.memorySize : cam.nvrCapacity || '4TB'}
+              <div>
+                <p className={`text-xs font-black uppercase tracking-widest font-mono ${isPier ? 'text-sky-300' : 'text-indigo-300'}`}>
+                  {cam.brand}
+                </p>
+                <p className="text-[9px] text-slate-500 uppercase tracking-wider">
+                  {isPier ? 'IP Camera' : 'CCTV Camera'}
                 </p>
               </div>
             </div>
+            {/* Status badge */}
+            <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold ${statusCfg.color}`}>
+              <StatusIcon className="w-3 h-3" />
+              {statusCfg.label}
+            </span>
           </div>
 
-          {/* Install date & IP */}
-          {(cam.installDate || cam.ipAddress) && (
-            <div className="mt-2 space-y-1">
+          {/* Location */}
+          <div className="px-4 py-3">
+            <div className="flex items-center gap-2 mb-3">
+              {isPier
+                ? <MapPin className="w-4 h-4 text-cyan-400 shrink-0" />
+                : <Ship className="w-4 h-4 text-blue-400 shrink-0" />
+              }
+              <div>
+                <p className="text-white font-bold text-sm">{cam.locationName}</p>
+                <p className={`text-[10px] font-mono uppercase tracking-wider ${isPier ? 'text-cyan-600' : 'text-blue-600'}`}>
+                  {cam.locationType}
+                </p>
+              </div>
+            </div>
+
+            {/* Specs grid */}
+            <div className="grid grid-cols-2 gap-2">
+              {/* Camera count */}
+              <div className="bg-black/30 rounded-lg p-2.5 border border-slate-800">
+                <p className="text-[9px] text-slate-500 uppercase tracking-wider mb-1 font-mono">จำนวนกล้อง</p>
+                <div className="flex items-center gap-1.5">
+                  <Camera className="w-3.5 h-3.5 text-sky-400" />
+                  <p className="text-sky-300 font-bold font-mono text-sm">{cam.cameraCount} ตัว</p>
+                </div>
+              </div>
+
+              {/* Storage */}
+              <div className="bg-black/30 rounded-lg p-2.5 border border-slate-800">
+                <p className="text-[9px] text-slate-500 uppercase tracking-wider mb-1 font-mono">
+                  {isPier ? 'SD Card' : 'NVR Storage'}
+                </p>
+                <div className="flex items-center gap-1.5">
+                  {isPier
+                    ? <Database className="w-3.5 h-3.5 text-purple-400" />
+                    : <HardDrive className="w-3.5 h-3.5 text-amber-400" />
+                  }
+                  <p className={`font-bold font-mono text-sm ${isPier ? 'text-purple-300' : 'text-amber-300'}`}>
+                    {isPier ? cam.memorySize : cam.nvrCapacity || '4TB'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Install date & Application */}
+            <div className="mt-2.5 space-y-1 bg-black/20 p-2 rounded-lg border border-slate-800/60">
               {cam.installDate && (
-                <p className="text-[10px] text-slate-500 font-mono flex items-center gap-1">
-                  <Calendar className="w-3 h-3" />
-                  ติดตั้ง {formatDateThai(cam.installDate)}
+                <p className="text-[10px] text-slate-400 font-mono flex items-center gap-1.5">
+                  <Calendar className="w-3 h-3 text-slate-500" />
+                  ติดตั้ง: {formatDateThai(cam.installDate)}
                 </p>
               )}
-              {cam.ipAddress && (
-                <p className="text-[10px] text-slate-500 font-mono flex items-center gap-1">
-                  <Wifi className="w-3 h-3" />
-                  {cam.ipAddress}
-                </p>
-              )}
+              <p className="text-[10px] text-slate-400 font-mono flex items-center gap-1.5">
+                <Smartphone className="w-3 h-3 text-cyan-400" />
+                Application: <span className="font-bold text-cyan-300">{currentApp}</span>
+              </p>
             </div>
-          )}
 
-          {cam.notes && (
-            <p className="mt-2 text-[11px] text-slate-400 line-clamp-2">{cam.notes}</p>
-          )}
+            {cam.notes && (
+              <p className="mt-2 text-[11px] text-slate-400 line-clamp-2">{cam.notes}</p>
+            )}
+
+            {/* Photo Gallery on Card */}
+            {hasImages && (
+              <div className="mt-3 pt-3 border-t border-slate-800/80">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[10px] text-slate-400 font-mono flex items-center gap-1">
+                    <ImageIcon className="w-3 h-3 text-sky-400" /> รูปภาพกล้อง ({cam.images!.length} รูป)
+                  </span>
+                  <button
+                    onClick={() => openLightbox(cam.images!, 0)}
+                    className="text-[10px] text-sky-400 hover:text-sky-300 font-mono flex items-center gap-0.5"
+                  >
+                    <Maximize2 className="w-2.5 h-2.5" /> ดูทั้งหมด
+                  </button>
+                </div>
+                <div className="flex gap-1.5 overflow-x-auto pb-1">
+                  {cam.images!.slice(0, 4).map((img, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => openLightbox(cam.images!, idx)}
+                      className="relative w-14 h-14 rounded-lg overflow-hidden border border-slate-700/80 cursor-pointer hover:opacity-80 transition-opacity shrink-0 group/img"
+                    >
+                      <img src={img} alt={`cctv-${idx}`} className="w-full h-full object-cover" />
+                      {idx === 3 && cam.images!.length > 4 && (
+                        <div className="absolute inset-0 bg-black/70 flex items-center justify-center text-[10px] text-white font-bold font-mono">
+                          +{cam.images!.length - 3}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Actions */}
-        <div className="px-4 pb-3 flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-all">
+        <div className="px-4 py-2.5 border-t border-slate-800/50 bg-black/20 flex gap-2 justify-end">
           <button
             onClick={() => openEditCamera(cam)}
-            className="p-1.5 text-slate-500 hover:text-sky-400 hover:bg-sky-950/30 rounded-full transition-all"
+            className="p-1.5 text-slate-400 hover:text-sky-400 hover:bg-sky-950/30 rounded-full transition-all"
+            title="แก้ไขข้อมูลกล้อง"
           >
             <Edit className="w-4 h-4" />
           </button>
           <button
             onClick={() => deleteCamera(cam.id)}
-            className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-950/30 rounded-full transition-all"
+            className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-950/30 rounded-full transition-all"
+            title="ลบกล้อง"
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -926,6 +1086,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                 <thead>
                   <tr className="border-b border-slate-700 bg-black/40 text-slate-400 text-xs uppercase tracking-wider font-mono whitespace-nowrap">
                     <th className="px-4 py-3 font-bold">สถานที่</th>
+                    <th className="px-4 py-3 font-bold">รูปภาพ</th>
                     <th className="px-4 py-3 font-bold">วันที่แจ้ง</th>
                     <th className="px-4 py-3 font-bold">ผู้แจ้ง</th>
                     <th className="px-4 py-3 font-bold">สาเหตุ</th>
@@ -936,7 +1097,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                 <tbody className="divide-y divide-slate-800/50">
                   {faultLogs.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-4 py-12 text-center text-slate-500 font-mono">
+                      <td colSpan={7} className="px-4 py-12 text-center text-slate-500 font-mono">
                         — ยังไม่มีรายการแจ้งปัญหา CCTV —
                       </td>
                     </tr>
@@ -956,6 +1117,23 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                             <span className="text-slate-200 font-bold text-xs">{log.locationName}</span>
                           </div>
                         </td>
+                        <td className="px-4 py-3">
+                          {log.images && log.images.length > 0 ? (
+                            <div className="flex gap-1 items-center">
+                              <div
+                                onClick={() => openLightbox(log.images!, 0)}
+                                className="w-10 h-10 rounded border border-slate-700 overflow-hidden cursor-pointer hover:opacity-80"
+                              >
+                                <img src={log.images[0]} alt="fault" className="w-full h-full object-cover" />
+                              </div>
+                              {log.images.length > 1 && (
+                                <span className="text-[10px] text-slate-400 font-mono">+{log.images.length - 1}</span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-slate-600 text-xs">—</span>
+                          )}
+                        </td>
                         <td className="px-4 py-3 font-mono text-slate-300 text-xs">{formatDateThai(log.reportDate)}</td>
                         <td className="px-4 py-3 text-slate-200">{log.reporterName}</td>
                         <td className="px-4 py-3">
@@ -964,6 +1142,9 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                               <span key={c} className={`px-2 py-0.5 rounded text-[10px] font-bold border ${FAULT_COLORS[c] || 'bg-slate-800 text-white'}`}>{c}</span>
                             ))}
                           </div>
+                          {log.causeDetails && (
+                            <p className="text-[11px] text-slate-400 mt-1 max-w-xs truncate" title={log.causeDetails}>{log.causeDetails}</p>
+                          )}
                         </td>
                         <td className="px-4 py-3">
                           {log.isFixed ? (
@@ -998,7 +1179,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
       {/* ════ CAMERA MODAL ════ */}
       {showCameraModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <Card className={`w-full max-w-md bg-slate-900 max-h-[90vh] overflow-y-auto ${
+          <Card className={`w-full max-w-lg bg-slate-900 max-h-[90vh] overflow-y-auto ${
             cameraForm.locationType === 'ท่าเรือ'
               ? 'border-sky-500/30 shadow-[0_0_50px_rgba(56,189,248,0.2)]'
               : 'border-indigo-500/30 shadow-[0_0_50px_rgba(99,102,241,0.2)]'
@@ -1028,9 +1209,15 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                       type="button"
                       onClick={() => {
                         if (lt === 'ท่าเรือ') {
-                          setCameraForm({ ...emptyCameraPier() });
+                          setCameraForm(prev => ({
+                            ...emptyCameraPier(),
+                            images: prev.images || [],
+                          }));
                         } else {
-                          setCameraForm({ ...emptyCameraVessel() });
+                          setCameraForm(prev => ({
+                            ...emptyCameraVessel(),
+                            images: prev.images || [],
+                          }));
                         }
                       }}
                       className={`flex-1 py-2.5 rounded-lg text-sm font-bold border transition-all flex items-center justify-center gap-1.5 ${
@@ -1125,6 +1312,32 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                 </div>
               )}
 
+              {/* Application Selector (EZVIZ / DMSS) */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                  <Smartphone className="w-3.5 h-3.5 text-cyan-400" /> Application
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(['EZVIZ', 'DMSS'] as CctvAppType[]).map(app => (
+                    <button
+                      key={app}
+                      type="button"
+                      onClick={() => setCameraForm(f => ({ ...f, appType: app }))}
+                      className={`py-2.5 px-3 rounded-lg text-xs font-bold font-mono border transition-all flex items-center justify-center gap-2 ${
+                        cameraForm.appType === app
+                          ? app === 'EZVIZ'
+                            ? 'bg-sky-500/20 border-sky-500/60 text-sky-300 shadow-[0_0_10px_rgba(56,189,248,0.3)]'
+                            : 'bg-indigo-500/20 border-indigo-500/60 text-indigo-300 shadow-[0_0_10px_rgba(99,102,241,0.3)]'
+                          : 'bg-black/30 border-slate-700 text-slate-500 hover:border-slate-600'
+                      }`}
+                    >
+                      <Smartphone className="w-3.5 h-3.5" />
+                      {app}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Status */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">สถานะ</label>
@@ -1163,18 +1376,76 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                 />
               </div>
 
-              {/* IP Address */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                  <Wifi className="w-3.5 h-3.5" /> IP Address (ไม่บังคับ)
-                </label>
+              {/* 📷 Unlimited Photo Upload Section */}
+              <div className="space-y-2 pt-2 border-t border-slate-800">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-sky-400 uppercase tracking-widest flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5" /> รูปภาพกล้อง / สถานที่ติดตั้ง (ไม่จำกัดจำนวน)
+                  </label>
+                  <span className="text-[10px] text-slate-500 font-mono">
+                    {cameraForm.images?.length || 0} รูป
+                  </span>
+                </div>
+
+                {/* Upload Button Box */}
                 <input
-                  type="text"
-                  value={cameraForm.ipAddress}
-                  onChange={e => setCameraForm(f => ({ ...f, ipAddress: e.target.value }))}
-                  placeholder="192.168.1.x"
-                  className="w-full bg-black/50 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:border-sky-500 outline-none font-mono text-sm"
+                  ref={cameraFileInputRef}
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleCameraImageUpload}
+                  className="hidden"
                 />
+
+                <div
+                  onClick={() => cameraFileInputRef.current?.click()}
+                  className="w-full py-4 px-4 rounded-xl border-2 border-dashed border-sky-500/30 hover:border-sky-400 bg-sky-950/10 hover:bg-sky-950/20 transition-all cursor-pointer flex flex-col items-center justify-center gap-1 text-center group/drop"
+                >
+                  {isUploading ? (
+                    <div className="flex items-center gap-2 text-sky-400">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span className="text-xs font-mono">กำลังประมวลผลรูปภาพ...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="p-2 rounded-full bg-sky-500/20 text-sky-400 group-hover/drop:scale-110 transition-transform">
+                        <Upload className="w-4 h-4" />
+                      </div>
+                      <p className="text-xs font-bold text-sky-300">คลิกเพื่ออัปโหลดรูปภาพ</p>
+                      <p className="text-[10px] text-slate-500">รองรับ JPG, PNG (อัปโหลดพร้อมกันได้หลายรูปไม่จำกัด)</p>
+                    </>
+                  )}
+                </div>
+
+                {/* Thumbnail Grid */}
+                {cameraForm.images && cameraForm.images.length > 0 && (
+                  <div className="grid grid-cols-4 gap-2 pt-2 max-h-48 overflow-y-auto">
+                    {cameraForm.images.map((img, idx) => (
+                      <div key={idx} className="relative group/thumb rounded-lg overflow-hidden border border-slate-700 aspect-square">
+                        <img src={img} alt={`preview-${idx}`} className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removeCameraImage(idx)}
+                          className="absolute top-1 right-1 p-1 rounded-full bg-red-600/90 text-white opacity-0 group-hover/thumb:opacity-100 transition-opacity hover:bg-red-500"
+                          title="ลบรูป"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openLightbox(cameraForm.images!, idx)}
+                          className="absolute bottom-1 right-1 p-1 rounded-full bg-black/70 text-white opacity-0 group-hover/thumb:opacity-100 transition-opacity hover:bg-black/90"
+                          title="ขยายรูป"
+                        >
+                          <Maximize2 className="w-3 h-3" />
+                        </button>
+                        <span className="absolute bottom-1 left-1 px-1 rounded bg-black/70 text-[9px] font-mono text-slate-300">
+                          #{idx + 1}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Notes */}
@@ -1206,7 +1477,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
       {/* ════ FAULT MODAL ════ */}
       {showFaultModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <Card className="w-full max-w-md bg-slate-900 border-red-500/30 shadow-[0_0_50px_rgba(239,68,68,0.15)] max-h-[90vh] overflow-y-auto">
+          <Card className="w-full max-w-lg bg-slate-900 border-red-500/30 shadow-[0_0_50px_rgba(239,68,68,0.15)] max-h-[90vh] overflow-y-auto">
             <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-gradient-to-r from-slate-900 to-red-950/20">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-red-400" />
@@ -1305,6 +1576,52 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                 </div>
               </div>
 
+              {/* 📷 Fault Photos */}
+              <div className="space-y-2 pt-2 border-t border-slate-800">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-red-400 uppercase tracking-widest flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5" /> แนบรูปภาพปัญหา (ไม่จำกัดจำนวน)
+                  </label>
+                  <span className="text-[10px] text-slate-500 font-mono">
+                    {faultForm.images?.length || 0} รูป
+                  </span>
+                </div>
+
+                <input
+                  ref={faultFileInputRef}
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleFaultImageUpload}
+                  className="hidden"
+                />
+
+                <div
+                  onClick={() => faultFileInputRef.current?.click()}
+                  className="w-full py-3 px-4 rounded-xl border-2 border-dashed border-red-500/30 hover:border-red-400 bg-red-950/10 hover:bg-red-950/20 transition-all cursor-pointer flex flex-col items-center justify-center gap-1 text-center"
+                >
+                  <Upload className="w-4 h-4 text-red-400" />
+                  <p className="text-xs font-bold text-red-300">คลิกเพื่ออัปโหลดรูปภาพปัญหา</p>
+                </div>
+
+                {faultForm.images && faultForm.images.length > 0 && (
+                  <div className="grid grid-cols-4 gap-2 pt-2 max-h-36 overflow-y-auto">
+                    {faultForm.images.map((img, idx) => (
+                      <div key={idx} className="relative group/thumb rounded-lg overflow-hidden border border-slate-700 aspect-square">
+                        <img src={img} alt={`fault-thumb-${idx}`} className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removeFaultImage(idx)}
+                          className="absolute top-1 right-1 p-1 rounded-full bg-red-600/90 text-white opacity-0 group-hover/thumb:opacity-100 transition-opacity hover:bg-red-500"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="space-y-2 p-3 rounded-lg bg-black/30 border border-slate-800">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -1344,6 +1661,46 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
               </Button>
             </div>
           </Card>
+        </div>
+      )}
+
+      {/* ════ LIGHTBOX IMAGE VIEWER MODAL ════ */}
+      {lightboxImages && lightboxImages.length > 0 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <button
+            onClick={() => setLightboxImages(null)}
+            className="absolute top-4 right-4 p-2 rounded-full bg-slate-800 text-white hover:bg-slate-700 transition-colors z-10"
+          >
+            <X className="w-6 h-6" />
+          </button>
+
+          {lightboxImages.length > 1 && (
+            <>
+              <button
+                onClick={() => setLightboxIndex((prev) => (prev > 0 ? prev - 1 : lightboxImages.length - 1))}
+                className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/60 text-white hover:bg-black/90 transition-all z-10"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+              <button
+                onClick={() => setLightboxIndex((prev) => (prev < lightboxImages.length - 1 ? prev + 1 : 0))}
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/60 text-white hover:bg-black/90 transition-all z-10"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+            </>
+          )}
+
+          <div className="flex flex-col items-center max-w-4xl max-h-[85vh] w-full">
+            <img
+              src={lightboxImages[lightboxIndex]}
+              alt={`cctv-full-${lightboxIndex}`}
+              className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl border border-slate-800"
+            />
+            <div className="mt-3 px-4 py-1.5 rounded-full bg-black/60 border border-slate-800 text-slate-300 text-xs font-mono">
+              รูปที่ {lightboxIndex + 1} จากทั้งหมด {lightboxImages.length} รูป
+            </div>
+          </div>
         </div>
       )}
     </div>
