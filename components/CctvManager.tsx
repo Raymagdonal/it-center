@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Video, Plus, X, Save, Search, Edit, Trash2, AlertTriangle,
   CheckCircle, MapPin, Ship, User, Calendar, HardDrive,
@@ -48,7 +48,6 @@ export interface CctvCamera {
   locationName: string;           // pier name or vessel name
   brand: 'EZVIZ' | 'Dahua';
   cameraCount: number;            // 1-8 cameras
-  // Pier: SD card memory size; Vessel: NVR 4TB
   storageType: 'SD Card' | 'NVR';
   memorySize?: CctvMemorySize;    // for EZVIZ (SD card)
   nvrCapacity?: '4TB';            // for Dahua
@@ -63,7 +62,7 @@ export interface CctvCamera {
 // Fault Log
 export interface CctvFaultLog {
   id: string;
-  cameraId?: string;              // linked camera id
+  cameraId?: string;
   locationType: CctvLocationType;
   locationName: string;
   reportDate: string;
@@ -81,7 +80,287 @@ export interface CctvData {
 }
 
 // ─────────────────────────────────────────────
-// Constants
+// Default Mockup Cameras (11 Piers EZVIZ + 7 Vessels Dahua)
+// ─────────────────────────────────────────────
+
+export const DEFAULT_CCTV_CAMERAS: CctvCamera[] = [
+  // 11 Piers (EZVIZ - SD Card)
+  {
+    id: 'cctv_pier_1',
+    locationType: 'ท่าเรือ',
+    locationName: 'ท่าพระอาทิตย์',
+    brand: 'EZVIZ',
+    cameraCount: 2,
+    storageType: 'SD Card',
+    memorySize: '64 GB',
+    status: 'ปกติ',
+    installDate: '2026-01-10',
+    ipAddress: '192.168.10.21',
+    notes: 'กล้อง IP Camera EZVIZ ทางเข้า-ออกท่าเรือ',
+    createdAt: '2026-01-10T08:00:00.000Z',
+    updatedAt: '2026-01-10T08:00:00.000Z',
+  },
+  {
+    id: 'cctv_pier_2',
+    locationType: 'ท่าเรือ',
+    locationName: 'ท่าพรานนก',
+    brand: 'EZVIZ',
+    cameraCount: 3,
+    storageType: 'SD Card',
+    memorySize: '128 GB',
+    status: 'ปกติ',
+    installDate: '2026-01-12',
+    ipAddress: '192.168.10.22',
+    notes: 'กล้อง EZVIZ ส่องโป๊ะเทียบเรือและจุดจำหน่ายตั๋ว',
+    createdAt: '2026-01-12T08:00:00.000Z',
+    updatedAt: '2026-01-12T08:00:00.000Z',
+  },
+  {
+    id: 'cctv_pier_3',
+    locationType: 'ท่าเรือ',
+    locationName: 'ท่ามหาราช',
+    brand: 'EZVIZ',
+    cameraCount: 2,
+    storageType: 'SD Card',
+    memorySize: '64 GB',
+    status: 'ปกติ',
+    installDate: '2026-01-15',
+    ipAddress: '192.168.10.23',
+    notes: 'กล้อง EZVIZ ส่องทางเดินและโป๊ะเรือ',
+    createdAt: '2026-01-15T08:00:00.000Z',
+    updatedAt: '2026-01-15T08:00:00.000Z',
+  },
+  {
+    id: 'cctv_pier_4',
+    locationType: 'ท่าเรือ',
+    locationName: 'ท่าช้าง',
+    brand: 'EZVIZ',
+    cameraCount: 4,
+    storageType: 'SD Card',
+    memorySize: '128 GB',
+    status: 'ปกติ',
+    installDate: '2026-01-18',
+    ipAddress: '192.168.10.24',
+    notes: 'กล้อง EZVIZ จุดต่อแถวผู้โดยสาร 4 มุม',
+    createdAt: '2026-01-18T08:00:00.000Z',
+    updatedAt: '2026-01-18T08:00:00.000Z',
+  },
+  {
+    id: 'cctv_pier_5',
+    locationType: 'ท่าเรือ',
+    locationName: 'ท่าวัดอรุณฯ',
+    brand: 'EZVIZ',
+    cameraCount: 2,
+    storageType: 'SD Card',
+    memorySize: '64 GB',
+    status: 'ปกติ',
+    installDate: '2026-01-20',
+    ipAddress: '192.168.10.25',
+    notes: 'กล้อง EZVIZ หน้าวัดและโป๊ะเทียบเรือ',
+    createdAt: '2026-01-20T08:00:00.000Z',
+    updatedAt: '2026-01-20T08:00:00.000Z',
+  },
+  {
+    id: 'cctv_pier_6',
+    locationType: 'ท่าเรือ',
+    locationName: 'ท่าราชินี',
+    brand: 'EZVIZ',
+    cameraCount: 2,
+    storageType: 'SD Card',
+    memorySize: '64 GB',
+    status: 'ปกติ',
+    installDate: '2026-01-22',
+    ipAddress: '192.168.10.26',
+    notes: 'กล้อง EZVIZ ทางเชื่อม MRT สนามไชย',
+    createdAt: '2026-01-22T08:00:00.000Z',
+    updatedAt: '2026-01-22T08:00:00.000Z',
+  },
+  {
+    id: 'cctv_pier_7',
+    locationType: 'ท่าเรือ',
+    locationName: 'ท่าราชวงศ์',
+    brand: 'EZVIZ',
+    cameraCount: 3,
+    storageType: 'SD Card',
+    memorySize: '128 GB',
+    status: 'ปกติ',
+    installDate: '2026-01-25',
+    ipAddress: '192.168.10.27',
+    notes: 'กล้อง EZVIZ โซนเยาวราชและทางขึ้นเรือ',
+    createdAt: '2026-01-25T08:00:00.000Z',
+    updatedAt: '2026-01-25T08:00:00.000Z',
+  },
+  {
+    id: 'cctv_pier_8',
+    locationType: 'ท่าเรือ',
+    locationName: 'ท่าไอคอนสยาม',
+    brand: 'EZVIZ',
+    cameraCount: 4,
+    storageType: 'SD Card',
+    memorySize: '256 GB',
+    status: 'ปกติ',
+    installDate: '2026-01-28',
+    ipAddress: '192.168.10.28',
+    notes: 'กล้อง EZVIZ หน้าห้างไอคอนสยาม 4 จุด',
+    createdAt: '2026-01-28T08:00:00.000Z',
+    updatedAt: '2026-01-28T08:00:00.000Z',
+  },
+  {
+    id: 'cctv_pier_9',
+    locationType: 'ท่าเรือ',
+    locationName: 'ท่าสาทร',
+    brand: 'EZVIZ',
+    cameraCount: 4,
+    storageType: 'SD Card',
+    memorySize: '256 GB',
+    status: 'ปกติ',
+    installDate: '2026-02-01',
+    ipAddress: '192.168.10.29',
+    notes: 'ศูนย์กลางท่าเรือสาทร กล้อง EZVIZ 4 ตัว',
+    createdAt: '2026-02-01T08:00:00.000Z',
+    updatedAt: '2026-02-01T08:00:00.000Z',
+  },
+  {
+    id: 'cctv_pier_10',
+    locationType: 'ท่าเรือ',
+    locationName: 'BTS สะพานตากสิน',
+    brand: 'EZVIZ',
+    cameraCount: 2,
+    storageType: 'SD Card',
+    memorySize: '128 GB',
+    status: 'ปกติ',
+    installDate: '2026-02-03',
+    ipAddress: '192.168.10.30',
+    notes: 'กล้อง EZVIZ บันไดทางเชื่อมสถานี BTS',
+    createdAt: '2026-02-03T08:00:00.000Z',
+    updatedAt: '2026-02-03T08:00:00.000Z',
+  },
+  {
+    id: 'cctv_pier_11',
+    locationType: 'ท่าเรือ',
+    locationName: 'ท่าเอเชียทีค',
+    brand: 'EZVIZ',
+    cameraCount: 3,
+    storageType: 'SD Card',
+    memorySize: '128 GB',
+    status: 'ปกติ',
+    installDate: '2026-02-05',
+    ipAddress: '192.168.10.31',
+    notes: 'กล้อง EZVIZ โซนลานกิจกรรมและโป๊ะเรือ',
+    createdAt: '2026-02-05T08:00:00.000Z',
+    updatedAt: '2026-02-05T08:00:00.000Z',
+  },
+
+  // 7 Vessels (Dahua - NVR 4TB)
+  {
+    id: 'cctv_vessel_1',
+    locationType: 'ในเรือ',
+    locationName: 'CTB1',
+    brand: 'Dahua',
+    cameraCount: 4,
+    storageType: 'NVR',
+    nvrCapacity: '4TB',
+    status: 'ปกติ',
+    installDate: '2026-01-10',
+    ipAddress: '192.168.20.11',
+    notes: 'ระบบกล้อง Dahua 4 จุด หัวเรือ, ท้ายเรือ, ห้องโดยสาร, ห้องกัปตัน พร้อมเครื่องบันทึก NVR 4TB',
+    createdAt: '2026-01-10T08:00:00.000Z',
+    updatedAt: '2026-01-10T08:00:00.000Z',
+  },
+  {
+    id: 'cctv_vessel_2',
+    locationType: 'ในเรือ',
+    locationName: 'CTB2',
+    brand: 'Dahua',
+    cameraCount: 4,
+    storageType: 'NVR',
+    nvrCapacity: '4TB',
+    status: 'ปกติ',
+    installDate: '2026-01-12',
+    ipAddress: '192.168.20.12',
+    notes: 'ระบบกล้อง Dahua 4 จุด พร้อมเครื่องบันทึก NVR 4TB',
+    createdAt: '2026-01-12T08:00:00.000Z',
+    updatedAt: '2026-01-12T08:00:00.000Z',
+  },
+  {
+    id: 'cctv_vessel_3',
+    locationType: 'ในเรือ',
+    locationName: 'CTB3',
+    brand: 'Dahua',
+    cameraCount: 4,
+    storageType: 'NVR',
+    nvrCapacity: '4TB',
+    status: 'ปกติ',
+    installDate: '2026-01-15',
+    ipAddress: '192.168.20.13',
+    notes: 'ระบบกล้อง Dahua 4 จุด พร้อมเครื่องบันทึก NVR 4TB',
+    createdAt: '2026-01-15T08:00:00.000Z',
+    updatedAt: '2026-01-15T08:00:00.000Z',
+  },
+  {
+    id: 'cctv_vessel_4',
+    locationType: 'ในเรือ',
+    locationName: 'R1',
+    brand: 'Dahua',
+    cameraCount: 4,
+    storageType: 'NVR',
+    nvrCapacity: '4TB',
+    status: 'ปกติ',
+    installDate: '2026-01-18',
+    ipAddress: '192.168.20.14',
+    notes: 'ระบบกล้อง Dahua 4 จุด พร้อมเครื่องบันทึก NVR 4TB',
+    createdAt: '2026-01-18T08:00:00.000Z',
+    updatedAt: '2026-01-18T08:00:00.000Z',
+  },
+  {
+    id: 'cctv_vessel_5',
+    locationType: 'ในเรือ',
+    locationName: 'R2',
+    brand: 'Dahua',
+    cameraCount: 4,
+    storageType: 'NVR',
+    nvrCapacity: '4TB',
+    status: 'ปกติ',
+    installDate: '2026-01-20',
+    ipAddress: '192.168.20.15',
+    notes: 'ระบบกล้อง Dahua 4 จุด พร้อมเครื่องบันทึก NVR 4TB',
+    createdAt: '2026-01-20T08:00:00.000Z',
+    updatedAt: '2026-01-20T08:00:00.000Z',
+  },
+  {
+    id: 'cctv_vessel_6',
+    locationType: 'ในเรือ',
+    locationName: 'R3',
+    brand: 'Dahua',
+    cameraCount: 4,
+    storageType: 'NVR',
+    nvrCapacity: '4TB',
+    status: 'ปกติ',
+    installDate: '2026-01-22',
+    ipAddress: '192.168.20.16',
+    notes: 'ระบบกล้อง Dahua 4 จุด พร้อมเครื่องบันทึก NVR 4TB',
+    createdAt: '2026-01-22T08:00:00.000Z',
+    updatedAt: '2026-01-22T08:00:00.000Z',
+  },
+  {
+    id: 'cctv_vessel_7',
+    locationType: 'ในเรือ',
+    locationName: 'R4',
+    brand: 'Dahua',
+    cameraCount: 4,
+    storageType: 'NVR',
+    nvrCapacity: '4TB',
+    status: 'ปกติ',
+    installDate: '2026-01-25',
+    ipAddress: '192.168.20.17',
+    notes: 'ระบบกล้อง Dahua 4 จุด พร้อมเครื่องบันทึก NVR 4TB',
+    createdAt: '2026-01-25T08:00:00.000Z',
+    updatedAt: '2026-01-25T08:00:00.000Z',
+  },
+];
+
+// ─────────────────────────────────────────────
+// Constants & Colors
 // ─────────────────────────────────────────────
 
 const MEMORY_SIZES: CctvMemorySize[] = ['32 GB', '64 GB', '128 GB', '256 GB'];
@@ -140,7 +419,29 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
   const [showFaultModal, setShowFaultModal] = useState(false);
   const [editingCamera, setEditingCamera] = useState<CctvCamera | null>(null);
   const [editingFault, setEditingFault] = useState<CctvFaultLog | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
+
+  // Safe references
+  const rawCameras = data?.cameras;
+  const cameras: CctvCamera[] = useMemo(() => {
+    if (Array.isArray(rawCameras) && rawCameras.length > 0) {
+      return rawCameras;
+    }
+    return DEFAULT_CCTV_CAMERAS;
+  }, [rawCameras]);
+
+  const faultLogs: CctvFaultLog[] = useMemo(() => {
+    return Array.isArray(data?.faultLogs) ? data.faultLogs : [];
+  }, [data?.faultLogs]);
+
+  // Auto-initialize default cameras if empty in data
+  useEffect(() => {
+    if (!Array.isArray(data?.cameras) || data.cameras.length === 0) {
+      onUpdate({
+        cameras: DEFAULT_CCTV_CAMERAS,
+        faultLogs: Array.isArray(data?.faultLogs) ? data.faultLogs : [],
+      });
+    }
+  }, []);
 
   // ── Camera form ──
   const emptyCameraPier = (): Omit<CctvCamera, 'id' | 'createdAt' | 'updatedAt'> => ({
@@ -189,24 +490,24 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
 
   // ── Cameras by type ──
   const pierCameras = useMemo(() =>
-    data.cameras.filter(c => c.locationType === 'ท่าเรือ')
+    cameras.filter(c => c.locationType === 'ท่าเรือ')
       .sort((a, b) => CCTV_PIERS.indexOf(a.locationName as PierName) - CCTV_PIERS.indexOf(b.locationName as PierName)),
-    [data.cameras]
+    [cameras]
   );
 
   const vesselCameras = useMemo(() =>
-    data.cameras.filter(c => c.locationType === 'ในเรือ')
+    cameras.filter(c => c.locationType === 'ในเรือ')
       .sort((a, b) => CCTV_VESSELS.indexOf(a.locationName as VesselName) - CCTV_VESSELS.indexOf(b.locationName as VesselName)),
-    [data.cameras]
+    [cameras]
   );
 
   const totalCameraCount = useMemo(() =>
-    data.cameras.reduce((sum, c) => sum + c.cameraCount, 0),
-    [data.cameras]
+    cameras.reduce((sum, c) => sum + c.cameraCount, 0),
+    [cameras]
   );
 
-  const faultyCameras = data.cameras.filter(c => c.status !== 'ปกติ').length;
-  const activeFaults = data.faultLogs.filter(l => !l.isFixed).length;
+  const faultyCameras = cameras.filter(c => c.status !== 'ปกติ').length;
+  const activeFaults = faultLogs.filter(l => !l.isFixed).length;
 
   // ── Camera CRUD ──
   const openAddCamera = () => {
@@ -238,7 +539,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
     const now = new Date().toISOString();
     let newCameras: CctvCamera[];
     if (editingCamera) {
-      newCameras = data.cameras.map(c =>
+      newCameras = cameras.map(c =>
         c.id === editingCamera.id ? { ...editingCamera, ...cameraForm, updatedAt: now } : c
       );
     } else {
@@ -248,15 +549,15 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
         createdAt: now,
         updatedAt: now,
       };
-      newCameras = [...data.cameras, newCam];
+      newCameras = [...cameras, newCam];
     }
-    onUpdate({ ...data, cameras: newCameras });
+    onUpdate({ ...data, cameras: newCameras, faultLogs });
     setShowCameraModal(false);
   };
 
   const deleteCamera = (id: string) => {
     if (!confirm('ยืนยันการลบกล้องนี้?')) return;
-    onUpdate({ ...data, cameras: data.cameras.filter(c => c.id !== id) });
+    onUpdate({ ...data, cameras: cameras.filter(c => c.id !== id), faultLogs });
   };
 
   // ── Fault CRUD ──
@@ -288,19 +589,19 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
     }
     let newFaultLogs: CctvFaultLog[];
     if (editingFault) {
-      newFaultLogs = data.faultLogs.map(l =>
+      newFaultLogs = faultLogs.map(l =>
         l.id === editingFault.id ? { ...editingFault, ...faultForm } : l
       );
     } else {
-      newFaultLogs = [{ id: `cctv_fault_${Date.now()}`, ...faultForm, createdAt: new Date().toISOString() }, ...data.faultLogs];
+      newFaultLogs = [{ id: `cctv_fault_${Date.now()}`, ...faultForm, createdAt: new Date().toISOString() }, ...faultLogs];
     }
-    onUpdate({ ...data, faultLogs: newFaultLogs });
+    onUpdate({ ...data, cameras, faultLogs: newFaultLogs });
     setShowFaultModal(false);
   };
 
   const deleteFault = (id: string) => {
     if (!confirm('ยืนยันการลบรายการนี้?')) return;
-    onUpdate({ ...data, faultLogs: data.faultLogs.filter(l => l.id !== id) });
+    onUpdate({ ...data, cameras, faultLogs: faultLogs.filter(l => l.id !== id) });
   };
 
   const toggleFaultCause = (cause: CctvFaultCause) => {
@@ -315,7 +616,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
   // ── Render camera card ──
   const renderCameraCard = (cam: CctvCamera) => {
     const isPier = cam.locationType === 'ท่าเรือ';
-    const statusCfg = STATUS_CONFIG[cam.status];
+    const statusCfg = STATUS_CONFIG[cam.status] || STATUS_CONFIG['ปกติ'];
     const StatusIcon = statusCfg.icon;
 
     return (
@@ -451,7 +752,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
         {/* Stats */}
         <div className="flex items-center gap-2.5 flex-wrap">
           <div className="bg-black border border-sky-900/50 rounded-lg px-3.5 py-2 text-center">
-            <div className="text-xl font-bold text-sky-400 font-mono">{data.cameras.length}</div>
+            <div className="text-xl font-bold text-sky-400 font-mono">{cameras.length}</div>
             <div className="text-[9px] text-sky-600 uppercase font-bold tracking-wider">จุด CCTV</div>
           </div>
           <div className="bg-black border border-emerald-900/50 rounded-lg px-3.5 py-2 text-center">
@@ -492,7 +793,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
           }`}
         >
           <Layers className="w-4 h-4" />
-          ทำเนียบกล้อง ({data.cameras.length})
+          ทำเนียบกล้อง ({cameras.length})
         </button>
         <button
           onClick={() => setActiveTab('faults')}
@@ -503,7 +804,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
           }`}
         >
           <AlertTriangle className="w-4 h-4" />
-          แจ้งปัญหา CCTV ({data.faultLogs.length})
+          แจ้งปัญหา CCTV ({faultLogs.length})
           {activeFaults > 0 && (
             <span className="px-1.5 py-0.5 bg-red-500 text-black text-[10px] font-bold rounded-full">{activeFaults}</span>
           )}
@@ -573,13 +874,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {pierCameras.length === 0 ? (
-                  <div className="col-span-full py-16 text-center">
-                    <Camera className="w-12 h-12 text-slate-700 mx-auto mb-3" />
-                    <p className="text-slate-500 font-mono">ยังไม่มีข้อมูลกล้อง EZVIZ ท่าเรือ</p>
-                    <p className="text-slate-600 text-sm mt-1">กด "เพิ่มกล้องท่าเรือ" เพื่อเพิ่มข้อมูล</p>
-                  </div>
-                ) : pierCameras.map(renderCameraCard)}
+                {pierCameras.map(renderCameraCard)}
               </div>
             </>
           )}
@@ -609,13 +904,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {vesselCameras.length === 0 ? (
-                  <div className="col-span-full py-16 text-center">
-                    <Camera className="w-12 h-12 text-slate-700 mx-auto mb-3" />
-                    <p className="text-slate-500 font-mono">ยังไม่มีข้อมูลกล้อง Dahua ในเรือ</p>
-                    <p className="text-slate-600 text-sm mt-1">กด "เพิ่มกล้องในเรือ" เพื่อเพิ่มข้อมูล</p>
-                  </div>
-                ) : vesselCameras.map(renderCameraCard)}
+                {vesselCameras.map(renderCameraCard)}
               </div>
             </>
           )}
@@ -645,13 +934,13 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/50">
-                  {data.faultLogs.length === 0 ? (
+                  {faultLogs.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="px-4 py-12 text-center text-slate-500 font-mono">
                         — ยังไม่มีรายการแจ้งปัญหา CCTV —
                       </td>
                     </tr>
-                  ) : [...data.faultLogs]
+                  ) : [...faultLogs]
                     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                     .map(log => (
                       <tr key={log.id} className={`group hover:bg-slate-800/30 transition-all whitespace-nowrap ${log.isFixed ? 'opacity-50' : ''}`}>
@@ -672,7 +961,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                         <td className="px-4 py-3">
                           <div className="flex flex-wrap gap-1">
                             {log.faultCauses.map(c => (
-                              <span key={c} className={`px-2 py-0.5 rounded text-[10px] font-bold border ${FAULT_COLORS[c]}`}>{c}</span>
+                              <span key={c} className={`px-2 py-0.5 rounded text-[10px] font-bold border ${FAULT_COLORS[c] || 'bg-slate-800 text-white'}`}>{c}</span>
                             ))}
                           </div>
                         </td>
@@ -1003,7 +1292,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                       onClick={() => toggleFaultCause(cause)}
                       className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-bold border transition-all text-left ${
                         faultForm.faultCauses.includes(cause)
-                          ? `${FAULT_COLORS[cause]} border-current`
+                          ? `${FAULT_COLORS[cause] || 'bg-slate-800 text-white'} border-current`
                           : 'bg-black/30 border-slate-700 text-slate-500'
                       }`}
                     >
