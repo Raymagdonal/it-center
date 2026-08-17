@@ -4,7 +4,7 @@ import {
   CheckCircle, MapPin, Ship, User, Calendar, HardDrive,
   Camera, Eye, Layers, ShieldCheck, Database, Smartphone,
   Upload, Image as ImageIcon, Maximize2, ChevronLeft, ChevronRight, Loader2,
-  WifiOff
+  WifiOff, LayoutGrid, ExternalLink
 } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
@@ -909,36 +909,53 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
           </p>
         </div>
 
-        {/* Stats */}
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <div className="bg-black border border-sky-900/50 rounded-lg px-3.5 py-2 text-center">
-            <div className="text-xl font-bold text-sky-400 font-mono">{cameras.length}</div>
-            <div className="text-[9px] text-sky-600 uppercase font-bold tracking-wider">จุด CCTV</div>
-          </div>
-          <div className="bg-black border border-emerald-900/50 rounded-lg px-3.5 py-2 text-center">
-            <div className="text-xl font-bold text-emerald-400 font-mono">{totalCameraCount}</div>
-            <div className="text-[9px] text-emerald-600 uppercase font-bold tracking-wider">กล้องทั้งหมด</div>
-          </div>
-          <div className="bg-black border border-cyan-900/50 rounded-lg px-3.5 py-2 text-center">
-            <div className="text-xl font-bold text-cyan-400 font-mono">{pierCameras.length}</div>
-            <div className="text-[9px] text-cyan-600 uppercase font-bold tracking-wider">ท่าเรือ</div>
-          </div>
-          <div className="bg-black border border-blue-900/50 rounded-lg px-3.5 py-2 text-center">
-            <div className="text-xl font-bold text-blue-400 font-mono">{vesselCameras.length}</div>
-            <div className="text-[9px] text-blue-600 uppercase font-bold tracking-wider">ในเรือ</div>
-          </div>
-          {faultyCameras > 0 && (
-            <div className="bg-black border border-red-900/50 rounded-lg px-3.5 py-2 text-center animate-pulse">
-              <div className="text-xl font-bold text-red-400 font-mono">{faultyCameras}</div>
-              <div className="text-[9px] text-red-600 uppercase font-bold tracking-wider">มีปัญหา</div>
+        {/* Action & Stats */}
+        <div className="flex items-center gap-4 flex-wrap">
+          <a
+            href="https://docs.google.com/spreadsheets/d/1TzfuqNEnQRiCM2TevgbThnN037VujFQ4KOZkLjYKAkI/edit?gid=0#gid=0"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 h-12 px-5 bg-green-950/20 hover:bg-green-950/40 border border-green-500/30 hover:border-green-500/60 rounded-xl text-green-400 transition-all duration-300 shadow-[0_0_15px_rgba(34,197,94,0.05)] hover:shadow-[0_0_20px_rgba(34,197,94,0.15)] group shrink-0"
+          >
+            <LayoutGrid className="w-5 h-5 text-green-400 group-hover:scale-105 transition-transform" />
+            <div className="flex flex-col text-left">
+              <span className="text-[9px] font-bold tracking-widest text-green-500/70 font-mono leading-none mb-1">EXTERNAL LINK</span>
+              <span className="text-xs font-black tracking-wider text-green-400 leading-none">GOOGLE SHEETS LOG</span>
             </div>
-          )}
-          {activeFaults > 0 && (
-            <div className="bg-black border border-amber-900/50 rounded-lg px-3.5 py-2 text-center animate-pulse">
-              <div className="text-xl font-bold text-amber-400 font-mono">{activeFaults}</div>
-              <div className="text-[9px] text-amber-600 uppercase font-bold tracking-wider">แจ้งค้างอยู่</div>
+            <ExternalLink className="w-3.5 h-3.5 text-green-500/50 group-hover:text-green-400 transition-colors ml-1" />
+          </a>
+
+          {/* Stats */}
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <div className="bg-black border border-sky-900/50 rounded-lg px-3.5 py-2 text-center">
+              <div className="text-xl font-bold text-sky-400 font-mono">{cameras.length}</div>
+              <div className="text-[9px] text-sky-600 uppercase font-bold tracking-wider">จุด CCTV</div>
             </div>
-          )}
+            <div className="bg-black border border-emerald-900/50 rounded-lg px-3.5 py-2 text-center">
+              <div className="text-xl font-bold text-emerald-400 font-mono">{totalCameraCount}</div>
+              <div className="text-[9px] text-emerald-600 uppercase font-bold tracking-wider">กล้องทั้งหมด</div>
+            </div>
+            <div className="bg-black border border-cyan-900/50 rounded-lg px-3.5 py-2 text-center">
+              <div className="text-xl font-bold text-cyan-400 font-mono">{pierCameras.length}</div>
+              <div className="text-[9px] text-cyan-600 uppercase font-bold tracking-wider">ท่าเรือ</div>
+            </div>
+            <div className="bg-black border border-blue-900/50 rounded-lg px-3.5 py-2 text-center">
+              <div className="text-xl font-bold text-blue-400 font-mono">{vesselCameras.length}</div>
+              <div className="text-[9px] text-blue-600 uppercase font-bold tracking-wider">ในเรือ</div>
+            </div>
+            {faultyCameras > 0 && (
+              <div className="bg-black border border-red-900/50 rounded-lg px-3.5 py-2 text-center animate-pulse">
+                <div className="text-xl font-bold text-red-400 font-mono">{faultyCameras}</div>
+                <div className="text-[9px] text-red-600 uppercase font-bold tracking-wider">มีปัญหา</div>
+              </div>
+            )}
+            {activeFaults > 0 && (
+              <div className="bg-black border border-amber-900/50 rounded-lg px-3.5 py-2 text-center animate-pulse">
+                <div className="text-xl font-bold text-amber-400 font-mono">{activeFaults}</div>
+                <div className="text-[9px] text-amber-600 uppercase font-bold tracking-wider">แจ้งค้างอยู่</div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
