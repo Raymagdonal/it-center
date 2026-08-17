@@ -58,6 +58,14 @@ function readDb() {
     if (!Array.isArray(db.simCards) || db.simCards.length === 0) {
       db.simCards = seedSimCards;
       updated = true;
+    } else if (db.simCards.length < seedSimCards.length) {
+      const existingIds = new Set(db.simCards.map(s => s.id));
+      seedSimCards.forEach(s => {
+        if (!existingIds.has(s.id)) {
+          db.simCards.push(s);
+          updated = true;
+        }
+      });
     }
     if (!Array.isArray(db.ticketMachines) || db.ticketMachines.length === 0) {
       db.ticketMachines = seedMachines;
