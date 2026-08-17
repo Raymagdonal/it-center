@@ -32,6 +32,10 @@ function ensureDataDir() {
 
 function readDb() {
   ensureDataDir();
+  const seed = require('./seed-data');
+  const seedMachines = seed.SEED_DATA || seed;
+  const seedSimCards = seed.SEED_SIM_CARDS || [];
+
   if (!fs.existsSync(DATA_FILE)) {
     // Initial empty database structure
     const initialDb = {
@@ -41,15 +45,28 @@ function readDb() {
       maritime: [],
       reports: [],
       folders: [],
-      simCards: [],
-      ticketMachines: require('./seed-data') // Use existing seed for machines
+      simCards: seedSimCards,
+      ticketMachines: seedMachines
     };
     writeDb(initialDb);
     return initialDb;
   }
   try {
     const raw = fs.readFileSync(DATA_FILE, 'utf-8');
-    return JSON.parse(raw);
+    const db = JSON.parse(raw);
+    let updated = false;
+    if (!Array.isArray(db.simCards) || db.simCards.length === 0) {
+      db.simCards = seedSimCards;
+      updated = true;
+    }
+    if (!Array.isArray(db.ticketMachines) || db.ticketMachines.length === 0) {
+      db.ticketMachines = seedMachines;
+      updated = true;
+    }
+    if (updated) {
+      fs.writeFileSync(DATA_FILE, JSON.stringify(db, null, 2), 'utf-8');
+    }
+    return db;
   } catch (e) {
     return {};
   }
@@ -97,6 +114,12 @@ async function syncWithGoogleSheets() {
       );
 
       if (!existing) {
+        let parsedTimestamp = new Date().toISOString();
+        try {
+          const d = new Date(timestamp);
+          if (!isNaN(d.getTime())) parsedTimestamp = d.toISOString();
+        } catch (e) {}
+
         db.tickets.push({
           id: `sheet_${Date.now()}_${i}`,
           deviceType: 'EXTERNAL',
@@ -104,7 +127,7 @@ async function syncWithGoogleSheets() {
           issueDescription: message,
           contactName: reporter,
           status: status,
-          timestamp: new Date(timestamp || Date.now()).toISOString(),
+          timestamp: parsedTimestamp,
           location: 'แจ้งผ่าน Google Form'
         });
         addedCount++;

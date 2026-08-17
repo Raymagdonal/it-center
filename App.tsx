@@ -367,7 +367,13 @@ const App: React.FC = () => {
 
   const [simCards, setSimCards] = useState<SimCard[]>(() => {
     const saved = localStorage.getItem('techfix_sim_cards');
-    return saved ? JSON.parse(saved) : INITIAL_SIM_CARDS;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    return INITIAL_SIM_CARDS;
   });
 
   const [ticketMachines, setTicketMachines] = useState<TicketMachine[]>(() => {
@@ -490,8 +496,8 @@ const App: React.FC = () => {
       if (remoteData.maritime?.length) setMaritimeItems(remoteData.maritime);
       if (remoteData.reports?.length) setMeetingReports(remoteData.reports);
       if (remoteData.folders?.length) setProcurementFolders(remoteData.folders);
-      if (remoteData.simCards?.length) setSimCards(remoteData.simCards);
-      if (remoteData.ticketMachines?.length) setTicketMachines(remoteData.ticketMachines);
+      if (Array.isArray(remoteData.simCards) && remoteData.simCards.length > 0) setSimCards(remoteData.simCards);
+      if (Array.isArray(remoteData.ticketMachines) && remoteData.ticketMachines.length > 0) setTicketMachines(remoteData.ticketMachines);
       if (remoteData.radioData) setRadioData(remoteData.radioData);
       if (remoteData.viabusData) setViabusData(remoteData.viabusData);
       if (remoteData.cctvData) setCctvData(remoteData.cctvData);
@@ -540,8 +546,8 @@ const App: React.FC = () => {
         if (remoteData.maritime !== undefined) setMaritimeItems(remoteData.maritime);
         if (remoteData.reports !== undefined) setMeetingReports(remoteData.reports);
         if (remoteData.folders !== undefined) setProcurementFolders(remoteData.folders);
-        if (remoteData.simCards !== undefined) setSimCards(remoteData.simCards);
-        if (remoteData.ticketMachines !== undefined) setTicketMachines(remoteData.ticketMachines);
+        if (Array.isArray(remoteData.simCards) && remoteData.simCards.length > 0) setSimCards(remoteData.simCards);
+        if (Array.isArray(remoteData.ticketMachines) && remoteData.ticketMachines.length > 0) setTicketMachines(remoteData.ticketMachines);
         if (remoteData.radioData !== undefined) setRadioData(remoteData.radioData);
         if (remoteData.viabusData !== undefined) setViabusData(remoteData.viabusData);
         if (remoteData.cctvData !== undefined) setCctvData(remoteData.cctvData);
