@@ -10,6 +10,9 @@ export const STORAGE_KEYS = {
     PROCUREMENT_FOLDERS: 'techfix_procurement_folders',
     SIM_CARDS: 'techfix_sim_cards',
     TICKET_MACHINES: 'techfix_ticket_machines',
+    RADIO_DATA: 'techfix_radio_data',
+    VIABUS_DATA: 'techfix_viabus_data',
+    CCTV_DATA: 'techfix_cctv_data',
     LAST_SAVED: 'techfix_last_saved',
     DATA_VERSION: 'techfix_data_version',
 } as const;

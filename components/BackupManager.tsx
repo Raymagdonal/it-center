@@ -13,6 +13,10 @@ interface BackupData {
   meetingReports?: MeetingReport[];
   procurementFolders?: ProcurementFolder[];
   simCards?: SimCard[];
+  ticketMachines?: any[];
+  radioData?: any;
+  viabusData?: any;
+  cctvData?: any;
 }
 
 interface BackupManagerProps {
@@ -33,7 +37,7 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ onRestore }) => {
   const handleExport = () => {
     setStatus('processing');
     try {
-      // Export ALL 7 data types
+      // Export ALL data types
       const tickets = getStoredData<MaintenanceTicket[]>(STORAGE_KEYS.TICKETS, []);
       const stock = getStoredData<StockItem[]>(STORAGE_KEYS.STOCK, []);
       const maritime = getStoredData<MaritimeItem[]>(STORAGE_KEYS.MARITIME, []);
@@ -41,6 +45,10 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ onRestore }) => {
       const meetingReports = getStoredData<MeetingReport[]>(STORAGE_KEYS.MEETING_REPORTS, []);
       const procurementFolders = getStoredData<ProcurementFolder[]>(STORAGE_KEYS.PROCUREMENT_FOLDERS, []);
       const simCards = getStoredData<SimCard[]>(STORAGE_KEYS.SIM_CARDS, []);
+      const ticketMachines = getStoredData<any[]>(STORAGE_KEYS.TICKET_MACHINES, []);
+      const radioData = getStoredData<any>(STORAGE_KEYS.RADIO_DATA, { faultLogs: [], signalLogs: [] });
+      const viabusData = getStoredData<any>(STORAGE_KEYS.VIABUS_DATA, { faultLogs: [], signalLogs: [] });
+      const cctvData = getStoredData<any>(STORAGE_KEYS.CCTV_DATA, { cameras: [], faultLogs: [] });
 
       const backupData = {
         version: CURRENT_DATA_VERSION,
@@ -52,7 +60,11 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ onRestore }) => {
           trackedAssets,
           meetingReports,
           procurementFolders,
-          simCards
+          simCards,
+          ticketMachines,
+          radioData,
+          viabusData,
+          cctvData,
         },
         metadata: {
           ticketsCount: tickets.length,
@@ -61,7 +73,11 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ onRestore }) => {
           trackedAssetsCount: trackedAssets.length,
           meetingReportsCount: meetingReports.length,
           procurementFoldersCount: procurementFolders.length,
-          simCardsCount: simCards.length
+          simCardsCount: simCards.length,
+          ticketMachinesCount: ticketMachines.length,
+          radioFaultLogsCount: radioData?.faultLogs?.length ?? 0,
+          viabusFaultLogsCount: viabusData?.faultLogs?.length ?? 0,
+          cctvCamerasCount: cctvData?.cameras?.length ?? 0,
         }
       };
 
@@ -109,6 +125,10 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ onRestore }) => {
         if (json.data.meetingReports?.length) dataTypes.push(`รายงานประชุม: ${json.data.meetingReports.length}`);
         if (json.data.procurementFolders?.length) dataTypes.push(`โฟลเดอร์จัดซื้อ: ${json.data.procurementFolders.length}`);
         if (json.data.simCards?.length) dataTypes.push(`SIM Cards: ${json.data.simCards.length}`);
+        if (json.data.ticketMachines?.length) dataTypes.push(`เครื่องจำหน่ายตั๋ว: ${json.data.ticketMachines.length}`);
+        if (json.data.radioData?.faultLogs?.length) dataTypes.push(`วิทยุสื่อสาร (ข้อมูลเสีย): ${json.data.radioData.faultLogs.length}`);
+        if (json.data.viabusData?.faultLogs?.length) dataTypes.push(`Viabus (ข้อมูลเสีย): ${json.data.viabusData.faultLogs.length}`);
+        if (json.data.cctvData?.cameras?.length) dataTypes.push(`CCTV (กล้อง): ${json.data.cctvData.cameras.length}`);
 
         const confirmMessage = `ไฟล์สำรอง v${json.version || 'ไม่ระบุ'} (${new Date(json.timestamp).toLocaleString('th-TH')})\n\nข้อมูลที่จะนำเข้า:\n${dataTypes.join('\n')}\n\nการคืนค่าข้อมูลจะทับข้อมูลปัจจุบันทั้งหมด คุณแน่ใจหรือไม่?`;
 
@@ -192,6 +212,10 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ onRestore }) => {
                 <li className="flex items-center gap-2"><div className="w-1 h-1 bg-cyan-500"></div> รายงานการประชุม (Meeting Reports)</li>
                 <li className="flex items-center gap-2"><div className="w-1 h-1 bg-cyan-500"></div> โฟลเดอร์จัดซื้อ (Procurement)</li>
                 <li className="flex items-center gap-2"><div className="w-1 h-1 bg-cyan-500"></div> ข้อมูล SIM Cards</li>
+                <li className="flex items-center gap-2"><div className="w-1 h-1 bg-violet-500"></div> เครื่องจำหน่ายตั๋ว (Ticket Machines)</li>
+                <li className="flex items-center gap-2"><div className="w-1 h-1 bg-violet-500"></div> วิทยุสื่อสาร (Radio Data)</li>
+                <li className="flex items-center gap-2"><div className="w-1 h-1 bg-indigo-500"></div> Viabus (Viabus Data)</li>
+                <li className="flex items-center gap-2"><div className="w-1 h-1 bg-sky-500"></div> กล้องวงจรปิด CCTV (CCTV Data)</li>
               </ul>
             </div>
             <Button
