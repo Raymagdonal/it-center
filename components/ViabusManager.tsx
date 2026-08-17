@@ -19,7 +19,8 @@ export type ViabusFaultCause =
   | 'ระบบรวน'
   | 'เปิดเครื่องไม่ติด'
   | 'สัญญาณขาดๆหายๆ'
-  | 'แบตเสื่อม';
+  | 'แบตเสื่อม'
+  | 'ประกาศผิดท่าเรือ';
 
 export interface ViabusFaultLog {
   id: string;
@@ -57,14 +58,16 @@ const FAULT_CAUSES: ViabusFaultCause[] = [
   'เปิดเครื่องไม่ติด',
   'สัญญาณขาดๆหายๆ',
   'แบตเสื่อม',
+  'ประกาศผิดท่าเรือ',
 ];
 
 const FAULT_COLORS: Record<ViabusFaultCause, string> = {
-  'ไม่ประกาศ':        'bg-orange-500/15 text-orange-300 border-orange-500/30',
-  'ระบบรวน':          'bg-yellow-500/15 text-yellow-300 border-yellow-500/30',
-  'เปิดเครื่องไม่ติด': 'bg-rose-500/15 text-rose-300 border-rose-500/30',
-  'สัญญาณขาดๆหายๆ':  'bg-purple-500/15 text-purple-300 border-purple-500/30',
-  'แบตเสื่อม':        'bg-amber-500/15 text-amber-300 border-amber-500/30',
+  'ไม่ประกาศ':          'bg-orange-500/15 text-orange-300 border-orange-500/30',
+  'ระบบรวน':            'bg-yellow-500/15 text-yellow-300 border-yellow-500/30',
+  'เปิดเครื่องไม่ติด':  'bg-rose-500/15 text-rose-300 border-rose-500/30',
+  'สัญญาณขาดๆหายๆ':    'bg-purple-500/15 text-purple-300 border-purple-500/30',
+  'แบตเสื่อม':          'bg-amber-500/15 text-amber-300 border-amber-500/30',
+  'ประกาศผิดท่าเรือ':   'bg-cyan-500/15 text-cyan-300 border-cyan-500/30',
 };
 
 // ─────────────────────────────────────────────
