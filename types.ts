@@ -176,6 +176,14 @@ export type LoadingState = 'idle' | 'analyzing' | 'submitting' | 'error' | 'succ
 // Procurement Folder Structure Types
 export type ProcurementLocationType = 'BOAT' | 'PIER' | 'OFFICE';
 
+export interface ProcurementSubItem {
+  id: string;
+  name: string;
+  serialNumber?: string;
+  quantity: number;
+  unit?: string;
+}
+
 export interface ProcurementFolderItem {
   id: string;
   name: string;
@@ -188,6 +196,8 @@ export interface ProcurementFolderItem {
   usageStatus: 'ACTIVE' | 'SPARE';
   notes?: string;
   supplier?: string;
+  isSet?: boolean; // True if this item is a bundle/set
+  subItems?: ProcurementSubItem[]; // Component items in the set
 }
 
 export interface ProcurementFolder {
