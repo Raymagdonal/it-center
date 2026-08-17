@@ -784,6 +784,9 @@ const App: React.FC = () => {
     if (data.procurementFolders) setProcurementFolders(data.procurementFolders);
     if (data.simCards) setSimCards(data.simCards);
     if (data.ticketMachines) setTicketMachines(data.ticketMachines);
+    if (data.radioData) setRadioData(data.radioData);
+    if (data.viabusData) setViabusData(data.viabusData);
+    if (data.cctvData) setCctvData(data.cctvData);
   };
 
   const handleNavigateToFolder = (folderId: string) => {
