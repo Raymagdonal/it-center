@@ -181,6 +181,7 @@ export interface ProcurementSubItem {
   name: string;
   imageUrl?: string | null;
   serialNumber?: string;
+  serialNumbers?: string[]; // Array of S/Ns for multiple units
   quantity: number;
   unit?: string;
 }
@@ -190,6 +191,7 @@ export interface ProcurementFolderItem {
   name: string;
   imageUrl?: string | null;
   serialNumber?: string;
+  serialNumbers?: string[]; // Array of S/Ns for multiple units
   quantity: number;
   unit: string;
   purchaseDate: string;

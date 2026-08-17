@@ -3,7 +3,7 @@ import {
   Package, Plus, Search, AlertTriangle, ShoppingCart, Edit, Trash2, X,
   Calendar, Save, Folder, FolderOpen, ArrowLeft, Layers, Ship, Anchor, Building2,
   Camera, Clock, Activity, ChevronDown, ChevronRight, Boxes, ListPlus, CheckCircle2,
-  Tag, Image as ImageIcon
+  Tag, Image as ImageIcon, Hash
 } from 'lucide-react';
 import {
   ProcurementFolder, ProcurementFolderItem, ProcurementSubItem, ProcurementLocationType,
@@ -25,6 +25,23 @@ interface InventoryManagerProps {
 type ViewLevel = 'year' | 'category' | 'location' | 'month' | 'items';
 type InventoryViewMode = 'LIST' | 'SUMMARY';
 type EntryMode = 'SINGLE' | 'SET' | 'BATCH';
+
+// Helper to ensure serialNumbers array matches quantity
+const normalizeSerialNumbers = (quantity: number, serialNumber?: string, serialNumbers?: string[]): string[] => {
+  const count = Math.max(1, quantity || 1);
+  let list: string[] = [];
+  if (Array.isArray(serialNumbers) && serialNumbers.length > 0) {
+    list = [...serialNumbers];
+  } else if (serialNumber) {
+    list = serialNumber.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
+  }
+  // Fill up or trim to count
+  const result: string[] = [];
+  for (let i = 0; i < count; i++) {
+    result.push(list[i] || '');
+  }
+  return result;
+};
 
 export const InventoryManager: React.FC<InventoryManagerProps> = ({
   folders,
@@ -70,11 +87,35 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
   const [editingItem, setEditingItem] = useState<ProcurementFolderItem | null>(null);
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
+  // Expanded multi-SN sections in modal
+  const [expandedSnSubItemIds, setExpandedSnSubItemIds] = useState<Set<string>>(new Set());
+  const [expandedSnBatchItemIds, setExpandedSnBatchItemIds] = useState<Set<string>>(new Set());
+  const [isSingleSnExpanded, setIsSingleSnExpanded] = useState(false);
+
+  const toggleSubItemSn = (id: string) => {
+    setExpandedSnSubItemIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleBatchItemSn = (id: string) => {
+    setExpandedSnBatchItemIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   // Form State for Single Item & Set
   const initialFormState: Partial<ProcurementFolderItem> = {
     name: '',
     imageUrl: null,
     serialNumber: '',
+    serialNumbers: [''],
     quantity: 1,
     unit: 'อัน',
     purchaseDate: new Date().toISOString().split('T')[0],
@@ -89,7 +130,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
 
   // Sub-items for "รวมเป็นชุดเดียวกัน (SET)" mode
   const [subItems, setSubItems] = useState<ProcurementSubItem[]>([
-    { id: '1', name: '', imageUrl: null, serialNumber: '', quantity: 1, unit: 'ชิ้น' }
+    { id: '1', name: '', imageUrl: null, serialNumber: '', serialNumbers: [''], quantity: 1, unit: 'ชิ้น' }
   ]);
 
   // Rows for "เพิ่มหลายชิ้นพร้อมกัน (BATCH)" mode
@@ -98,25 +139,47 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
     name: string;
     imageUrl?: string | null;
     serialNumber: string;
+    serialNumbers?: string[];
     quantity: number;
     unit: string;
     notes: string;
   }>>([
-    { id: '1', name: '', imageUrl: null, serialNumber: '', quantity: 1, unit: 'อัน', notes: '' },
-    { id: '2', name: '', imageUrl: null, serialNumber: '', quantity: 1, unit: 'อัน', notes: '' },
-    { id: '3', name: '', imageUrl: null, serialNumber: '', quantity: 1, unit: 'อัน', notes: '' },
+    { id: '1', name: '', imageUrl: null, serialNumber: '', serialNumbers: [''], quantity: 1, unit: 'อัน', notes: '' },
+    { id: '2', name: '', imageUrl: null, serialNumber: '', serialNumbers: [''], quantity: 1, unit: 'อัน', notes: '' },
+    { id: '3', name: '', imageUrl: null, serialNumber: '', serialNumbers: [''], quantity: 1, unit: 'อัน', notes: '' },
   ]);
 
   // Sub-items helpers
   const handleAddSubItem = () => {
     setSubItems(prev => [
       ...prev,
-      { id: Math.random().toString(36).substr(2, 7), name: '', imageUrl: null, serialNumber: '', quantity: 1, unit: 'ชิ้น' }
+      { id: Math.random().toString(36).substr(2, 7), name: '', imageUrl: null, serialNumber: '', serialNumbers: [''], quantity: 1, unit: 'ชิ้น' }
     ]);
   };
 
   const handleUpdateSubItem = (id: string, field: keyof ProcurementSubItem, value: any) => {
-    setSubItems(prev => prev.map(s => s.id === id ? { ...s, [field]: value } : s));
+    setSubItems(prev => prev.map(s => {
+      if (s.id !== id) return s;
+      if (field === 'quantity') {
+        const newQty = Math.max(1, parseInt(value) || 1);
+        const updatedSNs = normalizeSerialNumbers(newQty, s.serialNumber, s.serialNumbers);
+        return { ...s, quantity: newQty, serialNumbers: updatedSNs, serialNumber: updatedSNs.filter(Boolean).join(', ') };
+      }
+      return { ...s, [field]: value };
+    }));
+  };
+
+  const handleUpdateSubItemSingleSN = (id: string, snIndex: number, snValue: string) => {
+    setSubItems(prev => prev.map(s => {
+      if (s.id !== id) return s;
+      const sns = normalizeSerialNumbers(s.quantity, s.serialNumber, s.serialNumbers);
+      sns[snIndex] = snValue;
+      return {
+        ...s,
+        serialNumbers: sns,
+        serialNumber: sns.filter(Boolean).join(', ')
+      };
+    }));
   };
 
   const handleRemoveSubItem = (id: string) => {
@@ -140,12 +203,33 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
   const handleAddBatchRow = () => {
     setBatchItems(prev => [
       ...prev,
-      { id: Math.random().toString(36).substr(2, 7), name: '', imageUrl: null, serialNumber: '', quantity: 1, unit: 'อัน', notes: '' }
+      { id: Math.random().toString(36).substr(2, 7), name: '', imageUrl: null, serialNumber: '', serialNumbers: [''], quantity: 1, unit: 'อัน', notes: '' }
     ]);
   };
 
   const handleUpdateBatchRow = (id: string, field: string, value: any) => {
-    setBatchItems(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r));
+    setBatchItems(prev => prev.map(r => {
+      if (r.id !== id) return r;
+      if (field === 'quantity') {
+        const newQty = Math.max(1, parseInt(value) || 1);
+        const updatedSNs = normalizeSerialNumbers(newQty, r.serialNumber, r.serialNumbers);
+        return { ...r, quantity: newQty, serialNumbers: updatedSNs, serialNumber: updatedSNs.filter(Boolean).join(', ') };
+      }
+      return { ...r, [field]: value };
+    }));
+  };
+
+  const handleUpdateBatchRowSingleSN = (id: string, snIndex: number, snValue: string) => {
+    setBatchItems(prev => prev.map(r => {
+      if (r.id !== id) return r;
+      const sns = normalizeSerialNumbers(r.quantity, r.serialNumber, r.serialNumbers);
+      sns[snIndex] = snValue;
+      return {
+        ...r,
+        serialNumbers: sns,
+        serialNumber: sns.filter(Boolean).join(', ')
+      };
+    }));
   };
 
   const handleRemoveBatchRow = (id: string) => {
@@ -163,6 +247,18 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  // Single Item SN Helper
+  const handleUpdateSingleSN = (snIndex: number, snValue: string) => {
+    const qty = formData.quantity || 1;
+    const sns = normalizeSerialNumbers(qty, formData.serialNumber, formData.serialNumbers);
+    sns[snIndex] = snValue;
+    setFormData(prev => ({
+      ...prev,
+      serialNumbers: sns,
+      serialNumber: sns.filter(Boolean).join(', ')
+    }));
   };
 
   // Get current view level
@@ -192,7 +288,12 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
     return currentFolder.items.filter(item =>
       item.name.toLowerCase().includes(lower) ||
       item.serialNumber?.toLowerCase().includes(lower) ||
-      item.subItems?.some(s => s.name.toLowerCase().includes(lower) || s.serialNumber?.toLowerCase().includes(lower))
+      item.serialNumbers?.some(s => s.toLowerCase().includes(lower)) ||
+      item.subItems?.some(s =>
+        s.name.toLowerCase().includes(lower) ||
+        s.serialNumber?.toLowerCase().includes(lower) ||
+        s.serialNumbers?.some(sn => sn.toLowerCase().includes(lower))
+      )
     );
   }, [currentFolder, searchTerm]);
 
@@ -248,10 +349,17 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
   const handleOpenModal = (item?: ProcurementFolderItem) => {
     if (item) {
       setEditingItem(item);
-      setFormData(item);
+      const normalizedSNs = normalizeSerialNumbers(item.quantity || 1, item.serialNumber, item.serialNumbers);
+      setFormData({
+        ...item,
+        serialNumbers: normalizedSNs
+      });
       if (item.isSet && item.subItems && item.subItems.length > 0) {
         setEntryMode('SET');
-        setSubItems(item.subItems);
+        setSubItems(item.subItems.map(s => ({
+          ...s,
+          serialNumbers: normalizeSerialNumbers(s.quantity || 1, s.serialNumber, s.serialNumbers)
+        })));
       } else {
         setEntryMode('SINGLE');
       }
@@ -260,19 +368,19 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
       setFormData(initialFormState);
       setEntryMode('SINGLE');
       setSubItems([
-        { id: '1', name: '', imageUrl: null, serialNumber: '', quantity: 1, unit: 'ชิ้น' },
-        { id: '2', name: '', imageUrl: null, serialNumber: '', quantity: 1, unit: 'ชิ้น' }
+        { id: '1', name: '', imageUrl: null, serialNumber: '', serialNumbers: [''], quantity: 1, unit: 'ชิ้น' },
+        { id: '2', name: '', imageUrl: null, serialNumber: '', serialNumbers: [''], quantity: 1, unit: 'ชิ้น' }
       ]);
       setBatchItems([
-        { id: '1', name: '', imageUrl: null, serialNumber: '', quantity: 1, unit: 'อัน', notes: '' },
-        { id: '2', name: '', imageUrl: null, serialNumber: '', quantity: 1, unit: 'อัน', notes: '' },
-        { id: '3', name: '', imageUrl: null, serialNumber: '', quantity: 1, unit: 'อัน', notes: '' },
+        { id: '1', name: '', imageUrl: null, serialNumber: '', serialNumbers: [''], quantity: 1, unit: 'อัน', notes: '' },
+        { id: '2', name: '', imageUrl: null, serialNumber: '', serialNumbers: [''], quantity: 1, unit: 'อัน', notes: '' },
+        { id: '3', name: '', imageUrl: null, serialNumber: '', serialNumbers: [''], quantity: 1, unit: 'อัน', notes: '' },
       ]);
     }
     setIsModalOpen(true);
   };
 
-  // Save Handler (Handles Single, Set, and Batch)
+  // Save Handler (Handles Single, Set, and Batch with multi-SN)
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCategory || !selectedLocation || selectedMonth === null) return;
@@ -280,15 +388,30 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
     let itemsToAdd: ProcurementFolderItem[] = [];
 
     if (entryMode === 'SINGLE') {
+      const qty = formData.quantity || 1;
+      const sns = normalizeSerialNumbers(qty, formData.serialNumber, formData.serialNumbers);
       const singleItem: ProcurementFolderItem = {
         ...(formData as ProcurementFolderItem),
         id: editingItem ? editingItem.id : Math.random().toString(36).substr(2, 9),
+        serialNumbers: sns.filter(Boolean).length > 0 ? sns : undefined,
+        serialNumber: sns.filter(Boolean).join(', ') || formData.serialNumber || undefined,
         isSet: false,
         subItems: []
       };
       itemsToAdd = [singleItem];
     } else if (entryMode === 'SET') {
-      const validSubItems = subItems.filter(s => s.name.trim() !== '');
+      const validSubItems = subItems
+        .filter(s => s.name.trim() !== '')
+        .map(s => {
+          const sQty = s.quantity || 1;
+          const sSns = normalizeSerialNumbers(sQty, s.serialNumber, s.serialNumbers);
+          return {
+            ...s,
+            serialNumbers: sSns.filter(Boolean).length > 0 ? sSns : undefined,
+            serialNumber: sSns.filter(Boolean).join(', ') || s.serialNumber || undefined
+          };
+        });
+
       // If set image is empty but first sub-item has image, use it
       const finalImageUrl = formData.imageUrl || validSubItems.find(s => s.imageUrl)?.imageUrl || null;
 
@@ -307,21 +430,26 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
         alert('โปรดระบุชื่ออุปกรณ์อย่างน้อย 1 รายการ');
         return;
       }
-      itemsToAdd = validBatch.map(b => ({
-        id: Math.random().toString(36).substr(2, 9),
-        name: b.name.trim(),
-        serialNumber: b.serialNumber.trim() || undefined,
-        quantity: b.quantity || 1,
-        unit: b.unit.trim() || 'อัน',
-        purchaseDate: formData.purchaseDate || new Date().toISOString().split('T')[0],
-        startUseDate: formData.startUseDate || undefined,
-        usageStatus: formData.usageStatus || 'ACTIVE',
-        notes: b.notes ? b.notes.trim() : (formData.notes || ''),
-        supplier: formData.supplier || '',
-        imageUrl: b.imageUrl || formData.imageUrl || null,
-        isSet: false,
-        subItems: []
-      }));
+      itemsToAdd = validBatch.map(b => {
+        const bQty = b.quantity || 1;
+        const bSns = normalizeSerialNumbers(bQty, b.serialNumber, b.serialNumbers);
+        return {
+          id: Math.random().toString(36).substr(2, 9),
+          name: b.name.trim(),
+          serialNumbers: bSns.filter(Boolean).length > 0 ? bSns : undefined,
+          serialNumber: bSns.filter(Boolean).join(', ') || b.serialNumber || undefined,
+          quantity: bQty,
+          unit: b.unit.trim() || 'อัน',
+          purchaseDate: formData.purchaseDate || new Date().toISOString().split('T')[0],
+          startUseDate: formData.startUseDate || undefined,
+          usageStatus: formData.usageStatus || 'ACTIVE',
+          notes: b.notes ? b.notes.trim() : (formData.notes || ''),
+          supplier: formData.supplier || '',
+          imageUrl: b.imageUrl || formData.imageUrl || null,
+          isSet: false,
+          subItems: []
+        };
+      });
     }
 
     // Update folders
@@ -645,6 +773,10 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                           {filteredItems.map((item) => {
                             const isSet = item.isSet || (item.subItems && item.subItems.length > 0);
                             const isExpanded = expandedSetIds.has(item.id);
+                            const itemSNs = item.serialNumbers && item.serialNumbers.length > 0
+                              ? item.serialNumbers
+                              : (item.serialNumber ? item.serialNumber.split(/[\n,]+/).map(s => s.trim()).filter(Boolean) : []);
+
                             return (
                               <React.Fragment key={item.id}>
                                 <tr className={`group hover:bg-cyan-900/10 transition-colors ${isSet ? 'bg-cyan-950/10' : ''}`}>
@@ -690,7 +822,19 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                                         </button>
                                       </div>
                                     ) : (
-                                      <div className="text-xs font-mono text-slate-300">{item.serialNumber || '-'}</div>
+                                      <div className="space-y-1">
+                                        {itemSNs.length > 1 ? (
+                                          <div className="flex flex-wrap gap-1 max-w-xs">
+                                            {itemSNs.map((sn, snIdx) => (
+                                              <span key={snIdx} className="px-1.5 py-0.5 bg-slate-900 border border-slate-700 text-[10px] font-mono text-cyan-400 rounded">
+                                                #{snIdx + 1}: {sn || '-'}
+                                              </span>
+                                            ))}
+                                          </div>
+                                        ) : (
+                                          <div className="text-xs font-mono text-slate-300">{item.serialNumber || '-'}</div>
+                                        )}
+                                      </div>
                                     )}
                                   </td>
                                   <td className="py-4">
@@ -744,35 +888,61 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                                             <Boxes className="w-4 h-4 text-cyan-400" />
                                             รายการอุปกรณ์ย่อยในชุด: {item.name}
                                           </span>
-                                          <span className="text-[10px] text-slate-500">รวม {item.subItems?.length || 0} ชิ้น</span>
+                                          <span className="text-[10px] text-slate-500">รวม {item.subItems?.length || 0} รายการ</span>
                                         </div>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                                          {item.subItems?.map((sub, sIdx) => (
-                                            <div key={sub.id || sIdx} className="p-3 bg-black/60 rounded border border-slate-800 flex items-center gap-3">
-                                              {/* Sub-item Image */}
-                                              <div className="w-12 h-12 bg-slate-900 rounded border border-slate-700 overflow-hidden shrink-0 flex items-center justify-center">
-                                                {sub.imageUrl ? (
-                                                  <img
-                                                    src={sub.imageUrl}
-                                                    className="w-full h-full object-cover cursor-pointer hover:scale-110 transition-transform duration-300"
-                                                    onClick={() => setZoomedImage(sub.imageUrl || null)}
-                                                    alt={sub.name}
-                                                  />
-                                                ) : (
-                                                  <Package className="w-5 h-5 text-slate-700" />
-                                                )}
-                                              </div>
-                                              <div className="flex-1 min-w-0">
-                                                <div className="font-bold text-white text-xs font-display truncate">{sub.name}</div>
-                                                {sub.serialNumber && (
-                                                  <div className="text-[10px] font-mono text-cyan-500 mt-0.5 truncate">S/N: {sub.serialNumber}</div>
-                                                )}
-                                                <div className="text-[11px] font-mono text-slate-400 mt-1">
-                                                  จำนวน: <span className="text-cyan-400 font-bold">{sub.quantity}</span> {sub.unit || 'ชิ้น'}
+                                          {item.subItems?.map((sub, sIdx) => {
+                                            const subSNs = sub.serialNumbers && sub.serialNumbers.length > 0
+                                              ? sub.serialNumbers
+                                              : (sub.serialNumber ? sub.serialNumber.split(/[\n,]+/).map(s => s.trim()).filter(Boolean) : []);
+
+                                            return (
+                                              <div key={sub.id || sIdx} className="p-3 bg-black/60 rounded border border-slate-800 flex items-start gap-3">
+                                                {/* Sub-item Image */}
+                                                <div className="w-12 h-12 bg-slate-900 rounded border border-slate-700 overflow-hidden shrink-0 flex items-center justify-center">
+                                                  {sub.imageUrl ? (
+                                                    <img
+                                                      src={sub.imageUrl}
+                                                      className="w-full h-full object-cover cursor-pointer hover:scale-110 transition-transform duration-300"
+                                                      onClick={() => setZoomedImage(sub.imageUrl || null)}
+                                                      alt={sub.name}
+                                                    />
+                                                  ) : (
+                                                    <Package className="w-5 h-5 text-slate-700" />
+                                                  )}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                  <div className="font-bold text-white text-xs font-display truncate">{sub.name}</div>
+                                                  
+                                                  {/* Multiple S/N Display */}
+                                                  {subSNs.length > 1 ? (
+                                                    <div className="mt-1.5 space-y-1">
+                                                      <div className="text-[10px] font-mono text-cyan-400 font-bold">
+                                                        S/N ({subSNs.length} ชิ้น):
+                                                      </div>
+                                                      <div className="flex flex-col gap-0.5 max-h-24 overflow-y-auto">
+                                                        {subSNs.map((sn, snIdx) => (
+                                                          <span key={snIdx} className="text-[10px] font-mono text-slate-300 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
+                                                            #{snIdx + 1}: {sn || '-'}
+                                                          </span>
+                                                        ))}
+                                                      </div>
+                                                    </div>
+                                                  ) : (
+                                                    sub.serialNumber && (
+                                                      <div className="text-[10px] font-mono text-cyan-500 mt-0.5 truncate">
+                                                        S/N: {sub.serialNumber}
+                                                      </div>
+                                                    )
+                                                  )}
+
+                                                  <div className="text-[11px] font-mono text-slate-400 mt-1.5">
+                                                    จำนวน: <span className="text-cyan-400 font-bold">{sub.quantity}</span> {sub.unit || 'ชิ้น'}
+                                                  </div>
                                                 </div>
                                               </div>
-                                            </div>
-                                          ))}
+                                            );
+                                          })}
                                         </div>
                                         {item.notes && (
                                           <div className="text-xs text-slate-400 font-mono pt-2 border-t border-slate-800/80">
@@ -795,7 +965,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
             </>
           )}
 
-          {/* Add/Edit Modal (Supports Single, Set Bundle, and Batch Entry with Per-Item Image Uploads) */}
+          {/* Add/Edit Modal (Supports Single, Set Bundle, and Batch Entry with Per-Item Image Uploads & Multi-SN) */}
           {isModalOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-in fade-in duration-200 overflow-y-auto">
               <Card className="w-full max-w-3xl border-cyan-500 bg-slate-950 shadow-[0_0_50px_rgba(0,242,255,0.25)] my-8">
@@ -931,7 +1101,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                       </div>
                     </div>
 
-                    {/* ════ MODE 1: SINGLE ITEM ════ */}
+                    {/* ════ MODE 1: SINGLE ITEM (Supports Multiple S/N if Quantity > 1) ════ */}
                     {entryMode === 'SINGLE' && (
                       <div className="space-y-4 pt-2 border-t border-slate-800">
                         <div>
@@ -946,15 +1116,6 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-[10px] font-mono font-bold text-cyan-600 uppercase mb-1.5 tracking-widest">Serial Number</label>
-                            <input
-                              className="w-full bg-black border border-slate-800 p-3 text-white focus:border-cyan-500 outline-none font-mono text-sm rounded"
-                              value={formData.serialNumber || ''}
-                              onChange={e => setFormData({ ...formData, serialNumber: e.target.value })}
-                              placeholder="S/N..."
-                            />
-                          </div>
                           <div className="grid grid-cols-2 gap-3">
                             <div>
                               <label className="block text-[10px] font-mono font-bold text-cyan-600 uppercase mb-1.5 tracking-widest">จำนวน</label>
@@ -963,7 +1124,11 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                                 min="1"
                                 className="w-full bg-black border border-slate-800 p-3 text-white focus:border-cyan-500 outline-none font-mono rounded"
                                 value={formData.quantity}
-                                onChange={e => setFormData({ ...formData, quantity: parseInt(e.target.value) || 1 })}
+                                onChange={e => {
+                                  const q = Math.max(1, parseInt(e.target.value) || 1);
+                                  const sns = normalizeSerialNumbers(q, formData.serialNumber, formData.serialNumbers);
+                                  setFormData({ ...formData, quantity: q, serialNumbers: sns, serialNumber: sns.filter(Boolean).join(', ') });
+                                }}
                               />
                             </div>
                             <div>
@@ -975,6 +1140,52 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                                 placeholder="อัน / ชิ้น"
                               />
                             </div>
+                          </div>
+
+                          {/* Serial Number Section */}
+                          <div>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <label className="block text-[10px] font-mono font-bold text-cyan-600 uppercase tracking-widest">
+                                Serial Number {(formData.quantity || 1) > 1 && `(${formData.quantity} ชิ้น)`}
+                              </label>
+                              {(formData.quantity || 1) > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setIsSingleSnExpanded(!isSingleSnExpanded)}
+                                  className="text-[10px] text-cyan-400 font-mono flex items-center gap-1 hover:underline"
+                                >
+                                  {isSingleSnExpanded ? 'กรอกรวม (1 ช่อง)' : `แยกใส่ S/N ทีละชิ้น (${formData.quantity}) ▾`}
+                                </button>
+                              )}
+                            </div>
+
+                            {/* Multi-SN or Single-SN Input */}
+                            {(formData.quantity || 1) > 1 && isSingleSnExpanded ? (
+                              <div className="p-3 bg-black/60 rounded border border-cyan-900/50 space-y-2 max-h-48 overflow-y-auto">
+                                {normalizeSerialNumbers(formData.quantity || 1, formData.serialNumber, formData.serialNumbers).map((sn, snIdx) => (
+                                  <div key={snIdx} className="flex items-center gap-2">
+                                    <span className="text-[10px] font-mono text-cyan-500 w-10 font-bold shrink-0">#{snIdx + 1}</span>
+                                    <input
+                                      className="flex-1 bg-slate-900 border border-slate-800 px-2.5 py-1.5 text-xs text-white focus:border-cyan-500 outline-none rounded font-mono"
+                                      placeholder={`S/N ชิ้นที่ ${snIdx + 1}...`}
+                                      value={sn}
+                                      onChange={e => handleUpdateSingleSN(snIdx, e.target.value)}
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <input
+                                className="w-full bg-black border border-slate-800 p-3 text-white focus:border-cyan-500 outline-none font-mono text-sm rounded"
+                                value={formData.serialNumber || ''}
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  const sns = val.split(/[\n,]+/).map(s => s.trim());
+                                  setFormData({ ...formData, serialNumber: val, serialNumbers: sns });
+                                }}
+                                placeholder={(formData.quantity || 1) > 1 ? "ใส่ S/N คั่นด้วยเครื่องหมายจุลภาค (,)..." : "S/N..."}
+                              />
+                            )}
                           </div>
                         </div>
 
@@ -990,7 +1201,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                       </div>
                     )}
 
-                    {/* ════ MODE 2: SET / BUNDLE (With Individual Sub-item Photos) ════ */}
+                    {/* ════ MODE 2: SET / BUNDLE (With Individual Sub-item Photos & Multi-SN per Sub-item) ════ */}
                     {entryMode === 'SET' && (
                       <div className="space-y-4 pt-2 border-t border-slate-800">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1021,11 +1232,11 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                           </div>
                         </div>
 
-                        {/* Sub-items in Set with Individual Images */}
+                        {/* Sub-items in Set with Individual Images and Multi-SN for each Sub-item */}
                         <div className="p-4 bg-black/60 rounded-xl border border-cyan-900/40 space-y-3">
                           <div className="flex items-center justify-between">
                             <div className="text-xs font-bold font-mono text-cyan-400 uppercase tracking-wider flex items-center gap-2">
-                              <Tag className="w-3.5 h-3.5" /> รายการอุปกรณ์ย่อยในชุด ({subItems.length} รายการ - เพิ่มรูปถ่ายได้ทุกชิ้น)
+                              <Tag className="w-3.5 h-3.5" /> รายการอุปกรณ์ย่อยในชุด ({subItems.length} รายการ - ใส่รูปและ S/N ได้ครบทุกชิ้น)
                             </div>
                             <Button
                               type="button"
@@ -1037,68 +1248,119 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                             </Button>
                           </div>
 
-                          <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
-                            {subItems.map((sub, sIdx) => (
-                              <div key={sub.id} className="p-3 bg-slate-900/70 rounded-lg border border-slate-800 flex flex-col md:flex-row items-center gap-3">
-                                {/* Sub-item Photo Upload */}
-                                <label className="relative w-12 h-12 bg-black border border-dashed border-cyan-700/60 hover:border-cyan-400 rounded flex flex-col items-center justify-center cursor-pointer overflow-hidden group shrink-0 transition-all">
-                                  {sub.imageUrl ? (
-                                    <img src={sub.imageUrl} className="w-full h-full object-cover" />
-                                  ) : (
-                                    <Camera className="w-4 h-4 text-slate-500 group-hover:text-cyan-400 transition-colors" />
+                          <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                            {subItems.map((sub, sIdx) => {
+                              const isMultiSn = sub.quantity > 1;
+                              const isSnExpanded = expandedSnSubItemIds.has(sub.id);
+                              const subSNs = normalizeSerialNumbers(sub.quantity, sub.serialNumber, sub.serialNumbers);
+
+                              return (
+                                <div key={sub.id} className="p-3 bg-slate-900/70 rounded-lg border border-slate-800 space-y-2.5">
+                                  {/* Main Row */}
+                                  <div className="flex flex-col md:flex-row items-center gap-3">
+                                    {/* Photo */}
+                                    <label className="relative w-12 h-12 bg-black border border-dashed border-cyan-700/60 hover:border-cyan-400 rounded flex flex-col items-center justify-center cursor-pointer overflow-hidden group shrink-0 transition-all" title="อัปโหลดรูปชิ้นนี้">
+                                      {sub.imageUrl ? (
+                                        <img src={sub.imageUrl} className="w-full h-full object-cover" />
+                                      ) : (
+                                        <Camera className="w-4 h-4 text-slate-500 group-hover:text-cyan-400 transition-colors" />
+                                      )}
+                                      <input
+                                        type="file"
+                                        className="hidden"
+                                        accept="image/*"
+                                        onChange={(e) => handleSubItemImageUpload(sub.id, e)}
+                                      />
+                                    </label>
+
+                                    <span className="text-[11px] font-mono text-cyan-500 font-bold shrink-0">#{sIdx + 1}</span>
+
+                                    {/* Name */}
+                                    <input
+                                      required
+                                      className="flex-1 min-w-[140px] bg-black border border-slate-800 px-3 py-2 text-xs text-white focus:border-cyan-500 outline-none rounded font-display w-full"
+                                      placeholder="ชื่ออุปกรณ์ย่อย..."
+                                      value={sub.name}
+                                      onChange={e => handleUpdateSubItem(sub.id, 'name', e.target.value)}
+                                    />
+
+                                    {/* Single SN or Multi-SN toggle */}
+                                    {!isMultiSn ? (
+                                      <input
+                                        className="w-full md:w-36 bg-black border border-slate-800 px-2.5 py-2 text-xs text-white focus:border-cyan-500 outline-none rounded font-mono"
+                                        placeholder="S/N..."
+                                        value={sub.serialNumber || ''}
+                                        onChange={e => handleUpdateSubItem(sub.id, 'serialNumber', e.target.value)}
+                                      />
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleSubItemSn(sub.id)}
+                                        className={`w-full md:w-44 px-2.5 py-2 text-xs font-mono rounded border flex items-center justify-between transition-all ${
+                                          isSnExpanded
+                                            ? 'bg-cyan-950/50 border-cyan-400 text-cyan-300'
+                                            : 'bg-black border-slate-800 text-cyan-400 hover:border-cyan-500/50'
+                                        }`}
+                                      >
+                                        <span className="truncate">S/N ({sub.quantity} ชิ้น)</span>
+                                        <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isSnExpanded ? 'rotate-180' : ''}`} />
+                                      </button>
+                                    )}
+
+                                    {/* Quantity & Unit */}
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      <input
+                                        type="number"
+                                        min="1"
+                                        className="w-14 bg-black border border-slate-800 px-2 py-2 text-xs text-center text-white focus:border-cyan-500 outline-none rounded font-mono"
+                                        value={sub.quantity}
+                                        onChange={e => handleUpdateSubItem(sub.id, 'quantity', e.target.value)}
+                                        title="จำนวนชิ้น"
+                                      />
+                                      <input
+                                        className="w-14 bg-black border border-slate-800 px-1.5 py-2 text-[11px] text-center text-white focus:border-cyan-500 outline-none rounded"
+                                        placeholder="หน่วย"
+                                        value={sub.unit || 'ชิ้น'}
+                                        onChange={e => handleUpdateSubItem(sub.id, 'unit', e.target.value)}
+                                      />
+                                    </div>
+
+                                    {/* Delete Button */}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveSubItem(sub.id)}
+                                      disabled={subItems.length <= 1}
+                                      className="text-slate-600 hover:text-red-400 p-2 disabled:opacity-20 disabled:cursor-not-allowed shrink-0"
+                                      title="ลบแถวนี้"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+
+                                  {/* Multi-SN Expandable Panel for this Sub-item */}
+                                  {isMultiSn && isSnExpanded && (
+                                    <div className="p-3 bg-black/80 rounded-lg border border-cyan-900/60 space-y-2 animate-in fade-in duration-200">
+                                      <div className="flex items-center justify-between text-[10px] font-mono text-cyan-400 font-bold uppercase">
+                                        <span>ระบุ Serial Number สำหรับ "{sub.name || `อุปกรณ์ #${sIdx + 1}`}" ทั้ง {sub.quantity} ชิ้น:</span>
+                                      </div>
+                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                        {subSNs.map((snVal, snIndex) => (
+                                          <div key={snIndex} className="flex items-center gap-2 bg-slate-900/80 p-1.5 rounded border border-slate-800">
+                                            <span className="text-[10px] font-mono text-cyan-500 w-8 font-bold shrink-0">#{snIndex + 1}</span>
+                                            <input
+                                              className="flex-1 bg-black border border-slate-800 px-2 py-1 text-xs text-white focus:border-cyan-500 outline-none rounded font-mono"
+                                              placeholder={`S/N ชิ้นที่ ${snIndex + 1}...`}
+                                              value={snVal}
+                                              onChange={e => handleUpdateSubItemSingleSN(sub.id, snIndex, e.target.value)}
+                                            />
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
                                   )}
-                                  <input
-                                    type="file"
-                                    className="hidden"
-                                    accept="image/*"
-                                    onChange={(e) => handleSubItemImageUpload(sub.id, e)}
-                                  />
-                                </label>
-
-                                <span className="text-[11px] font-mono text-cyan-500 font-bold shrink-0">#{sIdx + 1}</span>
-
-                                <input
-                                  required
-                                  className="flex-1 min-w-[140px] bg-black border border-slate-800 px-3 py-2 text-xs text-white focus:border-cyan-500 outline-none rounded font-display"
-                                  placeholder="ชื่ออุปกรณ์ย่อย..."
-                                  value={sub.name}
-                                  onChange={e => handleUpdateSubItem(sub.id, 'name', e.target.value)}
-                                />
-
-                                <input
-                                  className="w-28 bg-black border border-slate-800 px-2.5 py-2 text-xs text-white focus:border-cyan-500 outline-none rounded font-mono"
-                                  placeholder="S/N (ถ้ามี)..."
-                                  value={sub.serialNumber || ''}
-                                  onChange={e => handleUpdateSubItem(sub.id, 'serialNumber', e.target.value)}
-                                />
-
-                                <div className="flex items-center gap-1.5 shrink-0">
-                                  <input
-                                    type="number"
-                                    min="1"
-                                    className="w-14 bg-black border border-slate-800 px-2 py-2 text-xs text-center text-white focus:border-cyan-500 outline-none rounded font-mono"
-                                    value={sub.quantity}
-                                    onChange={e => handleUpdateSubItem(sub.id, 'quantity', parseInt(e.target.value) || 1)}
-                                  />
-                                  <input
-                                    className="w-14 bg-black border border-slate-800 px-1.5 py-2 text-[11px] text-center text-white focus:border-cyan-500 outline-none rounded"
-                                    placeholder="ชิ้น"
-                                    value={sub.unit || 'ชิ้น'}
-                                    onChange={e => handleUpdateSubItem(sub.id, 'unit', e.target.value)}
-                                  />
                                 </div>
-
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveSubItem(sub.id)}
-                                  disabled={subItems.length <= 1}
-                                  className="text-slate-600 hover:text-red-400 p-2 disabled:opacity-20 disabled:cursor-not-allowed shrink-0"
-                                  title="ลบแถวนี้"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
 
@@ -1114,12 +1376,12 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                       </div>
                     )}
 
-                    {/* ════ MODE 3: BATCH MULTI-ITEM (With Individual Item Photos) ════ */}
+                    {/* ════ MODE 3: BATCH MULTI-ITEM (With Individual Item Photos & Multi-SN) ════ */}
                     {entryMode === 'BATCH' && (
                       <div className="space-y-4 pt-2 border-t border-slate-800">
                         <div className="flex items-center justify-between">
                           <div className="text-xs font-bold font-mono text-cyan-400 uppercase tracking-wider flex items-center gap-2">
-                            <ListPlus className="w-4 h-4 text-cyan-400" /> ตารางกรอกหลายอุปกรณ์พร้อมกัน ({batchItems.length} แถว - เพิ่มรูปแยกแต่ละชิ้นได้)
+                            <ListPlus className="w-4 h-4 text-cyan-400" /> ตารางกรอกหลายอุปกรณ์พร้อมกัน ({batchItems.length} แถว - ใส่รูปและ S/N ได้ครบทุกชิ้น)
                           </div>
                           <Button
                             type="button"
@@ -1131,77 +1393,120 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                           </Button>
                         </div>
 
-                        <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
-                          {batchItems.map((row, rIdx) => (
-                            <div key={row.id} className="p-3.5 bg-black/60 rounded-lg border border-slate-800 space-y-2.5">
-                              <div className="flex items-center justify-between">
-                                <span className="text-[11px] font-mono font-bold text-cyan-500">อุปกรณ์ #{rIdx + 1}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveBatchRow(row.id)}
-                                  disabled={batchItems.length <= 1}
-                                  className="text-slate-600 hover:text-red-400 p-1 disabled:opacity-30"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
+                        <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                          {batchItems.map((row, rIdx) => {
+                            const isMultiSn = row.quantity > 1;
+                            const isSnExpanded = expandedSnBatchItemIds.has(row.id);
+                            const rowSNs = normalizeSerialNumbers(row.quantity, row.serialNumber, row.serialNumbers);
 
-                              <div className="flex flex-col sm:flex-row items-center gap-3">
-                                {/* Individual Item Photo */}
-                                <label className="relative w-12 h-12 bg-slate-900 border border-dashed border-cyan-700/60 hover:border-cyan-400 rounded flex flex-col items-center justify-center cursor-pointer overflow-hidden group shrink-0 transition-all">
-                                  {row.imageUrl ? (
-                                    <img src={row.imageUrl} className="w-full h-full object-cover" />
-                                  ) : (
-                                    <Camera className="w-4 h-4 text-slate-500 group-hover:text-cyan-400 transition-colors" />
-                                  )}
-                                  <input
-                                    type="file"
-                                    className="hidden"
-                                    accept="image/*"
-                                    onChange={(e) => handleBatchItemImageUpload(row.id, e)}
-                                  />
-                                </label>
-
-                                <input
-                                  required={rIdx === 0}
-                                  className="flex-1 bg-slate-900 border border-slate-800 px-3 py-2 text-xs text-white focus:border-cyan-500 outline-none rounded font-display w-full"
-                                  placeholder="ชื่ออุปกรณ์..."
-                                  value={row.name}
-                                  onChange={e => handleUpdateBatchRow(row.id, 'name', e.target.value)}
-                                />
-
-                                <input
-                                  className="w-full sm:w-32 bg-slate-900 border border-slate-800 px-2.5 py-2 text-xs text-white focus:border-cyan-500 outline-none rounded font-mono"
-                                  placeholder="Serial Number..."
-                                  value={row.serialNumber}
-                                  onChange={e => handleUpdateBatchRow(row.id, 'serialNumber', e.target.value)}
-                                />
-
-                                <div className="flex items-center gap-1.5 w-full sm:w-auto">
-                                  <input
-                                    type="number"
-                                    min="1"
-                                    className="w-14 bg-slate-900 border border-slate-800 px-2 py-2 text-xs text-center text-white focus:border-cyan-500 outline-none rounded font-mono"
-                                    value={row.quantity}
-                                    onChange={e => handleUpdateBatchRow(row.id, 'quantity', parseInt(e.target.value) || 1)}
-                                  />
-                                  <input
-                                    className="w-16 bg-slate-900 border border-slate-800 px-2 py-2 text-xs text-center text-white focus:border-cyan-500 outline-none rounded"
-                                    placeholder="หน่วย"
-                                    value={row.unit}
-                                    onChange={e => handleUpdateBatchRow(row.id, 'unit', e.target.value)}
-                                  />
+                            return (
+                              <div key={row.id} className="p-3.5 bg-black/60 rounded-lg border border-slate-800 space-y-2.5">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[11px] font-mono font-bold text-cyan-500">อุปกรณ์ #{rIdx + 1}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveBatchRow(row.id)}
+                                    disabled={batchItems.length <= 1}
+                                    className="text-slate-600 hover:text-red-400 p-1 disabled:opacity-30"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
                                 </div>
-                              </div>
 
-                              <input
-                                className="w-full bg-slate-900/60 border border-slate-800 px-3 py-1.5 text-[11px] text-slate-300 focus:border-cyan-500 outline-none rounded"
-                                placeholder="หมายเหตุเฉพาะรายการนี้ (ถ้ามี)..."
-                                value={row.notes}
-                                onChange={e => handleUpdateBatchRow(row.id, 'notes', e.target.value)}
-                              />
-                            </div>
-                          ))}
+                                <div className="flex flex-col sm:flex-row items-center gap-3">
+                                  {/* Individual Item Photo */}
+                                  <label className="relative w-12 h-12 bg-slate-900 border border-dashed border-cyan-700/60 hover:border-cyan-400 rounded flex flex-col items-center justify-center cursor-pointer overflow-hidden group shrink-0 transition-all" title="อัปโหลดรูปชิ้นนี้">
+                                    {row.imageUrl ? (
+                                      <img src={row.imageUrl} className="w-full h-full object-cover" />
+                                    ) : (
+                                      <Camera className="w-4 h-4 text-slate-500 group-hover:text-cyan-400 transition-colors" />
+                                    )}
+                                    <input
+                                      type="file"
+                                      className="hidden"
+                                      accept="image/*"
+                                      onChange={(e) => handleBatchItemImageUpload(row.id, e)}
+                                    />
+                                  </label>
+
+                                  <input
+                                    required={rIdx === 0}
+                                    className="flex-1 bg-slate-900 border border-slate-800 px-3 py-2 text-xs text-white focus:border-cyan-500 outline-none rounded font-display w-full"
+                                    placeholder="ชื่ออุปกรณ์..."
+                                    value={row.name}
+                                    onChange={e => handleUpdateBatchRow(row.id, 'name', e.target.value)}
+                                  />
+
+                                  {!isMultiSn ? (
+                                    <input
+                                      className="w-full sm:w-32 bg-slate-900 border border-slate-800 px-2.5 py-2 text-xs text-white focus:border-cyan-500 outline-none rounded font-mono"
+                                      placeholder="Serial Number..."
+                                      value={row.serialNumber}
+                                      onChange={e => handleUpdateBatchRow(row.id, 'serialNumber', e.target.value)}
+                                    />
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleBatchItemSn(row.id)}
+                                      className={`w-full sm:w-40 px-2.5 py-2 text-xs font-mono rounded border flex items-center justify-between transition-all ${
+                                        isSnExpanded
+                                          ? 'bg-cyan-950/50 border-cyan-400 text-cyan-300'
+                                          : 'bg-slate-900 border-slate-800 text-cyan-400 hover:border-cyan-500/50'
+                                      }`}
+                                    >
+                                      <span className="truncate">S/N ({row.quantity} ชิ้น)</span>
+                                      <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isSnExpanded ? 'rotate-180' : ''}`} />
+                                    </button>
+                                  )}
+
+                                  <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                                    <input
+                                      type="number"
+                                      min="1"
+                                      className="w-14 bg-slate-900 border border-slate-800 px-2 py-2 text-xs text-center text-white focus:border-cyan-500 outline-none rounded font-mono"
+                                      value={row.quantity}
+                                      onChange={e => handleUpdateBatchRow(row.id, 'quantity', e.target.value)}
+                                    />
+                                    <input
+                                      className="w-16 bg-slate-900 border border-slate-800 px-2 py-2 text-xs text-center text-white focus:border-cyan-500 outline-none rounded"
+                                      placeholder="หน่วย"
+                                      value={row.unit}
+                                      onChange={e => handleUpdateBatchRow(row.id, 'unit', e.target.value)}
+                                    />
+                                  </div>
+                                </div>
+
+                                {/* Multi-SN Drawer for Batch row */}
+                                {isMultiSn && isSnExpanded && (
+                                  <div className="p-3 bg-black/90 rounded-lg border border-cyan-900/60 space-y-2 animate-in fade-in duration-200">
+                                    <div className="text-[10px] font-mono text-cyan-400 font-bold uppercase">
+                                      ระบุ Serial Number สำหรับ "{row.name || `อุปกรณ์ #${rIdx + 1}`}" ทั้ง {row.quantity} ชิ้น:
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                      {rowSNs.map((snVal, snIndex) => (
+                                        <div key={snIndex} className="flex items-center gap-2 bg-slate-900/80 p-1.5 rounded border border-slate-800">
+                                          <span className="text-[10px] font-mono text-cyan-500 w-8 font-bold shrink-0">#{snIndex + 1}</span>
+                                          <input
+                                            className="flex-1 bg-black border border-slate-800 px-2 py-1 text-xs text-white focus:border-cyan-500 outline-none rounded font-mono"
+                                            placeholder={`S/N ชิ้นที่ ${snIndex + 1}...`}
+                                            value={snVal}
+                                            onChange={e => handleUpdateBatchRowSingleSN(row.id, snIndex, e.target.value)}
+                                          />
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                <input
+                                  className="w-full bg-slate-900/60 border border-slate-800 px-2.5 py-1.5 text-[11px] text-slate-300 focus:border-cyan-500 outline-none rounded"
+                                  placeholder="หมายเหตุเฉพาะรายการนี้ (ถ้ามี)..."
+                                  value={row.notes}
+                                  onChange={e => handleUpdateBatchRow(row.id, 'notes', e.target.value)}
+                                />
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
@@ -1215,7 +1520,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                         {entryMode === 'BATCH'
                           ? `บันทึกทั้งหมด (${batchItems.filter(b => b.name.trim()).length} รายการ)`
                           : entryMode === 'SET'
-                          ? `บันทึกเป็นชุด (${subItems.filter(s => s.name.trim()).length} ชิ้นในชุด)`
+                          ? `บันทึกเป็นชุด (${subItems.filter(s => s.name.trim()).length} รายการในชุด)`
                           : 'บันทึกข้อมูล'}
                       </Button>
                     </div>
