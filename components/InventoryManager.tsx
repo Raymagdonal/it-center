@@ -3,7 +3,7 @@ import {
   Package, Plus, Search, AlertTriangle, ShoppingCart, Edit, Trash2, X,
   Calendar, Save, Folder, FolderOpen, ArrowLeft, Layers, Ship, Anchor, Building2,
   Camera, Clock, Activity, ChevronDown, ChevronRight, Boxes, ListPlus, CheckCircle2,
-  Layers as LayersIcon, Tag
+  Tag, Image as ImageIcon
 } from 'lucide-react';
 import {
   ProcurementFolder, ProcurementFolderItem, ProcurementSubItem, ProcurementLocationType,
@@ -89,28 +89,29 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
 
   // Sub-items for "รวมเป็นชุดเดียวกัน (SET)" mode
   const [subItems, setSubItems] = useState<ProcurementSubItem[]>([
-    { id: '1', name: '', serialNumber: '', quantity: 1, unit: 'ชิ้น' }
+    { id: '1', name: '', imageUrl: null, serialNumber: '', quantity: 1, unit: 'ชิ้น' }
   ]);
 
   // Rows for "เพิ่มหลายชิ้นพร้อมกัน (BATCH)" mode
   const [batchItems, setBatchItems] = useState<Array<{
     id: string;
     name: string;
+    imageUrl?: string | null;
     serialNumber: string;
     quantity: number;
     unit: string;
     notes: string;
   }>>([
-    { id: '1', name: '', serialNumber: '', quantity: 1, unit: 'อัน', notes: '' },
-    { id: '2', name: '', serialNumber: '', quantity: 1, unit: 'อัน', notes: '' },
-    { id: '3', name: '', serialNumber: '', quantity: 1, unit: 'อัน', notes: '' },
+    { id: '1', name: '', imageUrl: null, serialNumber: '', quantity: 1, unit: 'อัน', notes: '' },
+    { id: '2', name: '', imageUrl: null, serialNumber: '', quantity: 1, unit: 'อัน', notes: '' },
+    { id: '3', name: '', imageUrl: null, serialNumber: '', quantity: 1, unit: 'อัน', notes: '' },
   ]);
 
-  // Sub-items helper
+  // Sub-items helpers
   const handleAddSubItem = () => {
     setSubItems(prev => [
       ...prev,
-      { id: Math.random().toString(36).substr(2, 7), name: '', serialNumber: '', quantity: 1, unit: 'ชิ้น' }
+      { id: Math.random().toString(36).substr(2, 7), name: '', imageUrl: null, serialNumber: '', quantity: 1, unit: 'ชิ้น' }
     ]);
   };
 
@@ -123,11 +124,23 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
     setSubItems(prev => prev.filter(s => s.id !== id));
   };
 
-  // Batch items helper
+  const handleSubItemImageUpload = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const compressed = await compressImage(reader.result as string);
+        setSubItems(prev => prev.map(s => s.id === id ? { ...s, imageUrl: compressed } : s));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Batch items helpers
   const handleAddBatchRow = () => {
     setBatchItems(prev => [
       ...prev,
-      { id: Math.random().toString(36).substr(2, 7), name: '', serialNumber: '', quantity: 1, unit: 'อัน', notes: '' }
+      { id: Math.random().toString(36).substr(2, 7), name: '', imageUrl: null, serialNumber: '', quantity: 1, unit: 'อัน', notes: '' }
     ]);
   };
 
@@ -138,6 +151,18 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
   const handleRemoveBatchRow = (id: string) => {
     if (batchItems.length <= 1) return;
     setBatchItems(prev => prev.filter(r => r.id !== id));
+  };
+
+  const handleBatchItemImageUpload = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const compressed = await compressImage(reader.result as string);
+        setBatchItems(prev => prev.map(r => r.id === id ? { ...r, imageUrl: compressed } : r));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   // Get current view level
@@ -235,13 +260,13 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
       setFormData(initialFormState);
       setEntryMode('SINGLE');
       setSubItems([
-        { id: '1', name: '', serialNumber: '', quantity: 1, unit: 'ชิ้น' },
-        { id: '2', name: '', serialNumber: '', quantity: 1, unit: 'ชิ้น' }
+        { id: '1', name: '', imageUrl: null, serialNumber: '', quantity: 1, unit: 'ชิ้น' },
+        { id: '2', name: '', imageUrl: null, serialNumber: '', quantity: 1, unit: 'ชิ้น' }
       ]);
       setBatchItems([
-        { id: '1', name: '', serialNumber: '', quantity: 1, unit: 'อัน', notes: '' },
-        { id: '2', name: '', serialNumber: '', quantity: 1, unit: 'อัน', notes: '' },
-        { id: '3', name: '', serialNumber: '', quantity: 1, unit: 'อัน', notes: '' },
+        { id: '1', name: '', imageUrl: null, serialNumber: '', quantity: 1, unit: 'อัน', notes: '' },
+        { id: '2', name: '', imageUrl: null, serialNumber: '', quantity: 1, unit: 'อัน', notes: '' },
+        { id: '3', name: '', imageUrl: null, serialNumber: '', quantity: 1, unit: 'อัน', notes: '' },
       ]);
     }
     setIsModalOpen(true);
@@ -264,8 +289,12 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
       itemsToAdd = [singleItem];
     } else if (entryMode === 'SET') {
       const validSubItems = subItems.filter(s => s.name.trim() !== '');
+      // If set image is empty but first sub-item has image, use it
+      const finalImageUrl = formData.imageUrl || validSubItems.find(s => s.imageUrl)?.imageUrl || null;
+
       const setItem: ProcurementFolderItem = {
         ...(formData as ProcurementFolderItem),
+        imageUrl: finalImageUrl,
         id: editingItem ? editingItem.id : Math.random().toString(36).substr(2, 9),
         isSet: true,
         unit: formData.unit || 'ชุด',
@@ -289,7 +318,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
         usageStatus: formData.usageStatus || 'ACTIVE',
         notes: b.notes ? b.notes.trim() : (formData.notes || ''),
         supplier: formData.supplier || '',
-        imageUrl: formData.imageUrl || null,
+        imageUrl: b.imageUrl || formData.imageUrl || null,
         isSet: false,
         subItems: []
       }));
@@ -719,15 +748,28 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                                         </div>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                                           {item.subItems?.map((sub, sIdx) => (
-                                            <div key={sub.id || sIdx} className="p-3 bg-black/60 rounded border border-slate-800 flex flex-col justify-between">
-                                              <div>
-                                                <div className="font-bold text-white text-xs font-display">{sub.name}</div>
-                                                {sub.serialNumber && (
-                                                  <div className="text-[10px] font-mono text-cyan-500 mt-1">S/N: {sub.serialNumber}</div>
+                                            <div key={sub.id || sIdx} className="p-3 bg-black/60 rounded border border-slate-800 flex items-center gap-3">
+                                              {/* Sub-item Image */}
+                                              <div className="w-12 h-12 bg-slate-900 rounded border border-slate-700 overflow-hidden shrink-0 flex items-center justify-center">
+                                                {sub.imageUrl ? (
+                                                  <img
+                                                    src={sub.imageUrl}
+                                                    className="w-full h-full object-cover cursor-pointer hover:scale-110 transition-transform duration-300"
+                                                    onClick={() => setZoomedImage(sub.imageUrl || null)}
+                                                    alt={sub.name}
+                                                  />
+                                                ) : (
+                                                  <Package className="w-5 h-5 text-slate-700" />
                                                 )}
                                               </div>
-                                              <div className="text-right mt-2 text-xs font-mono text-slate-400">
-                                                จำนวน: <span className="text-cyan-400 font-bold">{sub.quantity}</span> {sub.unit || 'ชิ้น'}
+                                              <div className="flex-1 min-w-0">
+                                                <div className="font-bold text-white text-xs font-display truncate">{sub.name}</div>
+                                                {sub.serialNumber && (
+                                                  <div className="text-[10px] font-mono text-cyan-500 mt-0.5 truncate">S/N: {sub.serialNumber}</div>
+                                                )}
+                                                <div className="text-[11px] font-mono text-slate-400 mt-1">
+                                                  จำนวน: <span className="text-cyan-400 font-bold">{sub.quantity}</span> {sub.unit || 'ชิ้น'}
+                                                </div>
                                               </div>
                                             </div>
                                           ))}
@@ -753,10 +795,10 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
             </>
           )}
 
-          {/* Add/Edit Modal (Supports Single, Set Bundle, and Batch Entry) */}
+          {/* Add/Edit Modal (Supports Single, Set Bundle, and Batch Entry with Per-Item Image Uploads) */}
           {isModalOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-in fade-in duration-200 overflow-y-auto">
-              <Card className="w-full max-w-2xl border-cyan-500 bg-slate-950 shadow-[0_0_50px_rgba(0,242,255,0.25)] my-8">
+              <Card className="w-full max-w-3xl border-cyan-500 bg-slate-950 shadow-[0_0_50px_rgba(0,242,255,0.25)] my-8">
                 <CardHeader className="flex flex-row justify-between items-center bg-cyan-900/20 border-b border-cyan-500/30">
                   <div className="flex items-center gap-3">
                     <CardTitle className="text-lg">
@@ -809,20 +851,24 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                   )}
 
                   <form onSubmit={handleSave} className="space-y-6">
-                    {/* Common Image Upload */}
-                    <div className="flex justify-center">
-                      <label className="relative w-28 h-28 bg-slate-900 border-2 border-dashed border-cyan-900 hover:border-cyan-500 rounded-lg flex flex-col items-center justify-center cursor-pointer overflow-hidden group transition-all">
-                        {formData.imageUrl ? (
-                          <img src={formData.imageUrl} className="w-full h-full object-cover" />
-                        ) : (
-                          <>
-                            <Camera className="w-7 h-7 text-slate-600 group-hover:text-cyan-400 transition-colors" />
-                            <span className="text-[9px] mt-1.5 text-slate-500 uppercase font-bold group-hover:text-cyan-500">อัพโหลดรูป</span>
-                          </>
-                        )}
-                        <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
-                      </label>
-                    </div>
+                    {/* Cover Image Upload (For Single Item or Set Bundle Cover) */}
+                    {entryMode !== 'BATCH' && (
+                      <div className="flex justify-center">
+                        <label className="relative w-28 h-28 bg-slate-900 border-2 border-dashed border-cyan-900 hover:border-cyan-500 rounded-lg flex flex-col items-center justify-center cursor-pointer overflow-hidden group transition-all">
+                          {formData.imageUrl ? (
+                            <img src={formData.imageUrl} className="w-full h-full object-cover" />
+                          ) : (
+                            <>
+                              <Camera className="w-7 h-7 text-slate-600 group-hover:text-cyan-400 transition-colors" />
+                              <span className="text-[9px] mt-1.5 text-slate-500 uppercase font-bold group-hover:text-cyan-500 text-center px-1">
+                                {entryMode === 'SET' ? 'รูปหน้าปกชุด' : 'อัพโหลดรูป'}
+                              </span>
+                            </>
+                          )}
+                          <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
+                        </label>
+                      </div>
+                    )}
 
                     {/* Common Metadata Fields */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -944,13 +990,13 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                       </div>
                     )}
 
-                    {/* ════ MODE 2: SET / BUNDLE ════ */}
+                    {/* ════ MODE 2: SET / BUNDLE (With Individual Sub-item Photos) ════ */}
                     {entryMode === 'SET' && (
                       <div className="space-y-4 pt-2 border-t border-slate-800">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div className="md:col-span-2">
                             <label className="block text-[10px] font-mono font-bold text-cyan-400 uppercase mb-1.5 tracking-widest flex items-center gap-1.5">
-                              <Boxes className="w-3.5 h-3.5" /> ชื่อชุดอุปกรณ์ (Set Name)
+                              <Boxes className="w-3.5 h-3.5" /> ชื่อชุดอุปกรณ์ (SET NAME)
                             </label>
                             <input
                               required
@@ -975,11 +1021,11 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                           </div>
                         </div>
 
-                        {/* Sub-items in Set */}
+                        {/* Sub-items in Set with Individual Images */}
                         <div className="p-4 bg-black/60 rounded-xl border border-cyan-900/40 space-y-3">
                           <div className="flex items-center justify-between">
                             <div className="text-xs font-bold font-mono text-cyan-400 uppercase tracking-wider flex items-center gap-2">
-                              <Tag className="w-3.5 h-3.5" /> รายการอุปกรณ์ย่อยในชุด ({subItems.length} รายการ)
+                              <Tag className="w-3.5 h-3.5" /> รายการอุปกรณ์ย่อยในชุด ({subItems.length} รายการ - เพิ่มรูปถ่ายได้ทุกชิ้น)
                             </div>
                             <Button
                               type="button"
@@ -991,46 +1037,66 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                             </Button>
                           </div>
 
-                          <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+                          <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
                             {subItems.map((sub, sIdx) => (
-                              <div key={sub.id} className="grid grid-cols-12 gap-2 p-2.5 bg-slate-900/60 rounded border border-slate-800 items-center">
-                                <span className="col-span-1 text-[11px] font-mono text-slate-500 font-bold text-center">#{sIdx + 1}</span>
+                              <div key={sub.id} className="p-3 bg-slate-900/70 rounded-lg border border-slate-800 flex flex-col md:flex-row items-center gap-3">
+                                {/* Sub-item Photo Upload */}
+                                <label className="relative w-12 h-12 bg-black border border-dashed border-cyan-700/60 hover:border-cyan-400 rounded flex flex-col items-center justify-center cursor-pointer overflow-hidden group shrink-0 transition-all">
+                                  {sub.imageUrl ? (
+                                    <img src={sub.imageUrl} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <Camera className="w-4 h-4 text-slate-500 group-hover:text-cyan-400 transition-colors" />
+                                  )}
+                                  <input
+                                    type="file"
+                                    className="hidden"
+                                    accept="image/*"
+                                    onChange={(e) => handleSubItemImageUpload(sub.id, e)}
+                                  />
+                                </label>
+
+                                <span className="text-[11px] font-mono text-cyan-500 font-bold shrink-0">#{sIdx + 1}</span>
+
                                 <input
                                   required
-                                  className="col-span-5 bg-black border border-slate-800 px-2.5 py-1.5 text-xs text-white focus:border-cyan-500 outline-none rounded font-display"
+                                  className="flex-1 min-w-[140px] bg-black border border-slate-800 px-3 py-2 text-xs text-white focus:border-cyan-500 outline-none rounded font-display"
                                   placeholder="ชื่ออุปกรณ์ย่อย..."
                                   value={sub.name}
                                   onChange={e => handleUpdateSubItem(sub.id, 'name', e.target.value)}
                                 />
+
                                 <input
-                                  className="col-span-3 bg-black border border-slate-800 px-2 py-1.5 text-xs text-white focus:border-cyan-500 outline-none rounded font-mono"
+                                  className="w-28 bg-black border border-slate-800 px-2.5 py-2 text-xs text-white focus:border-cyan-500 outline-none rounded font-mono"
                                   placeholder="S/N (ถ้ามี)..."
                                   value={sub.serialNumber || ''}
                                   onChange={e => handleUpdateSubItem(sub.id, 'serialNumber', e.target.value)}
                                 />
-                                <input
-                                  type="number"
-                                  min="1"
-                                  className="col-span-1 bg-black border border-slate-800 px-1.5 py-1.5 text-xs text-center text-white focus:border-cyan-500 outline-none rounded font-mono"
-                                  value={sub.quantity}
-                                  onChange={e => handleUpdateSubItem(sub.id, 'quantity', parseInt(e.target.value) || 1)}
-                                />
-                                <input
-                                  className="col-span-1 bg-black border border-slate-800 px-1 py-1.5 text-[11px] text-center text-white focus:border-cyan-500 outline-none rounded"
-                                  placeholder="ชิ้น"
-                                  value={sub.unit || 'ชิ้น'}
-                                  onChange={e => handleUpdateSubItem(sub.id, 'unit', e.target.value)}
-                                />
-                                <div className="col-span-1 text-center">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemoveSubItem(sub.id)}
-                                    disabled={subItems.length <= 1}
-                                    className="text-slate-600 hover:text-red-400 p-1 disabled:opacity-30 disabled:cursor-not-allowed"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
+
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    className="w-14 bg-black border border-slate-800 px-2 py-2 text-xs text-center text-white focus:border-cyan-500 outline-none rounded font-mono"
+                                    value={sub.quantity}
+                                    onChange={e => handleUpdateSubItem(sub.id, 'quantity', parseInt(e.target.value) || 1)}
+                                  />
+                                  <input
+                                    className="w-14 bg-black border border-slate-800 px-1.5 py-2 text-[11px] text-center text-white focus:border-cyan-500 outline-none rounded"
+                                    placeholder="ชิ้น"
+                                    value={sub.unit || 'ชิ้น'}
+                                    onChange={e => handleUpdateSubItem(sub.id, 'unit', e.target.value)}
+                                  />
                                 </div>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveSubItem(sub.id)}
+                                  disabled={subItems.length <= 1}
+                                  className="text-slate-600 hover:text-red-400 p-2 disabled:opacity-20 disabled:cursor-not-allowed shrink-0"
+                                  title="ลบแถวนี้"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
                               </div>
                             ))}
                           </div>
@@ -1048,12 +1114,12 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                       </div>
                     )}
 
-                    {/* ════ MODE 3: BATCH MULTI-ITEM ════ */}
+                    {/* ════ MODE 3: BATCH MULTI-ITEM (With Individual Item Photos) ════ */}
                     {entryMode === 'BATCH' && (
                       <div className="space-y-4 pt-2 border-t border-slate-800">
                         <div className="flex items-center justify-between">
                           <div className="text-xs font-bold font-mono text-cyan-400 uppercase tracking-wider flex items-center gap-2">
-                            <ListPlus className="w-4 h-4 text-cyan-400" /> ตารางกรอกหลายอุปกรณ์พร้อมกัน ({batchItems.length} แถว)
+                            <ListPlus className="w-4 h-4 text-cyan-400" /> ตารางกรอกหลายอุปกรณ์พร้อมกัน ({batchItems.length} แถว - เพิ่มรูปแยกแต่ละชิ้นได้)
                           </div>
                           <Button
                             type="button"
@@ -1065,9 +1131,9 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                           </Button>
                         </div>
 
-                        <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+                        <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
                           {batchItems.map((row, rIdx) => (
-                            <div key={row.id} className="p-3 bg-black/60 rounded-lg border border-slate-800 space-y-2">
+                            <div key={row.id} className="p-3.5 bg-black/60 rounded-lg border border-slate-800 space-y-2.5">
                               <div className="flex items-center justify-between">
                                 <span className="text-[11px] font-mono font-bold text-cyan-500">อุปกรณ์ #{rIdx + 1}</span>
                                 <button
@@ -1080,37 +1146,56 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
                                 </button>
                               </div>
 
-                              <div className="grid grid-cols-12 gap-2">
+                              <div className="flex flex-col sm:flex-row items-center gap-3">
+                                {/* Individual Item Photo */}
+                                <label className="relative w-12 h-12 bg-slate-900 border border-dashed border-cyan-700/60 hover:border-cyan-400 rounded flex flex-col items-center justify-center cursor-pointer overflow-hidden group shrink-0 transition-all">
+                                  {row.imageUrl ? (
+                                    <img src={row.imageUrl} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <Camera className="w-4 h-4 text-slate-500 group-hover:text-cyan-400 transition-colors" />
+                                  )}
+                                  <input
+                                    type="file"
+                                    className="hidden"
+                                    accept="image/*"
+                                    onChange={(e) => handleBatchItemImageUpload(row.id, e)}
+                                  />
+                                </label>
+
                                 <input
                                   required={rIdx === 0}
-                                  className="col-span-5 bg-slate-900 border border-slate-800 px-2.5 py-1.5 text-xs text-white focus:border-cyan-500 outline-none rounded font-display"
+                                  className="flex-1 bg-slate-900 border border-slate-800 px-3 py-2 text-xs text-white focus:border-cyan-500 outline-none rounded font-display w-full"
                                   placeholder="ชื่ออุปกรณ์..."
                                   value={row.name}
                                   onChange={e => handleUpdateBatchRow(row.id, 'name', e.target.value)}
                                 />
+
                                 <input
-                                  className="col-span-3 bg-slate-900 border border-slate-800 px-2 py-1.5 text-xs text-white focus:border-cyan-500 outline-none rounded font-mono"
+                                  className="w-full sm:w-32 bg-slate-900 border border-slate-800 px-2.5 py-2 text-xs text-white focus:border-cyan-500 outline-none rounded font-mono"
                                   placeholder="Serial Number..."
                                   value={row.serialNumber}
                                   onChange={e => handleUpdateBatchRow(row.id, 'serialNumber', e.target.value)}
                                 />
-                                <input
-                                  type="number"
-                                  min="1"
-                                  className="col-span-2 bg-slate-900 border border-slate-800 px-1.5 py-1.5 text-xs text-center text-white focus:border-cyan-500 outline-none rounded font-mono"
-                                  value={row.quantity}
-                                  onChange={e => handleUpdateBatchRow(row.id, 'quantity', parseInt(e.target.value) || 1)}
-                                />
-                                <input
-                                  className="col-span-2 bg-slate-900 border border-slate-800 px-1.5 py-1.5 text-xs text-center text-white focus:border-cyan-500 outline-none rounded"
-                                  placeholder="หน่วย"
-                                  value={row.unit}
-                                  onChange={e => handleUpdateBatchRow(row.id, 'unit', e.target.value)}
-                                />
+
+                                <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    className="w-14 bg-slate-900 border border-slate-800 px-2 py-2 text-xs text-center text-white focus:border-cyan-500 outline-none rounded font-mono"
+                                    value={row.quantity}
+                                    onChange={e => handleUpdateBatchRow(row.id, 'quantity', parseInt(e.target.value) || 1)}
+                                  />
+                                  <input
+                                    className="w-16 bg-slate-900 border border-slate-800 px-2 py-2 text-xs text-center text-white focus:border-cyan-500 outline-none rounded"
+                                    placeholder="หน่วย"
+                                    value={row.unit}
+                                    onChange={e => handleUpdateBatchRow(row.id, 'unit', e.target.value)}
+                                  />
+                                </div>
                               </div>
 
                               <input
-                                className="w-full bg-slate-900/60 border border-slate-800 px-2.5 py-1 text-[11px] text-slate-300 focus:border-cyan-500 outline-none rounded"
+                                className="w-full bg-slate-900/60 border border-slate-800 px-3 py-1.5 text-[11px] text-slate-300 focus:border-cyan-500 outline-none rounded"
                                 placeholder="หมายเหตุเฉพาะรายการนี้ (ถ้ามี)..."
                                 value={row.notes}
                                 onChange={e => handleUpdateBatchRow(row.id, 'notes', e.target.value)}

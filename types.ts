@@ -179,6 +179,7 @@ export type ProcurementLocationType = 'BOAT' | 'PIER' | 'OFFICE';
 export interface ProcurementSubItem {
   id: string;
   name: string;
+  imageUrl?: string | null;
   serialNumber?: string;
   quantity: number;
   unit?: string;
