@@ -1,6 +1,7 @@
 import React from 'react';
 import { Activity, ShieldCheck, PlusCircle, LayoutDashboard, ShoppingCart, Map as MapIcon, Database, MapPin, Anchor, Cpu, List, HardDrive, FileText, ClipboardList, Package, Smartphone, Calendar, Tablet, Radio, Navigation, Video } from 'lucide-react';
 import { AppMode } from '../types';
+import { CtbLogo } from './CtbLogo';
 
 interface SidebarProps {
   currentMode: AppMode;
@@ -37,15 +38,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="flex items-center gap-5 relative z-10">
           <div className="relative">
             <div className="absolute -inset-2 bg-cyan-500 blur-lg opacity-20 group-hover:opacity-50 transition-opacity"></div>
-            <div className="w-14 h-14 bg-black border-2 border-cyan-400 clip-corner flex items-center justify-center shadow-[0_0_15px_rgba(0,242,255,0.4)]">
-              <img
-                src="https://i.postimg.cc/76W5mC6G/Logo-CTB.png"
-                alt="CTB Logo"
-                className="w-10 h-10 object-contain drop-shadow-[0_0_5px_rgba(0,242,255,1)]"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = 'https://i.postimg.cc/mzKcBTrd/Logo-CTB.png';
-                }}
-              />
+            <div className="w-14 h-14 bg-black border-2 border-cyan-400 clip-corner flex items-center justify-center shadow-[0_0_15px_rgba(0,242,255,0.4)] p-1">
+              <CtbLogo className="w-11 h-11 drop-shadow-[0_0_8px_rgba(0,242,255,0.9)]" size={44} />
             </div>
           </div>
           <div>
