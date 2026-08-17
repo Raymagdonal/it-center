@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import {
   Bus, Plus, X, Save, Search, Edit, Trash2, AlertTriangle,
-  CheckCircle, Ship, User, Calendar, Clock, Navigation
+  CheckCircle, Ship, User, Calendar, Clock, Navigation,
+  LayoutGrid, ExternalLink
 } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
@@ -275,26 +276,43 @@ export const ViabusManager: React.FC<ViabusManagerProps> = ({ data, onUpdate }) 
           </p>
         </div>
 
-        {/* Stats */}
-        <div className="flex items-center gap-3">
-          <div className="bg-black border border-indigo-900/50 rounded-lg px-4 py-2 text-center">
-            <div className="text-2xl font-bold text-indigo-400 font-mono">{VIABUS_VESSELS.length}</div>
-            <div className="text-[9px] text-indigo-600 uppercase font-bold tracking-wider">เรือทั้งหมด</div>
-          </div>
-          <div className="bg-black border border-red-900/50 rounded-lg px-4 py-2 text-center">
-            <div className="text-2xl font-bold text-red-400 font-mono">{brokenVesselsCount}</div>
-            <div className="text-[9px] text-red-600 uppercase font-bold tracking-wider">มีปัญหา</div>
-          </div>
-          <div className="bg-black border border-emerald-900/50 rounded-lg px-4 py-2 text-center">
-            <div className="text-2xl font-bold text-emerald-400 font-mono">{VIABUS_VESSELS.length - brokenVesselsCount}</div>
-            <div className="text-[9px] text-emerald-600 uppercase font-bold tracking-wider">ปกติ</div>
-          </div>
-          {activeSignalIssues > 0 && (
-            <div className="bg-black border border-amber-900/50 rounded-lg px-4 py-2 text-center animate-pulse">
-              <div className="text-2xl font-bold text-amber-400 font-mono">{activeSignalIssues}</div>
-              <div className="text-[9px] text-amber-600 uppercase font-bold tracking-wider">สัญญาณมีปัญหา</div>
+        {/* Action & Stats */}
+        <div className="flex items-center gap-4 flex-wrap">
+          <a
+            href="https://docs.google.com/spreadsheets/d/1F0ibmlE03mbE0wj_iFgMhWYkmrLOr0AKg5XJ2LM49Xo/edit?gid=0#gid=0"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 h-12 px-5 bg-green-950/20 hover:bg-green-950/40 border border-green-500/30 hover:border-green-500/60 rounded-xl text-green-400 transition-all duration-300 shadow-[0_0_15px_rgba(34,197,94,0.05)] hover:shadow-[0_0_20px_rgba(34,197,94,0.15)] group shrink-0"
+          >
+            <LayoutGrid className="w-5 h-5 text-green-400 group-hover:scale-105 transition-transform" />
+            <div className="flex flex-col text-left">
+              <span className="text-[9px] font-bold tracking-widest text-green-500/70 font-mono leading-none mb-1">EXTERNAL LINK</span>
+              <span className="text-xs font-black tracking-wider text-green-400 leading-none">GOOGLE SHEETS LOG</span>
             </div>
-          )}
+            <ExternalLink className="w-3.5 h-3.5 text-green-500/50 group-hover:text-green-400 transition-colors ml-1" />
+          </a>
+
+          {/* Stats */}
+          <div className="flex items-center gap-3">
+            <div className="bg-black border border-indigo-900/50 rounded-lg px-4 py-2 text-center">
+              <div className="text-2xl font-bold text-indigo-400 font-mono">{VIABUS_VESSELS.length}</div>
+              <div className="text-[9px] text-indigo-600 uppercase font-bold tracking-wider">เรือทั้งหมด</div>
+            </div>
+            <div className="bg-black border border-red-900/50 rounded-lg px-4 py-2 text-center">
+              <div className="text-2xl font-bold text-red-400 font-mono">{brokenVesselsCount}</div>
+              <div className="text-[9px] text-red-600 uppercase font-bold tracking-wider">มีปัญหา</div>
+            </div>
+            <div className="bg-black border border-emerald-900/50 rounded-lg px-4 py-2 text-center">
+              <div className="text-2xl font-bold text-emerald-400 font-mono">{VIABUS_VESSELS.length - brokenVesselsCount}</div>
+              <div className="text-[9px] text-emerald-600 uppercase font-bold tracking-wider">ปกติ</div>
+            </div>
+            {activeSignalIssues > 0 && (
+              <div className="bg-black border border-amber-900/50 rounded-lg px-4 py-2 text-center animate-pulse">
+                <div className="text-2xl font-bold text-amber-400 font-mono">{activeSignalIssues}</div>
+                <div className="text-[9px] text-amber-600 uppercase font-bold tracking-wider">สัญญาณมีปัญหา</div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
