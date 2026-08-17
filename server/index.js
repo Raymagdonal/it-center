@@ -43,10 +43,12 @@ function readDb() {
       stock: [],
       assets: [],
       maritime: [],
-      reports: [],
       folders: [],
       simCards: seedSimCards,
-      ticketMachines: seedMachines
+      ticketMachines: seedMachines,
+      radioData: { faultLogs: [], signalLogs: [] },
+      viabusData: { faultLogs: [], signalLogs: [] },
+      cctvData: { cameras: [], faultLogs: [] }
     };
     writeDb(initialDb);
     return initialDb;
@@ -69,6 +71,18 @@ function readDb() {
     }
     if (!Array.isArray(db.ticketMachines) || db.ticketMachines.length === 0) {
       db.ticketMachines = seedMachines;
+      updated = true;
+    }
+    if (!db.radioData) {
+      db.radioData = { faultLogs: [], signalLogs: [] };
+      updated = true;
+    }
+    if (!db.viabusData) {
+      db.viabusData = { faultLogs: [], signalLogs: [] };
+      updated = true;
+    }
+    if (!db.cctvData) {
+      db.cctvData = { cameras: [], faultLogs: [] };
       updated = true;
     }
     if (updated) {

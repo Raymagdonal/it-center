@@ -2,28 +2,41 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Database, Download, Upload, RefreshCw, AlertTriangle, CheckCircle2, ShieldCheck, Package, Trash2 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
-import { MaintenanceTicket, StockItem, MaritimeItem, TrackedAsset, MeetingReport, ProcurementFolder, SimCard } from '../types';
+import { MaintenanceTicket, StockItem, MaritimeItem, TrackedAsset, ProcurementFolder, SimCard, TicketMachine, RadioData, ViabusData, CctvData } from '../types';
 import { STORAGE_KEYS, CURRENT_DATA_VERSION, getStorageUsage, formatBytes, getStoredData } from '../utils/storageUtils';
 
-interface BackupData {
+export interface BackupData {
   tickets?: MaintenanceTicket[];
   stock?: StockItem[];
   maritime?: MaritimeItem[];
   trackedAssets?: TrackedAsset[];
-  meetingReports?: MeetingReport[];
+  assets?: TrackedAsset[]; // Alias
   procurementFolders?: ProcurementFolder[];
+  folders?: ProcurementFolder[]; // Alias
   simCards?: SimCard[];
-  ticketMachines?: any[];
-  radioData?: any;
-  viabusData?: any;
-  cctvData?: any;
+  ticketMachines?: TicketMachine[];
+  radioData?: RadioData;
+  viabusData?: ViabusData;
+  cctvData?: CctvData;
 }
 
 interface BackupManagerProps {
-  onRestore: (data: BackupData) => void;
+  currentData?: {
+    tickets: MaintenanceTicket[];
+    stock: StockItem[];
+    maritime: MaritimeItem[];
+    trackedAssets: TrackedAsset[];
+    procurementFolders: ProcurementFolder[];
+    simCards: SimCard[];
+    ticketMachines: TicketMachine[];
+    radioData: RadioData;
+    viabusData: ViabusData;
+    cctvData: CctvData;
+  };
+  onRestore: (data: BackupData) => Promise<void> | void;
 }
 
-export const BackupManager: React.FC<BackupManagerProps> = ({ onRestore }) => {
+export const BackupManager: React.FC<BackupManagerProps> = ({ currentData, onRestore }) => {
   const [status, setStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [storageInfo, setStorageInfo] = useState<{ totalBytes: number; breakdown: Record<string, number> }>({ totalBytes: 0, breakdown: {} });
@@ -37,18 +50,17 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ onRestore }) => {
   const handleExport = () => {
     setStatus('processing');
     try {
-      // Export ALL data types
-      const tickets = getStoredData<MaintenanceTicket[]>(STORAGE_KEYS.TICKETS, []);
-      const stock = getStoredData<StockItem[]>(STORAGE_KEYS.STOCK, []);
-      const maritime = getStoredData<MaritimeItem[]>(STORAGE_KEYS.MARITIME, []);
-      const trackedAssets = getStoredData<TrackedAsset[]>(STORAGE_KEYS.TRACKED_ASSETS, []);
-      const meetingReports = getStoredData<MeetingReport[]>(STORAGE_KEYS.MEETING_REPORTS, []);
-      const procurementFolders = getStoredData<ProcurementFolder[]>(STORAGE_KEYS.PROCUREMENT_FOLDERS, []);
-      const simCards = getStoredData<SimCard[]>(STORAGE_KEYS.SIM_CARDS, []);
-      const ticketMachines = getStoredData<any[]>(STORAGE_KEYS.TICKET_MACHINES, []);
-      const radioData = getStoredData<any>(STORAGE_KEYS.RADIO_DATA, { faultLogs: [], signalLogs: [] });
-      const viabusData = getStoredData<any>(STORAGE_KEYS.VIABUS_DATA, { faultLogs: [], signalLogs: [] });
-      const cctvData = getStoredData<any>(STORAGE_KEYS.CCTV_DATA, { cameras: [], faultLogs: [] });
+      // Export ALL 10 active data types from live props or fallback to localStorage
+      const tickets = currentData?.tickets ?? getStoredData<MaintenanceTicket[]>(STORAGE_KEYS.TICKETS, []);
+      const stock = currentData?.stock ?? getStoredData<StockItem[]>(STORAGE_KEYS.STOCK, []);
+      const maritime = currentData?.maritime ?? getStoredData<MaritimeItem[]>(STORAGE_KEYS.MARITIME, []);
+      const trackedAssets = currentData?.trackedAssets ?? getStoredData<TrackedAsset[]>(STORAGE_KEYS.TRACKED_ASSETS, []);
+      const procurementFolders = currentData?.procurementFolders ?? getStoredData<ProcurementFolder[]>(STORAGE_KEYS.PROCUREMENT_FOLDERS, []);
+      const simCards = currentData?.simCards ?? getStoredData<SimCard[]>(STORAGE_KEYS.SIM_CARDS, []);
+      const ticketMachines = currentData?.ticketMachines ?? getStoredData<TicketMachine[]>(STORAGE_KEYS.TICKET_MACHINES, []);
+      const radioData = currentData?.radioData ?? getStoredData<RadioData>(STORAGE_KEYS.RADIO_DATA, { faultLogs: [], signalLogs: [] });
+      const viabusData = currentData?.viabusData ?? getStoredData<ViabusData>(STORAGE_KEYS.VIABUS_DATA, { faultLogs: [], signalLogs: [] });
+      const cctvData = currentData?.cctvData ?? getStoredData<CctvData>(STORAGE_KEYS.CCTV_DATA, { cameras: [], faultLogs: [] });
 
       const backupData = {
         version: CURRENT_DATA_VERSION,
@@ -58,7 +70,6 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ onRestore }) => {
           stock,
           maritime,
           trackedAssets,
-          meetingReports,
           procurementFolders,
           simCards,
           ticketMachines,
@@ -71,13 +82,15 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ onRestore }) => {
           stockCount: stock.length,
           maritimeCount: maritime.length,
           trackedAssetsCount: trackedAssets.length,
-          meetingReportsCount: meetingReports.length,
           procurementFoldersCount: procurementFolders.length,
           simCardsCount: simCards.length,
           ticketMachinesCount: ticketMachines.length,
           radioFaultLogsCount: radioData?.faultLogs?.length ?? 0,
+          radioSignalLogsCount: radioData?.signalLogs?.length ?? 0,
           viabusFaultLogsCount: viabusData?.faultLogs?.length ?? 0,
+          viabusSignalLogsCount: viabusData?.signalLogs?.length ?? 0,
           cctvCamerasCount: cctvData?.cameras?.length ?? 0,
+          cctvFaultLogsCount: cctvData?.faultLogs?.length ?? 0,
         }
       };
 
@@ -107,36 +120,59 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ onRestore }) => {
 
     setStatus('processing');
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
         const json = JSON.parse(event.target?.result as string);
 
-        // Validate backup file structure
-        if (!json.data) {
-          throw new Error("รูปแบบไฟล์ไม่ถูกต้อง: ไม่พบ data");
+        // Validate backup file structure (support both wrapped { data: ... } or raw data)
+        const payload = json.data ? json.data : json;
+        if (!payload || typeof payload !== 'object') {
+          throw new Error("รูปแบบไฟล์ไม่ถูกต้อง: ไม่พบโครงสร้างข้อมูล");
         }
+
+        // Normalize all keys to ensure 100% data recovery
+        const normalizedData: BackupData = {
+          tickets: Array.isArray(payload.tickets) ? payload.tickets : undefined,
+          stock: Array.isArray(payload.stock) ? payload.stock : undefined,
+          maritime: Array.isArray(payload.maritime) ? payload.maritime : undefined,
+          trackedAssets: Array.isArray(payload.trackedAssets) ? payload.trackedAssets : (Array.isArray(payload.assets) ? payload.assets : undefined),
+          procurementFolders: Array.isArray(payload.procurementFolders) ? payload.procurementFolders : (Array.isArray(payload.folders) ? payload.folders : undefined),
+          simCards: Array.isArray(payload.simCards) ? payload.simCards : undefined,
+          ticketMachines: Array.isArray(payload.ticketMachines) ? payload.ticketMachines : undefined,
+          radioData: payload.radioData ? {
+            faultLogs: Array.isArray(payload.radioData.faultLogs) ? payload.radioData.faultLogs : [],
+            signalLogs: Array.isArray(payload.radioData.signalLogs) ? payload.radioData.signalLogs : [],
+          } : undefined,
+          viabusData: payload.viabusData ? {
+            faultLogs: Array.isArray(payload.viabusData.faultLogs) ? payload.viabusData.faultLogs : [],
+            signalLogs: Array.isArray(payload.viabusData.signalLogs) ? payload.viabusData.signalLogs : [],
+          } : undefined,
+          cctvData: payload.cctvData ? {
+            cameras: Array.isArray(payload.cctvData.cameras) ? payload.cctvData.cameras : [],
+            faultLogs: Array.isArray(payload.cctvData.faultLogs) ? payload.cctvData.faultLogs : [],
+          } : undefined,
+        };
 
         // Show confirmation with data summary
         const dataTypes = [];
-        if (json.data.tickets?.length) dataTypes.push(`รายการแจ้งซ่อม: ${json.data.tickets.length}`);
-        if (json.data.stock?.length) dataTypes.push(`สต็อกอุปกรณ์: ${json.data.stock.length}`);
-        if (json.data.maritime?.length) dataTypes.push(`ข้อมูลเรือ/ท่า: ${json.data.maritime.length}`);
-        if (json.data.trackedAssets?.length) dataTypes.push(`อุปกรณ์ติดตาม: ${json.data.trackedAssets.length}`);
-        if (json.data.meetingReports?.length) dataTypes.push(`รายงานประชุม: ${json.data.meetingReports.length}`);
-        if (json.data.procurementFolders?.length) dataTypes.push(`โฟลเดอร์จัดซื้อ: ${json.data.procurementFolders.length}`);
-        if (json.data.simCards?.length) dataTypes.push(`SIM Cards: ${json.data.simCards.length}`);
-        if (json.data.ticketMachines?.length) dataTypes.push(`เครื่องจำหน่ายตั๋ว: ${json.data.ticketMachines.length}`);
-        if (json.data.radioData?.faultLogs?.length) dataTypes.push(`วิทยุสื่อสาร (ข้อมูลเสีย): ${json.data.radioData.faultLogs.length}`);
-        if (json.data.viabusData?.faultLogs?.length) dataTypes.push(`Viabus (ข้อมูลเสีย): ${json.data.viabusData.faultLogs.length}`);
-        if (json.data.cctvData?.cameras?.length) dataTypes.push(`CCTV (กล้อง): ${json.data.cctvData.cameras.length}`);
+        if (normalizedData.tickets) dataTypes.push(`• รายการแจ้งซ่อม: ${normalizedData.tickets.length} รายการ`);
+        if (normalizedData.stock) dataTypes.push(`• สต็อกอุปกรณ์: ${normalizedData.stock.length} รายการ`);
+        if (normalizedData.maritime) dataTypes.push(`• ข้อมูลเรือ/ท่า: ${normalizedData.maritime.length} รายการ`);
+        if (normalizedData.trackedAssets) dataTypes.push(`• อุปกรณ์ติดตาม: ${normalizedData.trackedAssets.length} รายการ`);
+        if (normalizedData.procurementFolders) dataTypes.push(`• โฟลเดอร์จัดซื้อ: ${normalizedData.procurementFolders.length} โฟลเดอร์`);
+        if (normalizedData.simCards) dataTypes.push(`• ข้อมูล SIM Cards: ${normalizedData.simCards.length} เบอร์`);
+        if (normalizedData.ticketMachines) dataTypes.push(`• เครื่องจำหน่ายตั๋ว: ${normalizedData.ticketMachines.length} เครื่อง`);
+        if (normalizedData.radioData) dataTypes.push(`• วิทยุสื่อสาร: แจ้งเสีย ${normalizedData.radioData.faultLogs.length} / สัญญาณ ${normalizedData.radioData.signalLogs.length} รายการ`);
+        if (normalizedData.viabusData) dataTypes.push(`• Viabus: แจ้งเสีย ${normalizedData.viabusData.faultLogs.length} / สัญญาณ ${normalizedData.viabusData.signalLogs.length} รายการ`);
+        if (normalizedData.cctvData) dataTypes.push(`• กล้อง CCTV: ทำเนียบ ${normalizedData.cctvData.cameras.length} / แจ้งเสีย ${normalizedData.cctvData.faultLogs.length} รายการ`);
 
-        const confirmMessage = `ไฟล์สำรอง v${json.version || 'ไม่ระบุ'} (${new Date(json.timestamp).toLocaleString('th-TH')})\n\nข้อมูลที่จะนำเข้า:\n${dataTypes.join('\n')}\n\nการคืนค่าข้อมูลจะทับข้อมูลปัจจุบันทั้งหมด คุณแน่ใจหรือไม่?`;
+        const confirmMessage = `ไฟล์สำรอง v${json.version || '4.0'} (${json.timestamp ? new Date(json.timestamp).toLocaleString('th-TH') : 'ไม่ระบุเวลา'})\n\nข้อมูลที่จะนำเข้าครบถ้วน:\n${dataTypes.join('\n')}\n\nการคืนค่าข้อมูลจะอัปเดตและบันทึกลงสู่ระบบทันที คุณแน่ใจหรือไม่?`;
 
         if (confirm(confirmMessage)) {
-          onRestore(json.data);
+          await onRestore(normalizedData);
           setStatus('success');
-          setMessage('คืนค่าข้อมูลสำเร็จ ระบบจะอัปเดตข้อมูลทันที');
-          setStorageInfo(getStorageUsage()); // Update storage info
+          setMessage('คืนค่าข้อมูลสำเร็จ ระบบอัปเดตข้อมูลครบทุกหัวข้อทันที');
+          setStorageInfo(getStorageUsage());
           setTimeout(() => setStatus('idle'), 3000);
         } else {
           setStatus('idle');
@@ -209,7 +245,6 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ onRestore }) => {
                 <li className="flex items-center gap-2"><div className="w-1 h-1 bg-cyan-500"></div> ข้อมูลคลังอุปกรณ์ (Stock)</li>
                 <li className="flex items-center gap-2"><div className="w-1 h-1 bg-cyan-500"></div> ข้อมูลเรือและท่าเรือ (Maritime)</li>
                 <li className="flex items-center gap-2"><div className="w-1 h-1 bg-cyan-500"></div> อุปกรณ์ติดตาม (Tracked Assets)</li>
-                <li className="flex items-center gap-2"><div className="w-1 h-1 bg-cyan-500"></div> รายงานการประชุม (Meeting Reports)</li>
                 <li className="flex items-center gap-2"><div className="w-1 h-1 bg-cyan-500"></div> โฟลเดอร์จัดซื้อ (Procurement)</li>
                 <li className="flex items-center gap-2"><div className="w-1 h-1 bg-cyan-500"></div> ข้อมูล SIM Cards</li>
                 <li className="flex items-center gap-2"><div className="w-1 h-1 bg-violet-500"></div> เครื่องจำหน่ายตั๋ว (Ticket Machines)</li>

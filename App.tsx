@@ -775,18 +775,74 @@ const App: React.FC = () => {
     alert(`เพิ่มรายการ "${item.name}" เข้าสู่ระบบเช็คตำแหน่งแล้ว (Tracking ID: ${newAsset.sn})`);
   };
 
-  const handleRestore = (data: any) => {
-    if (data.tickets) setTickets(data.tickets);
-    if (data.stock) setStockItems(data.stock);
-    if (data.maritime) setMaritimeItems(data.maritime);
-    if (data.trackedAssets) setTrackedAssets(data.trackedAssets);
-    if (data.meetingReports) setMeetingReports(data.meetingReports);
-    if (data.procurementFolders) setProcurementFolders(data.procurementFolders);
-    if (data.simCards) setSimCards(data.simCards);
-    if (data.ticketMachines) setTicketMachines(data.ticketMachines);
-    if (data.radioData) setRadioData(data.radioData);
-    if (data.viabusData) setViabusData(data.viabusData);
-    if (data.cctvData) setCctvData(data.cctvData);
+  const handleRestore = async (data: any) => {
+    isIncomingSyncRef.current = true; // Lock incoming sync during restoration
+    
+    // Normalize every module with robust fallbacks
+    const newTickets = data.tickets || tickets;
+    const newStock = data.stock || stockItems;
+    const newMaritime = data.maritime || maritimeItems;
+    const newAssets = data.trackedAssets || data.assets || trackedAssets;
+    const newFolders = data.procurementFolders || data.folders || procurementFolders;
+    const newSimCards = data.simCards || simCards;
+    const newTicketMachines = data.ticketMachines || ticketMachines;
+    const newRadioData = data.radioData ? {
+      faultLogs: Array.isArray(data.radioData.faultLogs) ? data.radioData.faultLogs : (radioData.faultLogs || []),
+      signalLogs: Array.isArray(data.radioData.signalLogs) ? data.radioData.signalLogs : (radioData.signalLogs || [])
+    } : radioData;
+    const newViabusData = data.viabusData ? {
+      faultLogs: Array.isArray(data.viabusData.faultLogs) ? data.viabusData.faultLogs : (viabusData.faultLogs || []),
+      signalLogs: Array.isArray(data.viabusData.signalLogs) ? data.viabusData.signalLogs : (viabusData.signalLogs || [])
+    } : viabusData;
+    const newCctvData = data.cctvData ? {
+      cameras: Array.isArray(data.cctvData.cameras) ? data.cctvData.cameras : (cctvData.cameras || []),
+      faultLogs: Array.isArray(data.cctvData.faultLogs) ? data.cctvData.faultLogs : (cctvData.faultLogs || [])
+    } : cctvData;
+
+    // 1. Immediately update React state
+    if (data.tickets) setTickets(newTickets);
+    if (data.stock) setStockItems(newStock);
+    if (data.maritime) setMaritimeItems(newMaritime);
+    if (data.trackedAssets || data.assets) setTrackedAssets(newAssets);
+    if (data.procurementFolders || data.folders) setProcurementFolders(newFolders);
+    if (data.simCards) setSimCards(newSimCards);
+    if (data.ticketMachines) setTicketMachines(newTicketMachines);
+    if (data.radioData) setRadioData(newRadioData);
+    if (data.viabusData) setViabusData(newViabusData);
+    if (data.cctvData) setCctvData(newCctvData);
+
+    // 2. Immediately write to LocalStorage
+    safeSetItem(STORAGE_KEYS.TICKETS, JSON.stringify(newTickets));
+    safeSetItem(STORAGE_KEYS.STOCK, JSON.stringify(newStock));
+    safeSetItem(STORAGE_KEYS.TRACKED_ASSETS, JSON.stringify(newAssets));
+    safeSetItem(STORAGE_KEYS.MARITIME, JSON.stringify(newMaritime));
+    safeSetItem(STORAGE_KEYS.PROCUREMENT_FOLDERS, JSON.stringify(newFolders));
+    safeSetItem(STORAGE_KEYS.SIM_CARDS, JSON.stringify(newSimCards));
+    safeSetItem(STORAGE_KEYS.TICKET_MACHINES, JSON.stringify(newTicketMachines));
+    safeSetItem(STORAGE_KEYS.RADIO_DATA, JSON.stringify(newRadioData));
+    safeSetItem(STORAGE_KEYS.VIABUS_DATA, JSON.stringify(newViabusData));
+    safeSetItem(STORAGE_KEYS.CCTV_DATA, JSON.stringify(newCctvData));
+
+    // 3. Immediately persist to Backend Database
+    const appData: AppData = {
+      tickets: newTickets,
+      stock: newStock,
+      assets: newAssets,
+      maritime: newMaritime,
+      folders: newFolders,
+      simCards: newSimCards,
+      ticketMachines: newTicketMachines,
+      radioData: newRadioData,
+      viabusData: newViabusData,
+      cctvData: newCctvData
+    };
+    await saveAllData(appData);
+    setLastSavedTime(new Date());
+
+    // Release sync lock after settling
+    setTimeout(() => {
+      isIncomingSyncRef.current = false;
+    }, 2500);
   };
 
   const handleNavigateToFolder = (folderId: string) => {
@@ -882,7 +938,21 @@ const App: React.FC = () => {
           )}
           {mode === 'BACKUP' && (
             <div className="py-8 animate-in fade-in duration-500">
-              <BackupManager onRestore={handleRestore} />
+              <BackupManager
+                currentData={{
+                  tickets,
+                  stock: stockItems,
+                  maritime: maritimeItems,
+                  trackedAssets,
+                  procurementFolders,
+                  simCards,
+                  ticketMachines,
+                  radioData,
+                  viabusData,
+                  cctvData
+                }}
+                onRestore={handleRestore}
+              />
             </div>
           )}
           {mode === 'CALENDAR' && (

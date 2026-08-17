@@ -2,14 +2,17 @@
 const API_BASE = import.meta.env.VITE_API_URL || 'https://it-center-i291.onrender.com';
 
 export interface AppData {
-  tickets: any[];
-  stock: any[];
-  assets: any[];
-  maritime: any[];
-  reports: any[];
-  folders: any[];
-  simCards: any[];
-  ticketMachines: any[];
+  tickets?: any[];
+  stock?: any[];
+  assets?: any[];
+  maritime?: any[];
+  reports?: any[];
+  folders?: any[];
+  simCards?: any[];
+  ticketMachines?: any[];
+  radioData?: any;
+  viabusData?: any;
+  cctvData?: any;
 }
 
 // Fetch all data from server
