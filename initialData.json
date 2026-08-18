@@ -1,5 +1,4 @@
-// Seed data for backend initialization
-const seedData = {
+{
   "tickets": [
     {
       "id": "sheet_1786934680376_4",
@@ -3437,10 +3436,4 @@ const seedData = {
     ],
     "faultLogs": []
   }
-};
-
-module.exports = {
-  SEED_DATA: seedData.ticketMachines || [],
-  SEED_SIM_CARDS: seedData.simCards || [],
-  FULL_SEED: seedData
-};
+}

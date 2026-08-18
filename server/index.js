@@ -33,64 +33,29 @@ function ensureDataDir() {
 function readDb() {
   ensureDataDir();
   const seed = require('./seed-data');
-  const seedMachines = seed.SEED_DATA || seed;
-  const seedSimCards = seed.SEED_SIM_CARDS || [];
+  const fullSeed = seed.FULL_SEED || {};
 
   if (!fs.existsSync(DATA_FILE)) {
-    // Initial empty database structure
-    const initialDb = {
-      tickets: [],
-      stock: [],
-      assets: [],
-      maritime: [],
-      folders: [],
-      simCards: seedSimCards,
-      ticketMachines: seedMachines,
-      radioData: { faultLogs: [], signalLogs: [] },
-      viabusData: { faultLogs: [], signalLogs: [] },
-      cctvData: { cameras: [], faultLogs: [] }
-    };
-    writeDb(initialDb);
-    return initialDb;
+    writeDb(fullSeed);
+    return fullSeed;
   }
   try {
     const raw = fs.readFileSync(DATA_FILE, 'utf-8');
     const db = JSON.parse(raw);
     let updated = false;
-    if (!Array.isArray(db.simCards) || db.simCards.length === 0) {
-      db.simCards = seedSimCards;
-      updated = true;
-    } else if (db.simCards.length < seedSimCards.length) {
-      const existingIds = new Set(db.simCards.map(s => s.id));
-      seedSimCards.forEach(s => {
-        if (!existingIds.has(s.id)) {
-          db.simCards.push(s);
-          updated = true;
-        }
-      });
-    }
-    if (!Array.isArray(db.ticketMachines) || db.ticketMachines.length === 0) {
-      db.ticketMachines = seedMachines;
-      updated = true;
-    }
-    if (!db.radioData) {
-      db.radioData = { faultLogs: [], signalLogs: [] };
-      updated = true;
-    }
-    if (!db.viabusData) {
-      db.viabusData = { faultLogs: [], signalLogs: [] };
-      updated = true;
-    }
-    if (!db.cctvData) {
-      db.cctvData = { cameras: [], faultLogs: [] };
-      updated = true;
+    
+    for (const key of ['tickets', 'stock', 'assets', 'maritime', 'reports', 'folders', 'simCards', 'ticketMachines', 'radioData', 'viabusData', 'cctvData']) {
+      if (db[key] === undefined || (Array.isArray(db[key]) && db[key].length === 0 && Array.isArray(fullSeed[key]) && fullSeed[key].length > 0)) {
+        db[key] = fullSeed[key];
+        updated = true;
+      }
     }
     if (updated) {
       fs.writeFileSync(DATA_FILE, JSON.stringify(db, null, 2), 'utf-8');
     }
     return db;
   } catch (e) {
-    return {};
+    return fullSeed;
   }
 }
 
