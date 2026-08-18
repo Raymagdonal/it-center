@@ -70,6 +70,9 @@ export interface CctvCamera {
   storageType: 'SD Card' | 'NVR';
   memorySize?: CctvMemorySize;    // for EZVIZ (SD card)
   nvrCapacity?: '4TB';            // for Dahua
+  nvrModel?: string;              // NVR Model / Name e.g. "Dahua NVR 16CH (4TB)"
+  nvrSerialNumber?: string;       // S/N ของเครื่อง NVR 16CH
+  nvrImages?: string[];           // รูปภาพเครื่อง NVR 16CH
   routerModel?: string;           // Router 4G Model / Name
   routerSerialNumber?: string;    // Router 4G S/N
   simPhoneNumber?: string;        // เบอร์โทรศัพท์ซิม AIS
@@ -470,6 +473,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
 
   const cameraFileInputRef = useRef<HTMLInputElement | null>(null);
   const routerFileInputRef = useRef<HTMLInputElement | null>(null);
+  const nvrFileInputRef = useRef<HTMLInputElement | null>(null);
   const faultFileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Safe references
@@ -525,6 +529,9 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
     serialNumber: '',
     storageType: 'NVR',
     nvrCapacity: '4TB',
+    nvrModel: 'Dahua NVR 16CH (4TB)',
+    nvrSerialNumber: '',
+    nvrImages: [],
     routerModel: 'Router 4G',
     routerSerialNumber: '',
     simPhoneNumber: '',
@@ -659,6 +666,47 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
     }));
   };
 
+  const handleNvrImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    const newImages: string[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      try {
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        const compressed = await compressImage(base64, 1024, 0.75);
+        newImages.push(compressed);
+      } catch (err) {
+        console.error('Error compressing NVR image:', err);
+      }
+    }
+
+    setCameraForm(prev => ({
+      ...prev,
+      nvrImages: [...(prev.nvrImages || []), ...newImages],
+    }));
+
+    setIsUploading(false);
+    if (nvrFileInputRef.current) {
+      nvrFileInputRef.current.value = '';
+    }
+  };
+
+  const removeNvrImage = (indexToRemove: number) => {
+    setCameraForm(prev => ({
+      ...prev,
+      nvrImages: (prev.nvrImages || []).filter((_, idx) => idx !== indexToRemove),
+    }));
+  };
+
   const handleFaultImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -736,6 +784,9 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
       storageType: cam.storageType,
       memorySize: cam.memorySize,
       nvrCapacity: cam.nvrCapacity,
+      nvrModel: cam.nvrModel || 'Dahua NVR 16CH (4TB)',
+      nvrSerialNumber: cam.nvrSerialNumber || '',
+      nvrImages: cam.nvrImages || [],
       routerModel: cam.routerModel || 'Router 4G',
       routerSerialNumber: cam.routerSerialNumber || '',
       simPhoneNumber: cam.simPhoneNumber || '',
@@ -939,6 +990,43 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                     </p>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* NVR 16CH Display in Card (for vessels) */}
+            {(cam.locationType === 'ในเรือ' || cam.nvrSerialNumber || (cam.nvrImages && cam.nvrImages.length > 0)) && (
+              <div className="mt-2.5 p-2 bg-black/30 rounded-lg border border-amber-500/30 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <p className="text-[9px] text-amber-400 uppercase tracking-wider font-mono flex items-center gap-1 font-bold">
+                    <HardDrive className="w-3 h-3 text-amber-400" /> {cam.nvrModel || 'Dahua NVR 16CH (4TB)'}
+                  </p>
+                  {cam.nvrImages && cam.nvrImages.length > 0 && (
+                    <button
+                      onClick={() => openLightbox(cam.nvrImages!, 0)}
+                      className="text-[9px] text-amber-400 hover:text-amber-300 font-mono flex items-center gap-0.5"
+                    >
+                      <ImageIcon className="w-2.5 h-2.5" /> รูป NVR ({cam.nvrImages.length})
+                    </button>
+                  )}
+                </div>
+                {cam.nvrSerialNumber && (
+                  <p className="text-[10px] font-mono text-slate-300">
+                    <span className="text-slate-500">S/N:</span> <span className="text-amber-300 font-bold">{cam.nvrSerialNumber}</span>
+                  </p>
+                )}
+                {cam.nvrImages && cam.nvrImages.length > 0 && (
+                  <div className="flex gap-1.5 overflow-x-auto pt-0.5 pb-0.5">
+                    {cam.nvrImages.map((nImg, nIdx) => (
+                      <div
+                        key={nIdx}
+                        onClick={() => openLightbox(cam.nvrImages!, nIdx)}
+                        className="w-12 h-12 rounded-lg border border-amber-500/40 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity shrink-0 relative group/nimg"
+                      >
+                        <img src={nImg} alt={`NVR-${nIdx}`} className="w-full h-full object-cover" />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -1521,13 +1609,97 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                 </div>
               )}
 
-              {/* NVR display for vessel */}
+              {/* 💾 อุปกรณ์ NVR 16CH Section (สำหรับในเรือ) */}
               {cameraForm.locationType === 'ในเรือ' && (
-                <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center gap-3">
-                  <HardDrive className="w-5 h-5 text-amber-400" />
-                  <div>
-                    <p className="text-amber-300 font-bold font-mono">NVR — 4TB</p>
-                    <p className="text-[10px] text-amber-700 uppercase tracking-wider">Network Video Recorder</p>
+                <div className="space-y-3 p-3.5 bg-black/40 rounded-xl border border-amber-500/40 shadow-sm">
+                  <div className="flex items-center justify-between border-b border-amber-900/40 pb-2">
+                    <label className="text-xs font-bold text-amber-400 uppercase tracking-widest flex items-center gap-1.5 font-mono">
+                      <HardDrive className="w-3.5 h-3.5 text-amber-400" /> อุปกรณ์ NVR 16CH
+                    </label>
+                    <span className="text-[10px] text-amber-500 font-mono font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">
+                      16 Channels • 4TB
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block mb-1">
+                        ชื่อรุ่น / อุปกรณ์ NVR
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="เช่น Dahua NVR 16CH (4TB)..."
+                        value={cameraForm.nvrModel || ''}
+                        onChange={e => setCameraForm(f => ({ ...f, nvrModel: e.target.value }))}
+                        className="w-full bg-black/60 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:border-amber-500 outline-none font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-mono text-amber-400 uppercase tracking-wider block mb-1 font-bold">
+                        Serial Number (S/N) ของ NVR 16CH
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="ระบุ S/N เครื่อง NVR 16CH..."
+                        value={cameraForm.nvrSerialNumber || ''}
+                        onChange={e => setCameraForm(f => ({ ...f, nvrSerialNumber: e.target.value }))}
+                        className="w-full bg-black/60 border border-amber-500/50 focus:border-amber-400 rounded-lg px-3 py-2 text-xs text-amber-300 outline-none font-mono font-bold placeholder-slate-600"
+                      />
+                    </div>
+                  </div>
+
+                  {/* NVR Photo Upload */}
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-mono text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                        <ImageIcon className="w-3 h-3 text-amber-400" /> รูปภาพ NVR 16CH
+                      </label>
+                      <span className="text-[10px] text-slate-500 font-mono">
+                        {cameraForm.nvrImages?.length || 0} รูป
+                      </span>
+                    </div>
+
+                    <input
+                      ref={nvrFileInputRef}
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handleNvrImageUpload}
+                      className="hidden"
+                    />
+
+                    <div
+                      onClick={() => nvrFileInputRef.current?.click()}
+                      className="w-full py-2.5 px-3 rounded-lg border border-dashed border-amber-500/40 hover:border-amber-400 bg-amber-950/10 hover:bg-amber-950/20 transition-all cursor-pointer flex items-center justify-center gap-2 text-center group/drop"
+                    >
+                      <Upload className="w-3.5 h-3.5 text-amber-400 group-hover/drop:scale-110 transition-transform" />
+                      <span className="text-xs font-mono text-amber-300">คลิกเพื่ออัปโหลดรูปภาพ NVR 16CH</span>
+                    </div>
+
+                    {cameraForm.nvrImages && cameraForm.nvrImages.length > 0 && (
+                      <div className="grid grid-cols-4 gap-2 pt-1 max-h-36 overflow-y-auto">
+                        {cameraForm.nvrImages.map((img, idx) => (
+                          <div key={idx} className="relative group/thumb rounded-lg overflow-hidden border border-slate-700 aspect-square">
+                            <img src={img} alt={`nvr-preview-${idx}`} className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => removeNvrImage(idx)}
+                              className="absolute top-1 right-1 p-1 rounded-full bg-red-600/90 text-white opacity-0 group-hover/thumb:opacity-100 transition-opacity hover:bg-red-500"
+                              title="ลบรูป"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openLightbox(cameraForm.nvrImages!, idx)}
+                              className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity"
+                            >
+                              <Eye className="w-4 h-4 text-white" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
