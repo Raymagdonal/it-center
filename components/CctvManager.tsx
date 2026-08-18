@@ -4,7 +4,7 @@ import {
   CheckCircle, MapPin, Ship, User, Calendar, HardDrive,
   Camera, Eye, Layers, ShieldCheck, Database, Smartphone,
   Upload, Image as ImageIcon, Maximize2, ChevronLeft, ChevronRight, Loader2,
-  WifiOff, LayoutGrid, ExternalLink, Tag, Hash, Wifi, Radio
+  WifiOff, LayoutGrid, ExternalLink, Tag, Hash, Wifi, Radio, Phone
 } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
@@ -72,6 +72,7 @@ export interface CctvCamera {
   nvrCapacity?: '4TB';            // for Dahua
   routerModel?: string;           // Router 4G Model / Name
   routerSerialNumber?: string;    // Router 4G S/N
+  simPhoneNumber?: string;        // เบอร์โทรศัพท์ซิม AIS
   routerImages?: string[];        // Router 4G Photos
   installDate?: string;
   status: CctvStatus;
@@ -506,6 +507,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
     memorySize: '64 GB',
     routerModel: 'Router 4G',
     routerSerialNumber: '',
+    simPhoneNumber: '',
     routerImages: [],
     status: 'ปกติ',
     installDate: '',
@@ -525,6 +527,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
     nvrCapacity: '4TB',
     routerModel: 'Router 4G',
     routerSerialNumber: '',
+    simPhoneNumber: '',
     routerImages: [],
     status: 'ปกติ',
     installDate: '',
@@ -735,6 +738,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
       nvrCapacity: cam.nvrCapacity,
       routerModel: cam.routerModel || 'Router 4G',
       routerSerialNumber: cam.routerSerialNumber || '',
+      simPhoneNumber: cam.simPhoneNumber || '',
       routerImages: cam.routerImages || [],
       status: cam.status,
       installDate: cam.installDate || '',
@@ -939,7 +943,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
             )}
 
             {/* Router 4G Display in Card */}
-            {(cam.routerSerialNumber || (cam.routerImages && cam.routerImages.length > 0)) && (
+            {(cam.routerSerialNumber || cam.simPhoneNumber || (cam.routerImages && cam.routerImages.length > 0)) && (
               <div className="mt-2.5 p-2 bg-black/30 rounded-lg border border-cyan-900/50 space-y-1.5">
                 <div className="flex items-center justify-between">
                   <p className="text-[9px] text-cyan-400 uppercase tracking-wider font-mono flex items-center gap-1 font-bold">
@@ -954,11 +958,19 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                     </button>
                   )}
                 </div>
-                {cam.routerSerialNumber && (
-                  <p className="text-[10px] font-mono text-slate-300">
-                    <span className="text-slate-500">S/N:</span> <span className="text-cyan-300 font-bold">{cam.routerSerialNumber}</span>
-                  </p>
-                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[10px] font-mono">
+                  {cam.routerSerialNumber && (
+                    <p className="text-slate-300 truncate">
+                      <span className="text-slate-500">S/N:</span> <span className="text-cyan-300 font-bold">{cam.routerSerialNumber}</span>
+                    </p>
+                  )}
+                  {cam.simPhoneNumber && (
+                    <p className="text-emerald-300 truncate flex items-center gap-1 font-bold">
+                      <Phone className="w-2.5 h-2.5 text-emerald-400 shrink-0" />
+                      <span className="text-slate-400">ซิม AIS:</span> {cam.simPhoneNumber}
+                    </p>
+                  )}
+                </div>
                 {cam.routerImages && cam.routerImages.length > 0 && (
                   <div className="flex gap-1.5 overflow-x-auto pt-0.5 pb-0.5">
                     {cam.routerImages.map((rImg, rIdx) => (
@@ -1593,7 +1605,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                   <span className="text-[10px] text-cyan-600 font-mono font-bold">Network Device</span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block mb-1">
                       ชื่อรุ่น / ยี่ห้อ Router 4G
@@ -1608,7 +1620,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                   </div>
                   <div>
                     <label className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block mb-1">
-                      Serial Number (S/N) ของ Router 4G
+                      Serial Number (S/N)
                     </label>
                     <input
                       type="text"
@@ -1616,6 +1628,18 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                       value={cameraForm.routerSerialNumber || ''}
                       onChange={e => setCameraForm(f => ({ ...f, routerSerialNumber: e.target.value }))}
                       className="w-full bg-black/60 border border-slate-700 rounded-lg px-3 py-2 text-xs text-cyan-300 focus:border-cyan-500 outline-none font-mono font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider block mb-1 flex items-center gap-1 font-bold">
+                      <Phone className="w-3 h-3 text-emerald-400" /> เบอร์โทรศัพท์ (ซิม AIS)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="เช่น 081-xxx-xxxx, 098-xxx-xxxx"
+                      value={cameraForm.simPhoneNumber || ''}
+                      onChange={e => setCameraForm(f => ({ ...f, simPhoneNumber: e.target.value }))}
+                      className="w-full bg-black/60 border border-emerald-500/50 focus:border-emerald-400 rounded-lg px-3 py-2 text-xs text-emerald-300 outline-none font-mono font-bold placeholder-slate-600"
                     />
                   </div>
                 </div>
