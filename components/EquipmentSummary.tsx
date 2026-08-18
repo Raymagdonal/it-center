@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
-import { ProcurementFolderItem, PROCUREMENT_YEARS } from '../types';
+import { ProcurementFolderItem, ProcurementFolder, PROCUREMENT_YEARS } from '../types';
 import { Calendar, MapPin, ShoppingBag, Package, Activity, Clock, X, ZoomIn, ChevronLeft, ChevronRight, Ship, Anchor, Building2 } from 'lucide-react';
 import { Button } from './ui/Button';
 
@@ -11,7 +11,9 @@ export interface EnrichedProcurementItem extends ProcurementFolderItem {
 }
 
 interface EquipmentSummaryProps {
-    items: EnrichedProcurementItem[];
+    items?: EnrichedProcurementItem[];
+    folders?: ProcurementFolder[];
+    onNavigate?: (mode: any) => void;
 }
 
 const THAI_MONTHS = [
@@ -30,14 +32,34 @@ const calculateDaysUsed = (startDate?: string) => {
     return Math.floor(diff / (1000 * 60 * 60 * 24));
 };
 
-export const EquipmentSummary: React.FC<EquipmentSummaryProps> = ({ items }) => {
-    const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+export const EquipmentSummary: React.FC<EquipmentSummaryProps> = ({ items = [], folders = [] }) => {
+    const [selectedYear, setSelectedYear] = useState<number>(2026);
     const [selectedCategory, setSelectedCategory] = useState<'ALL' | 'BOAT' | 'PIER' | 'OFFICE'>('ALL');
     const [selectedItem, setSelectedItem] = useState<EnrichedProcurementItem | null>(null);
 
     // Generate Year Options
-    // Use constant years
     const yearOptions = PROCUREMENT_YEARS;
+
+    // Flatten all items from folders or use items directly
+    const allItems = useMemo<EnrichedProcurementItem[]>(() => {
+        if (Array.isArray(items) && items.length > 0) return items;
+        if (Array.isArray(folders) && folders.length > 0) {
+            return folders.flatMap(folder => {
+                const folderItems = folder.items || [];
+                return folderItems.map(item => {
+                    const fallbackMonth = typeof folder.month === 'number' ? folder.month + 1 : 1;
+                    const fallbackDate = `${folder.year || 2026}-${String(fallbackMonth).padStart(2, '0')}-01`;
+                    return {
+                        ...item,
+                        locationName: folder.locationName,
+                        locationType: folder.locationType,
+                        purchaseDate: item.purchaseDate || fallbackDate
+                    };
+                });
+            });
+        }
+        return [];
+    }, [items, folders]);
 
     // Process Data - Group by purchase month
     const monthlyData = useMemo(() => {
@@ -48,18 +70,21 @@ export const EquipmentSummary: React.FC<EquipmentSummaryProps> = ({ items }) => 
             totalQty: 0,
         }));
 
-        items.forEach(item => {
-            const date = new Date(item.purchaseDate);
-            if (date.getFullYear() !== selectedYear) return;
+        allItems.forEach(item => {
+            const date = item.purchaseDate ? new Date(item.purchaseDate) : null;
+            const itemYear = date && !isNaN(date.getTime()) ? date.getFullYear() : selectedYear;
+            if (itemYear !== selectedYear) return;
             if (selectedCategory !== 'ALL' && item.locationType !== selectedCategory) return;
 
-            const monthIndex = date.getMonth();
-            data[monthIndex].items.push(item);
-            data[monthIndex].totalQty += item.quantity;
+            const monthIndex = date && !isNaN(date.getTime()) ? date.getMonth() : 0;
+            if (monthIndex >= 0 && monthIndex < 12) {
+                data[monthIndex].items.push(item);
+                data[monthIndex].totalQty += (item.quantity || 1);
+            }
         });
 
         return data;
-    }, [items, selectedYear, selectedCategory]);
+    }, [allItems, selectedYear, selectedCategory]);
 
     // Flattened items for navigation
     const orderedItems = useMemo(() => {
@@ -90,26 +115,28 @@ export const EquipmentSummary: React.FC<EquipmentSummaryProps> = ({ items }) => 
         let activeCount = 0;
         let spareCount = 0;
 
-        items.forEach(item => {
-            const date = new Date(item.purchaseDate);
-            if (date.getFullYear() !== selectedYear) return;
+        allItems.forEach(item => {
+            const date = item.purchaseDate ? new Date(item.purchaseDate) : null;
+            const itemYear = date && !isNaN(date.getTime()) ? date.getFullYear() : selectedYear;
+            if (itemYear !== selectedYear) return;
             if (selectedCategory !== 'ALL' && item.locationType !== selectedCategory) return;
             totalItems++;
-            totalQty += item.quantity;
+            totalQty += (item.quantity || 1);
             if (item.usageStatus === 'ACTIVE') activeCount++;
             else spareCount++;
         });
 
         return { totalItems, totalQty, activeCount, spareCount };
-    }, [items, selectedYear, selectedCategory]);
+    }, [allItems, selectedYear, selectedCategory]);
 
     // Location Summary
     const locationSummary = useMemo(() => {
         const summary: { [key: string]: { locationType: string; count: number; qty: number } } = {};
 
-        items.forEach(item => {
-            const date = new Date(item.purchaseDate);
-            if (date.getFullYear() !== selectedYear) return;
+        allItems.forEach(item => {
+            const date = item.purchaseDate ? new Date(item.purchaseDate) : null;
+            const itemYear = date && !isNaN(date.getTime()) ? date.getFullYear() : selectedYear;
+            if (itemYear !== selectedYear) return;
             if (selectedCategory !== 'ALL' && item.locationType !== selectedCategory) return;
 
             const locationName = item.locationName || 'ไม่ระบุสถานที่';
@@ -121,13 +148,13 @@ export const EquipmentSummary: React.FC<EquipmentSummaryProps> = ({ items }) => 
                 };
             }
             summary[locationName].count++;
-            summary[locationName].qty += item.quantity;
+            summary[locationName].qty += (item.quantity || 1);
         });
 
         return Object.entries(summary)
             .map(([name, data]) => ({ name, ...data }))
             .sort((a, b) => b.qty - a.qty);
-    }, [items, selectedYear, selectedCategory]);
+    }, [allItems, selectedYear, selectedCategory]);
 
     return (
         <div className="max-w-7xl mx-auto p-6 space-y-8 animate-in fade-in duration-500">
