@@ -10,22 +10,22 @@ import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { compressImage } from '../utils/storageUtils';
 
-// ─────────────────────────────────────────────
+// โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
 // Types
-// ─────────────────────────────────────────────
+// โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
 
 export const CCTV_PIERS = [
-  'ท่าพระอาทิตย์',
-  'ท่าพรานนก',
-  'ท่ามหาราช',
-  'ท่าช้าง',
-  'ท่าวัดอรุณฯ',
-  'ท่าราชินี',
-  'ท่าราชวงศ์',
-  'ท่าไอคอนสยาม',
-  'ท่าสาทร',
-  'BTS สะพานตากสิน',
-  'ท่าเอเชียทีค',
+  'เธ—เนเธฒเธเธฃเธฐเธญเธฒเธ—เธดเธ•เธขเน',
+  'เธ—เนเธฒเธเธฃเธฒเธเธเธ',
+  'เธ—เนเธฒเธกเธซเธฒเธฃเธฒเธ',
+  'เธ—เนเธฒเธเนเธฒเธ',
+  'เธ—เนเธฒเธงเธฑเธ”เธญเธฃเธธเธ“เธฏ',
+  'เธ—เนเธฒเธฃเธฒเธเธดเธเธต',
+  'เธ—เนเธฒเธฃเธฒเธเธงเธเธจเน',
+  'เธ—เนเธฒเนเธญเธเธญเธเธชเธขเธฒเธก',
+  'เธ—เนเธฒเธชเธฒเธ—เธฃ',
+  'BTS เธชเธฐเธเธฒเธเธ•เธฒเธเธชเธดเธ',
+  'เธ—เนเธฒเน€เธญเน€เธเธตเธขเธ—เธตเธ',
 ] as const;
 
 export const CCTV_VESSELS = [
@@ -42,21 +42,21 @@ export type PierName = typeof CCTV_PIERS[number];
 export type VesselName = typeof CCTV_VESSELS[number];
 
 export type CctvMemorySize = '32 GB' | '64 GB' | '128 GB' | '256 GB';
-export type CctvLocationType = 'ท่าเรือ' | 'ในเรือ';
-export type CctvStatus = 'ปกติ' | 'มีปัญหา' | 'ซ่อมบำรุง' | 'ออฟไลน์';
+export type CctvLocationType = 'เธ—เนเธฒเน€เธฃเธทเธญ' | 'เนเธเน€เธฃเธทเธญ';
+export type CctvStatus = 'เธเธเธ•เธด' | 'เธกเธตเธเธฑเธเธซเธฒ' | 'เธเนเธญเธกเธเธณเธฃเธธเธ' | 'เธญเธญเธเนเธฅเธเน';
 export type CctvAppType = 'EZVIZ' | 'DMSS';
 
 export type CctvFaultCause =
-  | 'ไฟดับ'
-  | 'หม้อแปลงเสีย'
-  | 'สายแลนหลุด/ขาด'
-  | 'กล้องออฟไลน์'
-  | 'ซิมเน็ตหมดอายุ/ไม่มีสัญญาณ'
-  | 'การ์ดหน่วยความจำเสีย'
-  | 'เครื่องบันทึก NVR เสีย'
-  | 'มุมกล้องเคลื่อน'
-  | 'กล้องไม่บันทึก'
-  | 'ใช้งานได้ปกติ';
+  | 'เนเธเธ”เธฑเธ'
+  | 'เธซเธกเนเธญเนเธเธฅเธเน€เธชเธตเธข'
+  | 'เธชเธฒเธขเนเธฅเธเธซเธฅเธธเธ”/เธเธฒเธ”'
+  | 'เธเธฅเนเธญเธเธญเธญเธเนเธฅเธเน'
+  | 'เธเธดเธกเน€เธเนเธ•เธซเธกเธ”เธญเธฒเธขเธธ/เนเธกเนเธกเธตเธชเธฑเธเธเธฒเธ“'
+  | 'เธเธฒเธฃเนเธ”เธซเธเนเธงเธขเธเธงเธฒเธกเธเธณเน€เธชเธตเธข'
+  | 'เน€เธเธฃเธทเนเธญเธเธเธฑเธเธ—เธถเธ NVR เน€เธชเธตเธข'
+  | 'เธกเธธเธกเธเธฅเนเธญเธเน€เธเธฅเธทเนเธญเธ'
+  | 'เธเธฅเนเธญเธเนเธกเนเธเธฑเธเธ—เธถเธ'
+  | 'เนเธเนเธเธฒเธเนเธ”เนเธเธเธ•เธด';
 
 // Camera Registry Entry
 export interface CctvCamera {
@@ -71,12 +71,17 @@ export interface CctvCamera {
   memorySize?: CctvMemorySize;    // for EZVIZ (SD card)
   nvrCapacity?: '4TB';            // for Dahua
   nvrModel?: string;              // NVR Model / Name e.g. "Dahua NVR 16CH (4TB)"
-  nvrSerialNumber?: string;       // S/N ของเครื่อง NVR 16CH
-  nvrImages?: string[];           // รูปภาพเครื่อง NVR 16CH
-  routerModel?: string;           // Router 4G Model / Name
-  routerSerialNumber?: string;    // Router 4G S/N
-  simPhoneNumber?: string;        // เบอร์โทรศัพท์ซิม AIS
-  routerImages?: string[];        // Router 4G Photos
+  nvrSerialNumber?: string;       // S/N เธเธญเธเน€เธเธฃเธทเนเธญเธ NVR 16CH
+  nvrImages?: string[];           // เธฃเธนเธเธ เธฒเธเน€เธเธฃเธทเนเธญเธ NVR 16CH
+  routerModel?: string;           // Router #1 4G Model / Name
+  routerSerialNumber?: string;    // Router #1 4G S/N
+  simPhoneNumber?: string;        // เน€เธเธญเธฃเนเนเธ—เธฃเธจเธฑเธเธ—เนเธเธดเธก AIS #1
+  routerImages?: string[];        // Router #1 4G Photos
+  router2Model?: string;          // Router #2 4G Model / Name
+  router2SerialNumber?: string;   // Router #2 4G S/N
+  router2SimPhoneNumber?: string; // เน€เธเธญเธฃเนเนเธ—เธฃเธจเธฑเธเธ—เนเธเธดเธก AIS #2
+  router2Images?: string[];       // Router #2 4G Photos
+  routerCount?: 1 | 2;           // เธเธณเธเธงเธ Router (1 เธซเธฃเธทเธญ 2)
   installDate?: string;
   status: CctvStatus;
   appType?: CctvAppType;          // EZVIZ or DMSS
@@ -107,184 +112,184 @@ export interface CctvData {
   faultLogs: CctvFaultLog[];
 }
 
-// ─────────────────────────────────────────────
+// โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
 // Default Mockup Cameras (11 Piers EZVIZ + 7 Vessels Dahua)
-// ─────────────────────────────────────────────
+// โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
 
 export const DEFAULT_CCTV_CAMERAS: CctvCamera[] = [
   // 11 Piers (EZVIZ - SD Card)
   {
     id: 'cctv_pier_1',
-    locationType: 'ท่าเรือ',
-    locationName: 'ท่าพระอาทิตย์',
+    locationType: 'เธ—เนเธฒเน€เธฃเธทเธญ',
+    locationName: 'เธ—เนเธฒเธเธฃเธฐเธญเธฒเธ—เธดเธ•เธขเน',
     brand: 'EZVIZ',
     cameraCount: 2,
     storageType: 'SD Card',
     memorySize: '64 GB',
-    status: 'ปกติ',
+    status: 'เธเธเธ•เธด',
     installDate: '2026-01-10',
     appType: 'EZVIZ',
-    notes: 'กล้อง IP Camera EZVIZ ทางเข้า-ออกท่าเรือ',
+    notes: 'เธเธฅเนเธญเธ IP Camera EZVIZ เธ—เธฒเธเน€เธเนเธฒ-เธญเธญเธเธ—เนเธฒเน€เธฃเธทเธญ',
     images: [],
     createdAt: '2026-01-10T08:00:00.000Z',
     updatedAt: '2026-01-10T08:00:00.000Z',
   },
   {
     id: 'cctv_pier_2',
-    locationType: 'ท่าเรือ',
-    locationName: 'ท่าพรานนก',
+    locationType: 'เธ—เนเธฒเน€เธฃเธทเธญ',
+    locationName: 'เธ—เนเธฒเธเธฃเธฒเธเธเธ',
     brand: 'EZVIZ',
     cameraCount: 3,
     storageType: 'SD Card',
     memorySize: '128 GB',
-    status: 'ปกติ',
+    status: 'เธเธเธ•เธด',
     installDate: '2026-01-12',
     appType: 'EZVIZ',
-    notes: 'กล้อง EZVIZ ส่องโป๊ะเทียบเรือและจุดจำหน่ายตั๋ว',
+    notes: 'เธเธฅเนเธญเธ EZVIZ เธชเนเธญเธเนเธเนเธฐเน€เธ—เธตเธขเธเน€เธฃเธทเธญเนเธฅเธฐเธเธธเธ”เธเธณเธซเธเนเธฒเธขเธ•เธฑเนเธง',
     images: [],
     createdAt: '2026-01-12T08:00:00.000Z',
     updatedAt: '2026-01-12T08:00:00.000Z',
   },
   {
     id: 'cctv_pier_3',
-    locationType: 'ท่าเรือ',
-    locationName: 'ท่ามหาราช',
+    locationType: 'เธ—เนเธฒเน€เธฃเธทเธญ',
+    locationName: 'เธ—เนเธฒเธกเธซเธฒเธฃเธฒเธ',
     brand: 'EZVIZ',
     cameraCount: 2,
     storageType: 'SD Card',
     memorySize: '64 GB',
-    status: 'ปกติ',
+    status: 'เธเธเธ•เธด',
     installDate: '2026-01-15',
     appType: 'EZVIZ',
-    notes: 'กล้อง EZVIZ ส่องทางเดินและโป๊ะเรือ',
+    notes: 'เธเธฅเนเธญเธ EZVIZ เธชเนเธญเธเธ—เธฒเธเน€เธ”เธดเธเนเธฅเธฐเนเธเนเธฐเน€เธฃเธทเธญ',
     images: [],
     createdAt: '2026-01-15T08:00:00.000Z',
     updatedAt: '2026-01-15T08:00:00.000Z',
   },
   {
     id: 'cctv_pier_4',
-    locationType: 'ท่าเรือ',
-    locationName: 'ท่าช้าง',
+    locationType: 'เธ—เนเธฒเน€เธฃเธทเธญ',
+    locationName: 'เธ—เนเธฒเธเนเธฒเธ',
     brand: 'EZVIZ',
     cameraCount: 4,
     storageType: 'SD Card',
     memorySize: '128 GB',
-    status: 'ปกติ',
+    status: 'เธเธเธ•เธด',
     installDate: '2026-01-18',
     appType: 'EZVIZ',
-    notes: 'กล้อง EZVIZ จุดต่อแถวผู้โดยสาร 4 มุม',
+    notes: 'เธเธฅเนเธญเธ EZVIZ เธเธธเธ”เธ•เนเธญเนเธ–เธงเธเธนเนเนเธ”เธขเธชเธฒเธฃ 4 เธกเธธเธก',
     images: [],
     createdAt: '2026-01-18T08:00:00.000Z',
     updatedAt: '2026-01-18T08:00:00.000Z',
   },
   {
     id: 'cctv_pier_5',
-    locationType: 'ท่าเรือ',
-    locationName: 'ท่าวัดอรุณฯ',
+    locationType: 'เธ—เนเธฒเน€เธฃเธทเธญ',
+    locationName: 'เธ—เนเธฒเธงเธฑเธ”เธญเธฃเธธเธ“เธฏ',
     brand: 'EZVIZ',
     cameraCount: 2,
     storageType: 'SD Card',
     memorySize: '64 GB',
-    status: 'ปกติ',
+    status: 'เธเธเธ•เธด',
     installDate: '2026-01-20',
     appType: 'EZVIZ',
-    notes: 'กล้อง EZVIZ หน้าวัดและโป๊ะเทียบเรือ',
+    notes: 'เธเธฅเนเธญเธ EZVIZ เธซเธเนเธฒเธงเธฑเธ”เนเธฅเธฐเนเธเนเธฐเน€เธ—เธตเธขเธเน€เธฃเธทเธญ',
     images: [],
     createdAt: '2026-01-20T08:00:00.000Z',
     updatedAt: '2026-01-20T08:00:00.000Z',
   },
   {
     id: 'cctv_pier_6',
-    locationType: 'ท่าเรือ',
-    locationName: 'ท่าราชินี',
+    locationType: 'เธ—เนเธฒเน€เธฃเธทเธญ',
+    locationName: 'เธ—เนเธฒเธฃเธฒเธเธดเธเธต',
     brand: 'EZVIZ',
     cameraCount: 2,
     storageType: 'SD Card',
     memorySize: '64 GB',
-    status: 'ปกติ',
+    status: 'เธเธเธ•เธด',
     installDate: '2026-01-22',
     appType: 'EZVIZ',
-    notes: 'กล้อง EZVIZ ทางเชื่อม MRT สนามไชย',
+    notes: 'เธเธฅเนเธญเธ EZVIZ เธ—เธฒเธเน€เธเธทเนเธญเธก MRT เธชเธเธฒเธกเนเธเธข',
     images: [],
     createdAt: '2026-01-22T08:00:00.000Z',
     updatedAt: '2026-01-22T08:00:00.000Z',
   },
   {
     id: 'cctv_pier_7',
-    locationType: 'ท่าเรือ',
-    locationName: 'ท่าราชวงศ์',
+    locationType: 'เธ—เนเธฒเน€เธฃเธทเธญ',
+    locationName: 'เธ—เนเธฒเธฃเธฒเธเธงเธเธจเน',
     brand: 'EZVIZ',
     cameraCount: 3,
     storageType: 'SD Card',
     memorySize: '128 GB',
-    status: 'ปกติ',
+    status: 'เธเธเธ•เธด',
     installDate: '2026-01-25',
     appType: 'EZVIZ',
-    notes: 'กล้อง EZVIZ โซนเยาวราชและทางขึ้นเรือ',
+    notes: 'เธเธฅเนเธญเธ EZVIZ เนเธเธเน€เธขเธฒเธงเธฃเธฒเธเนเธฅเธฐเธ—เธฒเธเธเธถเนเธเน€เธฃเธทเธญ',
     images: [],
     createdAt: '2026-01-25T08:00:00.000Z',
     updatedAt: '2026-01-25T08:00:00.000Z',
   },
   {
     id: 'cctv_pier_8',
-    locationType: 'ท่าเรือ',
-    locationName: 'ท่าไอคอนสยาม',
+    locationType: 'เธ—เนเธฒเน€เธฃเธทเธญ',
+    locationName: 'เธ—เนเธฒเนเธญเธเธญเธเธชเธขเธฒเธก',
     brand: 'EZVIZ',
     cameraCount: 4,
     storageType: 'SD Card',
     memorySize: '256 GB',
-    status: 'ปกติ',
+    status: 'เธเธเธ•เธด',
     installDate: '2026-01-28',
     appType: 'EZVIZ',
-    notes: 'กล้อง EZVIZ หน้าห้างไอคอนสยาม 4 จุด',
+    notes: 'เธเธฅเนเธญเธ EZVIZ เธซเธเนเธฒเธซเนเธฒเธเนเธญเธเธญเธเธชเธขเธฒเธก 4 เธเธธเธ”',
     images: [],
     createdAt: '2026-01-28T08:00:00.000Z',
     updatedAt: '2026-01-28T08:00:00.000Z',
   },
   {
     id: 'cctv_pier_9',
-    locationType: 'ท่าเรือ',
-    locationName: 'ท่าสาทร',
+    locationType: 'เธ—เนเธฒเน€เธฃเธทเธญ',
+    locationName: 'เธ—เนเธฒเธชเธฒเธ—เธฃ',
     brand: 'EZVIZ',
     cameraCount: 4,
     storageType: 'SD Card',
     memorySize: '256 GB',
-    status: 'ปกติ',
+    status: 'เธเธเธ•เธด',
     installDate: '2026-02-01',
     appType: 'EZVIZ',
-    notes: 'ศูนย์กลางท่าเรือสาทร กล้อง EZVIZ 4 ตัว',
+    notes: 'เธจเธนเธเธขเนเธเธฅเธฒเธเธ—เนเธฒเน€เธฃเธทเธญเธชเธฒเธ—เธฃ เธเธฅเนเธญเธ EZVIZ 4 เธ•เธฑเธง',
     images: [],
     createdAt: '2026-02-01T08:00:00.000Z',
     updatedAt: '2026-02-01T08:00:00.000Z',
   },
   {
     id: 'cctv_pier_10',
-    locationType: 'ท่าเรือ',
-    locationName: 'BTS สะพานตากสิน',
+    locationType: 'เธ—เนเธฒเน€เธฃเธทเธญ',
+    locationName: 'BTS เธชเธฐเธเธฒเธเธ•เธฒเธเธชเธดเธ',
     brand: 'EZVIZ',
     cameraCount: 2,
     storageType: 'SD Card',
     memorySize: '128 GB',
-    status: 'ปกติ',
+    status: 'เธเธเธ•เธด',
     installDate: '2026-02-03',
     appType: 'EZVIZ',
-    notes: 'กล้อง EZVIZ บันไดทางเชื่อมสถานี BTS',
+    notes: 'เธเธฅเนเธญเธ EZVIZ เธเธฑเธเนเธ”เธ—เธฒเธเน€เธเธทเนเธญเธกเธชเธ–เธฒเธเธต BTS',
     images: [],
     createdAt: '2026-02-03T08:00:00.000Z',
     updatedAt: '2026-02-03T08:00:00.000Z',
   },
   {
     id: 'cctv_pier_11',
-    locationType: 'ท่าเรือ',
-    locationName: 'ท่าเอเชียทีค',
+    locationType: 'เธ—เนเธฒเน€เธฃเธทเธญ',
+    locationName: 'เธ—เนเธฒเน€เธญเน€เธเธตเธขเธ—เธตเธ',
     brand: 'EZVIZ',
     cameraCount: 3,
     storageType: 'SD Card',
     memorySize: '128 GB',
-    status: 'ปกติ',
+    status: 'เธเธเธ•เธด',
     installDate: '2026-02-05',
     appType: 'EZVIZ',
-    notes: 'กล้อง EZVIZ โซนลานกิจกรรมและโป๊ะเรือ',
+    notes: 'เธเธฅเนเธญเธ EZVIZ เนเธเธเธฅเธฒเธเธเธดเธเธเธฃเธฃเธกเนเธฅเธฐเนเธเนเธฐเน€เธฃเธทเธญ',
     images: [],
     createdAt: '2026-02-05T08:00:00.000Z',
     updatedAt: '2026-02-05T08:00:00.000Z',
@@ -293,150 +298,150 @@ export const DEFAULT_CCTV_CAMERAS: CctvCamera[] = [
   // 7 Vessels (Dahua - NVR 4TB)
   {
     id: 'cctv_vessel_1',
-    locationType: 'ในเรือ',
+    locationType: 'เนเธเน€เธฃเธทเธญ',
     locationName: 'CTB1',
     brand: 'Dahua',
     cameraCount: 4,
     storageType: 'NVR',
     nvrCapacity: '4TB',
-    status: 'ปกติ',
+    status: 'เธเธเธ•เธด',
     installDate: '2026-01-10',
     appType: 'DMSS',
-    notes: 'ระบบกล้อง Dahua 4 จุด หัวเรือ, ท้ายเรือ, ห้องโดยสาร, ห้องกัปตัน พร้อมเครื่องบันทึก NVR 4TB',
+    notes: 'เธฃเธฐเธเธเธเธฅเนเธญเธ Dahua 4 เธเธธเธ” เธซเธฑเธงเน€เธฃเธทเธญ, เธ—เนเธฒเธขเน€เธฃเธทเธญ, เธซเนเธญเธเนเธ”เธขเธชเธฒเธฃ, เธซเนเธญเธเธเธฑเธเธ•เธฑเธ เธเธฃเนเธญเธกเน€เธเธฃเธทเนเธญเธเธเธฑเธเธ—เธถเธ NVR 4TB',
     images: [],
     createdAt: '2026-01-10T08:00:00.000Z',
     updatedAt: '2026-01-10T08:00:00.000Z',
   },
   {
     id: 'cctv_vessel_2',
-    locationType: 'ในเรือ',
+    locationType: 'เนเธเน€เธฃเธทเธญ',
     locationName: 'CTB2',
     brand: 'Dahua',
     cameraCount: 4,
     storageType: 'NVR',
     nvrCapacity: '4TB',
-    status: 'ปกติ',
+    status: 'เธเธเธ•เธด',
     installDate: '2026-01-12',
     appType: 'DMSS',
-    notes: 'ระบบกล้อง Dahua 4 จุด พร้อมเครื่องบันทึก NVR 4TB',
+    notes: 'เธฃเธฐเธเธเธเธฅเนเธญเธ Dahua 4 เธเธธเธ” เธเธฃเนเธญเธกเน€เธเธฃเธทเนเธญเธเธเธฑเธเธ—เธถเธ NVR 4TB',
     images: [],
     createdAt: '2026-01-12T08:00:00.000Z',
     updatedAt: '2026-01-12T08:00:00.000Z',
   },
   {
     id: 'cctv_vessel_3',
-    locationType: 'ในเรือ',
+    locationType: 'เนเธเน€เธฃเธทเธญ',
     locationName: 'CTB3',
     brand: 'Dahua',
     cameraCount: 4,
     storageType: 'NVR',
     nvrCapacity: '4TB',
-    status: 'ปกติ',
+    status: 'เธเธเธ•เธด',
     installDate: '2026-01-15',
     appType: 'DMSS',
-    notes: 'ระบบกล้อง Dahua 4 จุด พร้อมเครื่องบันทึก NVR 4TB',
+    notes: 'เธฃเธฐเธเธเธเธฅเนเธญเธ Dahua 4 เธเธธเธ” เธเธฃเนเธญเธกเน€เธเธฃเธทเนเธญเธเธเธฑเธเธ—เธถเธ NVR 4TB',
     images: [],
     createdAt: '2026-01-15T08:00:00.000Z',
     updatedAt: '2026-01-15T08:00:00.000Z',
   },
   {
     id: 'cctv_vessel_4',
-    locationType: 'ในเรือ',
+    locationType: 'เนเธเน€เธฃเธทเธญ',
     locationName: 'R1',
     brand: 'Dahua',
     cameraCount: 4,
     storageType: 'NVR',
     nvrCapacity: '4TB',
-    status: 'ปกติ',
+    status: 'เธเธเธ•เธด',
     installDate: '2026-01-18',
     appType: 'DMSS',
-    notes: 'ระบบกล้อง Dahua 4 จุด พร้อมเครื่องบันทึก NVR 4TB',
+    notes: 'เธฃเธฐเธเธเธเธฅเนเธญเธ Dahua 4 เธเธธเธ” เธเธฃเนเธญเธกเน€เธเธฃเธทเนเธญเธเธเธฑเธเธ—เธถเธ NVR 4TB',
     images: [],
     createdAt: '2026-01-18T08:00:00.000Z',
     updatedAt: '2026-01-18T08:00:00.000Z',
   },
   {
     id: 'cctv_vessel_5',
-    locationType: 'ในเรือ',
+    locationType: 'เนเธเน€เธฃเธทเธญ',
     locationName: 'R2',
     brand: 'Dahua',
     cameraCount: 4,
     storageType: 'NVR',
     nvrCapacity: '4TB',
-    status: 'ปกติ',
+    status: 'เธเธเธ•เธด',
     installDate: '2026-01-20',
     appType: 'DMSS',
-    notes: 'ระบบกล้อง Dahua 4 จุด พร้อมเครื่องบันทึก NVR 4TB',
+    notes: 'เธฃเธฐเธเธเธเธฅเนเธญเธ Dahua 4 เธเธธเธ” เธเธฃเนเธญเธกเน€เธเธฃเธทเนเธญเธเธเธฑเธเธ—เธถเธ NVR 4TB',
     images: [],
     createdAt: '2026-01-20T08:00:00.000Z',
     updatedAt: '2026-01-20T08:00:00.000Z',
   },
   {
     id: 'cctv_vessel_6',
-    locationType: 'ในเรือ',
+    locationType: 'เนเธเน€เธฃเธทเธญ',
     locationName: 'R3',
     brand: 'Dahua',
     cameraCount: 4,
     storageType: 'NVR',
     nvrCapacity: '4TB',
-    status: 'ปกติ',
+    status: 'เธเธเธ•เธด',
     installDate: '2026-01-22',
     appType: 'DMSS',
-    notes: 'ระบบกล้อง Dahua 4 จุด พร้อมเครื่องบันทึก NVR 4TB',
+    notes: 'เธฃเธฐเธเธเธเธฅเนเธญเธ Dahua 4 เธเธธเธ” เธเธฃเนเธญเธกเน€เธเธฃเธทเนเธญเธเธเธฑเธเธ—เธถเธ NVR 4TB',
     images: [],
     createdAt: '2026-01-22T08:00:00.000Z',
     updatedAt: '2026-01-22T08:00:00.000Z',
   },
   {
     id: 'cctv_vessel_7',
-    locationType: 'ในเรือ',
+    locationType: 'เนเธเน€เธฃเธทเธญ',
     locationName: 'R4',
     brand: 'Dahua',
     cameraCount: 4,
     storageType: 'NVR',
     nvrCapacity: '4TB',
-    status: 'ปกติ',
+    status: 'เธเธเธ•เธด',
     installDate: '2026-01-25',
     appType: 'DMSS',
-    notes: 'ระบบกล้อง Dahua 4 จุด พร้อมเครื่องบันทึก NVR 4TB',
+    notes: 'เธฃเธฐเธเธเธเธฅเนเธญเธ Dahua 4 เธเธธเธ” เธเธฃเนเธญเธกเน€เธเธฃเธทเนเธญเธเธเธฑเธเธ—เธถเธ NVR 4TB',
     images: [],
     createdAt: '2026-01-25T08:00:00.000Z',
     updatedAt: '2026-01-25T08:00:00.000Z',
   },
 ];
 
-// ─────────────────────────────────────────────
+// โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
 // Constants & Colors
-// ─────────────────────────────────────────────
+// โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
 
 const MEMORY_SIZES: CctvMemorySize[] = ['32 GB', '64 GB', '128 GB', '256 GB'];
 
 const FAULT_CAUSES: CctvFaultCause[] = [
-  'กล้องดับ',
-  'กระตุก',
-  'ดู Online ไม่ได้',
-  'กล้องไม่บันทึก',
-  'ใช้งานได้ปกติ',
+  'เธเธฅเนเธญเธเธ”เธฑเธ',
+  'เธเธฃเธฐเธ•เธธเธ',
+  'เธ”เธน Online เนเธกเนเนเธ”เน',
+  'เธเธฅเนเธญเธเนเธกเนเธเธฑเธเธ—เธถเธ',
+  'เนเธเนเธเธฒเธเนเธ”เนเธเธเธ•เธด',
 ];
 
 const FAULT_COLORS: Record<CctvFaultCause, string> = {
-  'กล้องดับ':          'bg-rose-500/15 text-rose-300 border-rose-500/30',
-  'กระตุก':            'bg-amber-500/15 text-amber-300 border-amber-500/30',
-  'ดู Online ไม่ได้':   'bg-purple-500/15 text-purple-300 border-purple-500/30',
-  'กล้องไม่บันทึก':     'bg-orange-500/15 text-orange-300 border-orange-500/30',
-  'ใช้งานได้ปกติ':     'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+  'เธเธฅเนเธญเธเธ”เธฑเธ':          'bg-rose-500/15 text-rose-300 border-rose-500/30',
+  'เธเธฃเธฐเธ•เธธเธ':            'bg-amber-500/15 text-amber-300 border-amber-500/30',
+  'เธ”เธน Online เนเธกเนเนเธ”เน':   'bg-purple-500/15 text-purple-300 border-purple-500/30',
+  'เธเธฅเนเธญเธเนเธกเนเธเธฑเธเธ—เธถเธ':     'bg-orange-500/15 text-orange-300 border-orange-500/30',
+  'เนเธเนเธเธฒเธเนเธ”เนเธเธเธ•เธด':     'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
 };
 
 const STATUS_CONFIG: Record<CctvStatus, { label: string; color: string; icon: React.FC<any> }> = {
-  'ปกติ':     { label: 'ปกติ',     color: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30', icon: CheckCircle },
-  'มีปัญหา':  { label: 'มีปัญหา', color: 'bg-red-500/15 text-red-300 border-red-500/30',             icon: AlertTriangle },
-  'ซ่อมบำรุง':{ label: 'ซ่อมบำรุง',color: 'bg-amber-500/15 text-amber-300 border-amber-500/30',       icon: AlertTriangle },
-  'ออฟไลน์': { label: 'ออฟไลน์', color: 'bg-slate-500/15 text-slate-400 border-slate-500/30',        icon: WifiOff },
+  'เธเธเธ•เธด':     { label: 'เธเธเธ•เธด',     color: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30', icon: CheckCircle },
+  'เธกเธตเธเธฑเธเธซเธฒ':  { label: 'เธกเธตเธเธฑเธเธซเธฒ', color: 'bg-red-500/15 text-red-300 border-red-500/30',             icon: AlertTriangle },
+  'เธเนเธญเธกเธเธณเธฃเธธเธ':{ label: 'เธเนเธญเธกเธเธณเธฃเธธเธ',color: 'bg-amber-500/15 text-amber-300 border-amber-500/30',       icon: AlertTriangle },
+  'เธญเธญเธเนเธฅเธเน': { label: 'เธญเธญเธเนเธฅเธเน', color: 'bg-slate-500/15 text-slate-400 border-slate-500/30',        icon: WifiOff },
 };
 
-// ─────────────────────────────────────────────
+// โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
 // Helper
-// ─────────────────────────────────────────────
+// โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
 
 const todayDate = () => new Date().toISOString().split('T')[0];
 
@@ -445,18 +450,18 @@ const formatDateThai = (dt: string) => {
   return new Date(dt).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
 };
 
-// ─────────────────────────────────────────────
+// โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
 // Props
-// ─────────────────────────────────────────────
+// โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
 
 interface CctvManagerProps {
   data: CctvData;
   onUpdate: (data: CctvData) => void;
 }
 
-// ─────────────────────────────────────────────
+// โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
 // Component
-// ─────────────────────────────────────────────
+// โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
 
 export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
   const [activeTab, setActiveTab] = useState<'registry' | 'faults'>('registry');
@@ -499,9 +504,9 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
     }
   }, []);
 
-  // ── Camera form state ──
+  // โ”€โ”€ Camera form state โ”€โ”€
   const emptyCameraPier = (): Omit<CctvCamera, 'id' | 'createdAt' | 'updatedAt'> => ({
-    locationType: 'ท่าเรือ',
+    locationType: 'เธ—เนเธฒเน€เธฃเธทเธญ',
     locationName: CCTV_PIERS[0],
     brand: 'EZVIZ',
     cameraCount: 2,
@@ -513,7 +518,12 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
     routerSerialNumber: '',
     simPhoneNumber: '',
     routerImages: [],
-    status: 'ปกติ',
+    routerCount: 1,
+    router2Model: 'Router 4G',
+    router2SerialNumber: '',
+    router2SimPhoneNumber: '',
+    router2Images: [],
+    status: 'เธเธเธ•เธด',
     installDate: '',
     appType: 'EZVIZ',
     notes: '',
@@ -521,7 +531,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
   });
 
   const emptyCameraVessel = (): Omit<CctvCamera, 'id' | 'createdAt' | 'updatedAt'> => ({
-    locationType: 'ในเรือ',
+    locationType: 'เนเธเน€เธฃเธทเธญ',
     locationName: CCTV_VESSELS[0],
     brand: 'Dahua',
     cameraCount: 4,
@@ -536,7 +546,12 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
     routerSerialNumber: '',
     simPhoneNumber: '',
     routerImages: [],
-    status: 'ปกติ',
+    routerCount: 1,
+    router2Model: 'Router 4G',
+    router2SerialNumber: '',
+    router2SimPhoneNumber: '',
+    router2Images: [],
+    status: 'เธเธเธ•เธด',
     installDate: '',
     appType: 'DMSS',
     notes: '',
@@ -547,9 +562,9 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
     registryTab === 'pier' ? emptyCameraPier() : emptyCameraVessel()
   );
 
-  // ── Fault form state ──
+  // โ”€โ”€ Fault form state โ”€โ”€
   const emptyFault = (): Omit<CctvFaultLog, 'id' | 'createdAt'> => ({
-    locationType: 'ท่าเรือ',
+    locationType: 'เธ—เนเธฒเน€เธฃเธทเธญ',
     locationName: CCTV_PIERS[0],
     reportDate: todayDate(),
     reporterName: '',
@@ -562,15 +577,15 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
 
   const [faultForm, setFaultForm] = useState(emptyFault());
 
-  // ── Cameras by type ──
+  // โ”€โ”€ Cameras by type โ”€โ”€
   const pierCameras = useMemo(() =>
-    cameras.filter(c => c.locationType === 'ท่าเรือ')
+    cameras.filter(c => c.locationType === 'เธ—เนเธฒเน€เธฃเธทเธญ')
       .sort((a, b) => CCTV_PIERS.indexOf(a.locationName as PierName) - CCTV_PIERS.indexOf(b.locationName as PierName)),
     [cameras]
   );
 
   const vesselCameras = useMemo(() =>
-    cameras.filter(c => c.locationType === 'ในเรือ')
+    cameras.filter(c => c.locationType === 'เนเธเน€เธฃเธทเธญ')
       .sort((a, b) => CCTV_VESSELS.indexOf(a.locationName as VesselName) - CCTV_VESSELS.indexOf(b.locationName as VesselName)),
     [cameras]
   );
@@ -580,10 +595,10 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
     [cameras]
   );
 
-  const faultyCameras = cameras.filter(c => c.status !== 'ปกติ').length;
+  const faultyCameras = cameras.filter(c => c.status !== 'เธเธเธ•เธด').length;
   const activeFaults = faultLogs.filter(l => !l.isFixed).length;
 
-  // ── Image Upload Handlers ──
+  // โ”€โ”€ Image Upload Handlers โ”€โ”€
   const handleCameraImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -707,6 +722,49 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
     }));
   };
 
+  const router2FileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleRouter2ImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    const newImages: string[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      try {
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        const compressed = await compressImage(base64, 1024, 0.75);
+        newImages.push(compressed);
+      } catch (err) {
+        console.error('Error compressing router2 image:', err);
+      }
+    }
+
+    setCameraForm(prev => ({
+      ...prev,
+      router2Images: [...(prev.router2Images || []), ...newImages],
+    }));
+
+    setIsUploading(false);
+    if (router2FileInputRef.current) {
+      router2FileInputRef.current.value = '';
+    }
+  };
+
+  const removeRouter2Image = (indexToRemove: number) => {
+    setCameraForm(prev => ({
+      ...prev,
+      router2Images: (prev.router2Images || []).filter((_, idx) => idx !== indexToRemove),
+    }));
+  };
+
   const handleFaultImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -753,7 +811,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
     setLightboxIndex(startIndex);
   };
 
-  // ── Camera CRUD ──
+  // โ”€โ”€ Camera CRUD โ”€โ”€
   const openAddCamera = () => {
     setEditingCamera(null);
     setCameraForm(registryTab === 'pier' ? emptyCameraPier() : emptyCameraVessel());
@@ -791,6 +849,11 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
       routerSerialNumber: cam.routerSerialNumber || '',
       simPhoneNumber: cam.simPhoneNumber || '',
       routerImages: cam.routerImages || [],
+      routerCount: cam.routerCount || 1,
+      router2Model: cam.router2Model || 'Router 4G',
+      router2SerialNumber: cam.router2SerialNumber || '',
+      router2SimPhoneNumber: cam.router2SimPhoneNumber || '',
+      router2Images: cam.router2Images || [],
       status: cam.status,
       installDate: cam.installDate || '',
       appType: cam.appType || (cam.brand === 'EZVIZ' ? 'EZVIZ' : 'DMSS'),
@@ -826,7 +889,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
     onUpdate({ ...data, cameras: cameras.filter(c => c.id !== id), faultLogs });
   };
 
-  // ── Fault CRUD ──
+  // โ”€โ”€ Fault CRUD โ”€โ”€
   const openAddFault = () => {
     setEditingFault(null);
     setFaultForm(emptyFault());
@@ -867,7 +930,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
   };
 
   const deleteFault = (id: string) => {
-    if (!confirm('ยืนยันการลบรายการนี้?')) return;
+    if (!confirm('เธขเธทเธเธขเธฑเธเธเธฒเธฃเธฅเธเธฃเธฒเธขเธเธฒเธฃเธเธตเน?')) return;
     onUpdate({ ...data, cameras, faultLogs: faultLogs.filter(l => l.id !== id) });
   };
 
@@ -880,17 +943,17 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
     }));
   };
 
-  // ── Render camera card ──
+  // โ”€โ”€ Render camera card โ”€โ”€
   const renderCameraCard = (cam: CctvCamera) => {
-    const isPier = cam.locationType === 'ท่าเรือ';
-    const statusCfg = STATUS_CONFIG[cam.status] || STATUS_CONFIG['ปกติ'];
+    const isPier = cam.locationType === 'เธ—เนเธฒเน€เธฃเธทเธญ';
+    const statusCfg = STATUS_CONFIG[cam.status] || STATUS_CONFIG['เธเธเธ•เธด'];
     const StatusIcon = statusCfg.icon;
     const hasImages = Array.isArray(cam.images) && cam.images.length > 0;
     const currentApp = cam.appType || (isPier ? 'EZVIZ' : 'DMSS');
 
     return (
       <div key={cam.id} className={`group relative bg-slate-900/60 border rounded-xl overflow-hidden transition-all hover:border-sky-500/30 hover:shadow-[0_0_20px_rgba(56,189,248,0.1)] flex flex-col justify-between ${
-        cam.status !== 'ปกติ' ? 'border-red-500/40' : 'border-slate-700/60'
+        cam.status !== 'เธเธเธ•เธด' ? 'border-red-500/40' : 'border-slate-700/60'
       }`}>
         <div>
           {/* Brand banner */}
@@ -938,10 +1001,10 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
             <div className="grid grid-cols-2 gap-2">
               {/* Camera count */}
               <div className="bg-black/30 rounded-lg p-2.5 border border-slate-800">
-                <p className="text-[9px] text-slate-500 uppercase tracking-wider mb-1 font-mono">จำนวนกล้อง</p>
+                <p className="text-[9px] text-slate-500 uppercase tracking-wider mb-1 font-mono">เธเธณเธเธงเธเธเธฅเนเธญเธ</p>
                 <div className="flex items-center gap-1.5">
                   <Camera className="w-3.5 h-3.5 text-sky-400" />
-                  <p className="text-sky-300 font-bold font-mono text-sm">{cam.cameraCount} ตัว</p>
+                  <p className="text-sky-300 font-bold font-mono text-sm">{cam.cameraCount} เธ•เธฑเธง</p>
                 </div>
               </div>
 
@@ -967,7 +1030,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
               {cam.installDate && (
                 <p className="text-[10px] text-slate-400 font-mono flex items-center gap-1.5">
                   <Calendar className="w-3 h-3 text-slate-500" />
-                  ติดตั้ง: {formatDateThai(cam.installDate)}
+                  เธ•เธดเธ”เธ•เธฑเนเธ: {formatDateThai(cam.installDate)}
                 </p>
               )}
               <p className="text-[10px] text-slate-400 font-mono flex items-center gap-1.5">
@@ -976,7 +1039,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
               </p>
             </div>
 
-            {/* Serial Numbers display — show if any S/N recorded */}
+            {/* Serial Numbers display โ€” show if any S/N recorded */}
             {cam.serialNumbers && cam.serialNumbers.some(Boolean) && (
               <div className="mt-2.5 p-2 bg-black/20 rounded-lg border border-slate-800/60">
                 <p className="text-[9px] text-slate-500 uppercase tracking-wider mb-1.5 font-mono flex items-center gap-1">
@@ -986,7 +1049,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                   {cam.serialNumbers.map((sn, idx) => (
                     <p key={idx} className="text-[10px] font-mono flex items-center gap-1.5">
                       <span className="text-sky-500 font-bold w-5 shrink-0">#{idx + 1}</span>
-                      <span className="text-slate-300 truncate">{sn || <span className="text-slate-600 italic">ไม่ระบุ</span>}</span>
+                      <span className="text-slate-300 truncate">{sn || <span className="text-slate-600 italic">เนเธกเนเธฃเธฐเธเธธ</span>}</span>
                     </p>
                   ))}
                 </div>
@@ -994,7 +1057,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
             )}
 
             {/* NVR 16CH Display in Card (for vessels) */}
-            {(cam.locationType === 'ในเรือ' || cam.nvrSerialNumber || (cam.nvrImages && cam.nvrImages.length > 0)) && (
+            {(cam.locationType === 'เนเธเน€เธฃเธทเธญ' || cam.nvrSerialNumber || (cam.nvrImages && cam.nvrImages.length > 0)) && (
               <div className="mt-2.5 p-2 bg-black/30 rounded-lg border border-amber-500/30 space-y-1.5">
                 <div className="flex items-center justify-between">
                   <p className="text-[9px] text-amber-400 uppercase tracking-wider font-mono flex items-center gap-1 font-bold">
@@ -1005,7 +1068,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                       onClick={() => openLightbox(cam.nvrImages!, 0)}
                       className="text-[9px] text-amber-400 hover:text-amber-300 font-mono flex items-center gap-0.5"
                     >
-                      <ImageIcon className="w-2.5 h-2.5" /> รูป NVR ({cam.nvrImages.length})
+                      <ImageIcon className="w-2.5 h-2.5" /> เธฃเธนเธ NVR ({cam.nvrImages.length})
                     </button>
                   )}
                 </div>
@@ -1042,7 +1105,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                       onClick={() => openLightbox(cam.routerImages!, 0)}
                       className="text-[9px] text-cyan-400 hover:text-cyan-300 font-mono flex items-center gap-0.5"
                     >
-                      <ImageIcon className="w-2.5 h-2.5" /> รูป Router ({cam.routerImages.length})
+                      <ImageIcon className="w-2.5 h-2.5" /> เธฃเธนเธ Router ({cam.routerImages.length})
                     </button>
                   )}
                 </div>
@@ -1055,7 +1118,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                   {cam.simPhoneNumber && (
                     <p className="text-emerald-300 truncate flex items-center gap-1 font-bold">
                       <Phone className="w-2.5 h-2.5 text-emerald-400 shrink-0" />
-                      <span className="text-slate-400">ซิม AIS:</span> {cam.simPhoneNumber}
+                      <span className="text-slate-400">เธเธดเธก AIS:</span> {cam.simPhoneNumber}
                     </p>
                   )}
                 </div>
@@ -1075,6 +1138,45 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
               </div>
             )}
 
+            {/* Router #2 Display in Card */}
+            {(cam.routerCount || 1) >= 2 && (cam.router2SerialNumber || cam.router2SimPhoneNumber || (cam.router2Images && cam.router2Images.length > 0)) && (
+              <div className="mt-2 p-2 bg-black/30 rounded-lg border border-cyan-800/40 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <p className="text-[9px] text-cyan-400 uppercase tracking-wider font-mono flex items-center gap-1 font-bold">
+                    <Wifi className="w-3 h-3 text-cyan-400" /> {cam.router2Model || 'Router 4G'}
+                    <span className="ml-1 text-[8px] bg-cyan-500/20 px-1 py-0.5 rounded">#2</span>
+                  </p>
+                  {cam.router2Images && cam.router2Images.length > 0 && (
+                    <button onClick={() => openLightbox(cam.router2Images!, 0)} className="text-[9px] text-cyan-400 hover:text-cyan-300 font-mono flex items-center gap-0.5">
+                      <ImageIcon className="w-2.5 h-2.5" /> รูป ({cam.router2Images.length})
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[10px] font-mono">
+                  {cam.router2SerialNumber && (
+                    <p className="text-slate-300 truncate">
+                      <span className="text-slate-500">S/N:</span> <span className="text-cyan-300 font-bold">{cam.router2SerialNumber}</span>
+                    </p>
+                  )}
+                  {cam.router2SimPhoneNumber && (
+                    <p className="text-emerald-300 truncate flex items-center gap-1 font-bold">
+                      <Phone className="w-2.5 h-2.5 text-emerald-400 shrink-0" />
+                      <span className="text-slate-400">ซิม AIS:</span> {cam.router2SimPhoneNumber}
+                    </p>
+                  )}
+                </div>
+                {cam.router2Images && cam.router2Images.length > 0 && (
+                  <div className="flex gap-1.5 overflow-x-auto pt-0.5 pb-0.5">
+                    {cam.router2Images.map((rImg, rIdx) => (
+                      <div key={rIdx} onClick={() => openLightbox(cam.router2Images!, rIdx)} className="w-12 h-12 rounded-lg border border-cyan-800/50 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity shrink-0">
+                        <img src={rImg} alt={`Router2-${rIdx}`} className="w-full h-full object-cover" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {cam.notes && (
               <p className="mt-2 text-[11px] text-slate-400 line-clamp-2">{cam.notes}</p>
             )}
@@ -1084,13 +1186,13 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
               <div className="mt-3 pt-3 border-t border-slate-800/80">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-[10px] text-slate-400 font-mono flex items-center gap-1">
-                    <ImageIcon className="w-3 h-3 text-sky-400" /> รูปภาพกล้อง ({cam.images!.length} รูป)
+                    <ImageIcon className="w-3 h-3 text-sky-400" /> เธฃเธนเธเธ เธฒเธเธเธฅเนเธญเธ ({cam.images!.length} เธฃเธนเธ)
                   </span>
                   <button
                     onClick={() => openLightbox(cam.images!, 0)}
                     className="text-[10px] text-sky-400 hover:text-sky-300 font-mono flex items-center gap-0.5"
                   >
-                    <Maximize2 className="w-2.5 h-2.5" /> ดูทั้งหมด
+                    <Maximize2 className="w-2.5 h-2.5" /> เธ”เธนเธ—เธฑเนเธเธซเธกเธ”
                   </button>
                 </div>
                 <div className="flex gap-1.5 overflow-x-auto pb-1">
@@ -1119,14 +1221,14 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
           <button
             onClick={() => openEditCamera(cam)}
             className="p-1.5 text-slate-400 hover:text-sky-400 hover:bg-sky-950/30 rounded-full transition-all"
-            title="แก้ไขข้อมูลกล้อง"
+            title="เนเธเนเนเธเธเนเธญเธกเธนเธฅเธเธฅเนเธญเธ"
           >
             <Edit className="w-4 h-4" />
           </button>
           <button
             onClick={() => deleteCamera(cam.id)}
             className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-950/30 rounded-full transition-all"
-            title="ลบกล้อง"
+            title="เธฅเธเธเธฅเนเธญเธ"
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -1138,7 +1240,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
   return (
     <div className="p-4 md:p-6 max-w-[1920px] mx-auto space-y-5 animate-in fade-in duration-500">
 
-      {/* ── Header ── */}
+      {/* โ”€โ”€ Header โ”€โ”€ */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-sky-500/20 pb-5">
         <div>
           <h1 className="text-3xl font-bold text-white font-display uppercase tracking-widest flex items-center gap-3">
@@ -1146,7 +1248,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
             CCTV
           </h1>
           <p className="text-slate-400 mt-1 font-mono text-[10px] uppercase tracking-widest">
-            CCTV Surveillance System • 11 ท่าเรือ (EZVIZ) & 7 ในเรือ (Dahua)
+            CCTV Surveillance System โ€ข 11 เธ—เนเธฒเน€เธฃเธทเธญ (EZVIZ) & 7 เนเธเน€เธฃเธทเธญ (Dahua)
           </p>
         </div>
 
@@ -1170,37 +1272,37 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
           <div className="flex items-center gap-2.5 flex-wrap">
             <div className="bg-black border border-sky-900/50 rounded-lg px-3.5 py-2 text-center">
               <div className="text-xl font-bold text-sky-400 font-mono">{cameras.length}</div>
-              <div className="text-[9px] text-sky-600 uppercase font-bold tracking-wider">จุด CCTV</div>
+              <div className="text-[9px] text-sky-600 uppercase font-bold tracking-wider">เธเธธเธ” CCTV</div>
             </div>
             <div className="bg-black border border-emerald-900/50 rounded-lg px-3.5 py-2 text-center">
               <div className="text-xl font-bold text-emerald-400 font-mono">{totalCameraCount}</div>
-              <div className="text-[9px] text-emerald-600 uppercase font-bold tracking-wider">กล้องทั้งหมด</div>
+              <div className="text-[9px] text-emerald-600 uppercase font-bold tracking-wider">เธเธฅเนเธญเธเธ—เธฑเนเธเธซเธกเธ”</div>
             </div>
             <div className="bg-black border border-cyan-900/50 rounded-lg px-3.5 py-2 text-center">
               <div className="text-xl font-bold text-cyan-400 font-mono">{pierCameras.length}</div>
-              <div className="text-[9px] text-cyan-600 uppercase font-bold tracking-wider">ท่าเรือ</div>
+              <div className="text-[9px] text-cyan-600 uppercase font-bold tracking-wider">เธ—เนเธฒเน€เธฃเธทเธญ</div>
             </div>
             <div className="bg-black border border-blue-900/50 rounded-lg px-3.5 py-2 text-center">
               <div className="text-xl font-bold text-blue-400 font-mono">{vesselCameras.length}</div>
-              <div className="text-[9px] text-blue-600 uppercase font-bold tracking-wider">ในเรือ</div>
+              <div className="text-[9px] text-blue-600 uppercase font-bold tracking-wider">เนเธเน€เธฃเธทเธญ</div>
             </div>
             {faultyCameras > 0 && (
               <div className="bg-black border border-red-900/50 rounded-lg px-3.5 py-2 text-center animate-pulse">
                 <div className="text-xl font-bold text-red-400 font-mono">{faultyCameras}</div>
-                <div className="text-[9px] text-red-600 uppercase font-bold tracking-wider">มีปัญหา</div>
+                <div className="text-[9px] text-red-600 uppercase font-bold tracking-wider">เธกเธตเธเธฑเธเธซเธฒ</div>
               </div>
             )}
             {activeFaults > 0 && (
               <div className="bg-black border border-amber-900/50 rounded-lg px-3.5 py-2 text-center animate-pulse">
                 <div className="text-xl font-bold text-amber-400 font-mono">{activeFaults}</div>
-                <div className="text-[9px] text-amber-600 uppercase font-bold tracking-wider">แจ้งค้างอยู่</div>
+                <div className="text-[9px] text-amber-600 uppercase font-bold tracking-wider">เนเธเนเธเธเนเธฒเธเธญเธขเธนเน</div>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* ── Main Tabs ── */}
+      {/* โ”€โ”€ Main Tabs โ”€โ”€ */}
       <div className="flex gap-1 border-b border-slate-800">
         <button
           onClick={() => setActiveTab('registry')}
@@ -1211,7 +1313,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
           }`}
         >
           <Layers className="w-4 h-4" />
-          ทำเนียบกล้อง ({cameras.length})
+          เธ—เธณเน€เธเธตเธขเธเธเธฅเนเธญเธ ({cameras.length})
         </button>
         <button
           onClick={() => setActiveTab('faults')}
@@ -1222,14 +1324,14 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
           }`}
         >
           <AlertTriangle className="w-4 h-4" />
-          แจ้งปัญหา CCTV ({faultLogs.length})
+          เนเธเนเธเธเธฑเธเธซเธฒ CCTV ({faultLogs.length})
           {activeFaults > 0 && (
             <span className="px-1.5 py-0.5 bg-red-500 text-black text-[10px] font-bold rounded-full">{activeFaults}</span>
           )}
         </button>
       </div>
 
-      {/* ════ REGISTRY TAB ════ */}
+      {/* โ•โ•โ•โ• REGISTRY TAB โ•โ•โ•โ• */}
       {activeTab === 'registry' && (
         <div className="space-y-4">
           {/* Sub tabs: pier / vessel */}
@@ -1244,7 +1346,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                 }`}
               >
                 <MapPin className="w-3.5 h-3.5" />
-                ท่าเรือ — EZVIZ ({pierCameras.length}/{CCTV_PIERS.length})
+                เธ—เนเธฒเน€เธฃเธทเธญ โ€” EZVIZ ({pierCameras.length}/{CCTV_PIERS.length})
               </button>
               <button
                 onClick={() => setRegistryTab('vessel')}
@@ -1255,7 +1357,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                 }`}
               >
                 <Ship className="w-3.5 h-3.5" />
-                ในเรือ — Dahua ({vesselCameras.length}/{CCTV_VESSELS.length})
+                เนเธเน€เธฃเธทเธญ โ€” Dahua ({vesselCameras.length}/{CCTV_VESSELS.length})
               </button>
             </div>
             <Button
@@ -1263,7 +1365,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
               className={`text-white border-none ${registryTab === 'pier' ? 'bg-sky-600 hover:bg-sky-500' : 'bg-indigo-600 hover:bg-indigo-500'}`}
             >
               <Plus className="w-4 h-4 mr-2" />
-              เพิ่ม{registryTab === 'pier' ? 'กล้องท่าเรือ (EZVIZ)' : 'กล้องในเรือ (Dahua)'}
+              เน€เธเธดเนเธก{registryTab === 'pier' ? 'เธเธฅเนเธญเธเธ—เนเธฒเน€เธฃเธทเธญ (EZVIZ)' : 'เธเธฅเนเธญเธเนเธเน€เธฃเธทเธญ (Dahua)'}
             </Button>
           </div>
 
@@ -1279,13 +1381,13 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                       key={pier}
                       className={`px-3 py-1 rounded-full text-[10px] font-bold border transition-all cursor-pointer ${
                         cam
-                          ? cam.status !== 'ปกติ'
+                          ? cam.status !== 'เธเธเธ•เธด'
                             ? 'bg-red-500/15 text-red-300 border-red-500/30'
                             : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
                           : 'bg-slate-800/50 text-slate-500 border-slate-700'
                       }`}
                     >
-                      {cam ? '✓ ' : '— '}{pier}
+                      {cam ? 'โ“ ' : 'โ€” '}{pier}
                     </span>
                   );
                 })}
@@ -1309,13 +1411,13 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                       key={vessel}
                       className={`px-3 py-1 rounded-full text-[10px] font-bold border transition-all ${
                         cam
-                          ? cam.status !== 'ปกติ'
+                          ? cam.status !== 'เธเธเธ•เธด'
                             ? 'bg-red-500/15 text-red-300 border-red-500/30'
                             : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
                           : 'bg-slate-800/50 text-slate-500 border-slate-700'
                       }`}
                     >
-                      {cam ? '✓ ' : '— '}{vessel}
+                      {cam ? 'โ“ ' : 'โ€” '}{vessel}
                     </span>
                   );
                 })}
@@ -1329,12 +1431,12 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
         </div>
       )}
 
-      {/* ════ FAULTS TAB ════ */}
+      {/* โ•โ•โ•โ• FAULTS TAB โ•โ•โ•โ• */}
       {activeTab === 'faults' && (
         <div className="space-y-4">
           <div className="flex justify-end">
             <Button onClick={openAddFault} className="bg-red-600 hover:bg-red-500 text-white border-none">
-              <Plus className="w-4 h-4 mr-2" /> แจ้งปัญหา CCTV
+              <Plus className="w-4 h-4 mr-2" /> เนเธเนเธเธเธฑเธเธซเธฒ CCTV
             </Button>
           </div>
 
@@ -1343,12 +1445,12 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
               <table className="w-full text-left text-sm border-collapse">
                 <thead>
                   <tr className="border-b border-slate-700 bg-black/40 text-slate-400 text-xs uppercase tracking-wider font-mono whitespace-nowrap">
-                    <th className="px-4 py-3 font-bold">สถานที่</th>
-                    <th className="px-4 py-3 font-bold">รูปภาพ</th>
-                    <th className="px-4 py-3 font-bold">วันที่แจ้ง</th>
-                    <th className="px-4 py-3 font-bold">ผู้แจ้ง</th>
-                    <th className="px-4 py-3 font-bold">สาเหตุ</th>
-                    <th className="px-4 py-3 font-bold">สถานะแก้ไข</th>
+                    <th className="px-4 py-3 font-bold">เธชเธ–เธฒเธเธ—เธตเน</th>
+                    <th className="px-4 py-3 font-bold">เธฃเธนเธเธ เธฒเธ</th>
+                    <th className="px-4 py-3 font-bold">เธงเธฑเธเธ—เธตเนเนเธเนเธ</th>
+                    <th className="px-4 py-3 font-bold">เธเธนเนเนเธเนเธ</th>
+                    <th className="px-4 py-3 font-bold">เธชเธฒเน€เธซเธ•เธธ</th>
+                    <th className="px-4 py-3 font-bold">เธชเธ–เธฒเธเธฐเนเธเนเนเธ</th>
                     <th className="px-4 py-3 font-bold text-right sticky right-0 bg-slate-900 border-l border-slate-800">Action</th>
                   </tr>
                 </thead>
@@ -1356,7 +1458,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                   {faultLogs.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="px-4 py-12 text-center text-slate-500 font-mono">
-                        — ยังไม่มีรายการแจ้งปัญหา CCTV —
+                        โ€” เธขเธฑเธเนเธกเนเธกเธตเธฃเธฒเธขเธเธฒเธฃเนเธเนเธเธเธฑเธเธซเธฒ CCTV โ€”
                       </td>
                     </tr>
                   ) : [...faultLogs]
@@ -1366,7 +1468,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                         <td className="px-4 py-3">
                           <div className="flex flex-col gap-0.5">
                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold border w-fit ${
-                              log.locationType === 'ท่าเรือ'
+                              log.locationType === 'เธ—เนเธฒเน€เธฃเธทเธญ'
                                 ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
                                 : 'bg-blue-500/15 text-blue-300 border-blue-500/30'
                             }`}>
@@ -1389,7 +1491,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                               )}
                             </div>
                           ) : (
-                            <span className="text-slate-600 text-xs">—</span>
+                            <span className="text-slate-600 text-xs">โ€”</span>
                           )}
                         </td>
                         <td className="px-4 py-3 font-mono text-slate-300 text-xs">{formatDateThai(log.reportDate)}</td>
@@ -1407,11 +1509,11 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                         <td className="px-4 py-3">
                           {log.isFixed ? (
                             <span className="flex items-center gap-1 text-emerald-400 text-xs font-bold">
-                              <CheckCircle className="w-3 h-3" /> แก้ไขแล้ว {log.fixedDate && <span className="text-slate-500 font-mono">({formatDateThai(log.fixedDate)})</span>}
+                              <CheckCircle className="w-3 h-3" /> เนเธเนเนเธเนเธฅเนเธง {log.fixedDate && <span className="text-slate-500 font-mono">({formatDateThai(log.fixedDate)})</span>}
                             </span>
                           ) : (
                             <span className="text-red-400 text-xs font-bold flex items-center gap-1">
-                              <AlertTriangle className="w-3 h-3" /> ยังไม่แก้ไข
+                              <AlertTriangle className="w-3 h-3" /> เธขเธฑเธเนเธกเนเนเธเนเนเธ
                             </span>
                           )}
                         </td>
@@ -1434,22 +1536,22 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
         </div>
       )}
 
-      {/* ════ CAMERA MODAL ════ */}
+      {/* โ•โ•โ•โ• CAMERA MODAL โ•โ•โ•โ• */}
       {showCameraModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <Card className={`w-full max-w-lg bg-slate-900 max-h-[90vh] overflow-y-auto ${
-            cameraForm.locationType === 'ท่าเรือ'
+            cameraForm.locationType === 'เธ—เนเธฒเน€เธฃเธทเธญ'
               ? 'border-sky-500/30 shadow-[0_0_50px_rgba(56,189,248,0.2)]'
               : 'border-indigo-500/30 shadow-[0_0_50px_rgba(99,102,241,0.2)]'
           }`}>
             <div className={`p-5 border-b border-slate-800 flex justify-between items-center ${
-              cameraForm.locationType === 'ท่าเรือ'
+              cameraForm.locationType === 'เธ—เนเธฒเน€เธฃเธทเธญ'
                 ? 'bg-gradient-to-r from-slate-900 to-sky-950/20'
                 : 'bg-gradient-to-r from-slate-900 to-indigo-950/20'
             }`}>
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <Camera className={`w-5 h-5 ${cameraForm.locationType === 'ท่าเรือ' ? 'text-sky-400' : 'text-indigo-400'}`} />
-                {editingCamera ? 'แก้ไขข้อมูลกล้อง' : 'เพิ่มกล้อง CCTV'}
+                <Camera className={`w-5 h-5 ${cameraForm.locationType === 'เธ—เนเธฒเน€เธฃเธทเธญ' ? 'text-sky-400' : 'text-indigo-400'}`} />
+                {editingCamera ? 'เนเธเนเนเธเธเนเธญเธกเธนเธฅเธเธฅเนเธญเธ' : 'เน€เธเธดเนเธกเธเธฅเนเธญเธ CCTV'}
               </h3>
               <button onClick={() => setShowCameraModal(false)} className="text-slate-500 hover:text-white transition-colors">
                 <X className="w-5 h-5" />
@@ -1459,14 +1561,14 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
             <div className="p-5 space-y-4">
               {/* Location type */}
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">ประเภทสถานที่</label>
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">เธเธฃเธฐเน€เธ เธ—เธชเธ–เธฒเธเธ—เธตเน</label>
                 <div className="flex gap-2">
-                  {(['ท่าเรือ', 'ในเรือ'] as CctvLocationType[]).map(lt => (
+                  {(['เธ—เนเธฒเน€เธฃเธทเธญ', 'เนเธเน€เธฃเธทเธญ'] as CctvLocationType[]).map(lt => (
                     <button
                       key={lt}
                       type="button"
                       onClick={() => {
-                        if (lt === 'ท่าเรือ') {
+                        if (lt === 'เธ—เนเธฒเน€เธฃเธทเธญ') {
                           setCameraForm(prev => ({
                             ...emptyCameraPier(),
                             images: prev.images || [],
@@ -1480,13 +1582,13 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                       }}
                       className={`flex-1 py-2.5 rounded-lg text-sm font-bold border transition-all flex items-center justify-center gap-1.5 ${
                         cameraForm.locationType === lt
-                          ? lt === 'ท่าเรือ'
+                          ? lt === 'เธ—เนเธฒเน€เธฃเธทเธญ'
                             ? 'bg-sky-500/20 border-sky-500/60 text-sky-300'
                             : 'bg-indigo-500/20 border-indigo-500/60 text-indigo-300'
                           : 'bg-black/30 border-slate-700 text-slate-500'
                       }`}
                     >
-                      {lt === 'ท่าเรือ' ? <MapPin className="w-3.5 h-3.5" /> : <Ship className="w-3.5 h-3.5" />}
+                      {lt === 'เธ—เนเธฒเน€เธฃเธทเธญ' ? <MapPin className="w-3.5 h-3.5" /> : <Ship className="w-3.5 h-3.5" />}
                       {lt}
                     </button>
                   ))}
@@ -1495,17 +1597,17 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
 
               {/* Brand display */}
               <div className={`flex items-center gap-3 p-3 rounded-lg border ${
-                cameraForm.locationType === 'ท่าเรือ'
+                cameraForm.locationType === 'เธ—เนเธฒเน€เธฃเธทเธญ'
                   ? 'bg-sky-500/10 border-sky-500/30'
                   : 'bg-indigo-500/10 border-indigo-500/30'
               }`}>
-                <Camera className={`w-5 h-5 ${cameraForm.locationType === 'ท่าเรือ' ? 'text-sky-400' : 'text-indigo-400'}`} />
+                <Camera className={`w-5 h-5 ${cameraForm.locationType === 'เธ—เนเธฒเน€เธฃเธทเธญ' ? 'text-sky-400' : 'text-indigo-400'}`} />
                 <div>
-                  <p className={`font-black uppercase tracking-widest text-sm ${cameraForm.locationType === 'ท่าเรือ' ? 'text-sky-300' : 'text-indigo-300'}`}>
+                  <p className={`font-black uppercase tracking-widest text-sm ${cameraForm.locationType === 'เธ—เนเธฒเน€เธฃเธทเธญ' ? 'text-sky-300' : 'text-indigo-300'}`}>
                     {cameraForm.brand}
                   </p>
                   <p className="text-[10px] text-slate-500">
-                    {cameraForm.locationType === 'ท่าเรือ' ? 'IP Camera — SD Card Storage' : 'CCTV Camera — NVR 4TB Storage'}
+                    {cameraForm.locationType === 'เธ—เนเธฒเน€เธฃเธทเธญ' ? 'IP Camera โ€” SD Card Storage' : 'CCTV Camera โ€” NVR 4TB Storage'}
                   </p>
                 </div>
               </div>
@@ -1513,24 +1615,210 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
               {/* Location select */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                  {cameraForm.locationType === 'ท่าเรือ' ? 'ท่าเรือ (11 ท่า)' : 'ในเรือ (7 ลำ)'}
+                  {cameraForm.locationType === 'เธ—เนˆเธฒเน€เธฃเธทเธญ' ? 'เธ—เนˆเธฒเน€เธฃเธทเธญ (11 เธ—เนˆเธฒ)' : 'เนƒเธ™เน€เธฃเธทเธญ (7 เธฅเธณ)'}
                 </label>
                 <select
                   value={cameraForm.locationName}
                   onChange={e => setCameraForm(f => ({ ...f, locationName: e.target.value }))}
                   className="w-full bg-black/50 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:border-sky-500 outline-none text-sm font-bold"
                 >
-                  {cameraForm.locationType === 'ท่าเรือ'
+                  {cameraForm.locationType === 'เธ—เนˆเธฒเน€เธฃเธทเธญ'
                     ? CCTV_PIERS.map(p => <option key={p} value={p}>{p}</option>)
-                    : CCTV_VESSELS.map(v => <option key={v} value={v}>เรือ {v}</option>)
+                    : CCTV_VESSELS.map(v => <option key={v} value={v}>เน€เธฃเธทเธญ {v}</option>)
                   }
                 </select>
+              </div>
+
+              {/* 📶 อุปกรณ์ Router 4G Section */}
+              <div className="space-y-4 p-3.5 bg-black/40 rounded-xl border border-cyan-900/60 shadow-sm">
+                {/* Header */}
+                <div className="flex items-center justify-between border-b border-cyan-950/80 pb-2">
+                  <label className="text-xs font-bold text-cyan-400 uppercase tracking-widest flex items-center gap-1.5 font-mono">
+                    <Wifi className="w-3.5 h-3.5 text-cyan-400" /> อุปกรณ์ Router 4G
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-cyan-600 font-mono font-bold">
+                      {(cameraForm.routerCount || 1)} ตัว
+                    </span>
+                    {(cameraForm.routerCount || 1) < 2 ? (
+                      <button
+                        type="button"
+                        onClick={() => setCameraForm(f => ({ ...f, routerCount: 2 }))}
+                        className="text-[10px] font-mono font-bold text-cyan-400 hover:text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/40 px-2 py-0.5 rounded transition-all flex items-center gap-1"
+                      >
+                        + เพิ่ม Router ที่ 2
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setCameraForm(f => ({ ...f, routerCount: 1 }))}
+                        className="text-[10px] font-mono font-bold text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 border border-red-500/40 px-2 py-0.5 rounded transition-all flex items-center gap-1"
+                      >
+                        ✕ ลบ Router ที่ 2
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* ─── Router #1 ─── */}
+                <div className="space-y-3">
+                  {(cameraForm.routerCount || 1) >= 2 && (
+                    <p className="text-[10px] font-bold text-cyan-500 uppercase tracking-wider font-mono flex items-center gap-1">
+                      <Wifi className="w-3 h-3" /> Router #1
+                    </p>
+                  )}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block mb-1">
+                        ชื่อรุ่น / ยี่ห้อ Router 4G
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="เช่น Router 4G LTE, TP-Link..."
+                        value={cameraForm.routerModel || ''}
+                        onChange={e => setCameraForm(f => ({ ...f, routerModel: e.target.value }))}
+                        className="w-full bg-black/60 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:border-cyan-500 outline-none font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block mb-1">
+                        Serial Number (S/N)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="ระบุ S/N Router 4G..."
+                        value={cameraForm.routerSerialNumber || ''}
+                        onChange={e => setCameraForm(f => ({ ...f, routerSerialNumber: e.target.value }))}
+                        className="w-full bg-black/60 border border-slate-700 rounded-lg px-3 py-2 text-xs text-cyan-300 focus:border-cyan-500 outline-none font-mono font-medium"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider block mb-1 flex items-center gap-1 font-bold">
+                        <Phone className="w-3 h-3 text-emerald-400" /> เบอร์โทรศัพท์ (ซิม AIS)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="เช่น 081-xxx-xxxx, 098-xxx-xxxx"
+                        value={cameraForm.simPhoneNumber || ''}
+                        onChange={e => setCameraForm(f => ({ ...f, simPhoneNumber: e.target.value }))}
+                        className="w-full bg-black/60 border border-emerald-500/50 focus:border-emerald-400 rounded-lg px-3 py-2 text-xs text-emerald-300 outline-none font-mono font-bold placeholder-slate-600"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Router #1 Photo Upload */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-mono text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                        <ImageIcon className="w-3 h-3 text-cyan-400" /> รูปภาพ Router 4G {(cameraForm.routerCount || 1) >= 2 && '#1'}
+                      </label>
+                      <span className="text-[10px] text-slate-500 font-mono">{cameraForm.routerImages?.length || 0} รูป</span>
+                    </div>
+                    <input ref={routerFileInputRef} type="file" multiple accept="image/*" onChange={handleRouterImageUpload} className="hidden" />
+                    <div onClick={() => routerFileInputRef.current?.click()} className="w-full py-2.5 px-3 rounded-lg border border-dashed border-cyan-500/40 hover:border-cyan-400 bg-cyan-950/10 hover:bg-cyan-950/20 transition-all cursor-pointer flex items-center justify-center gap-2 text-center group/drop">
+                      <Upload className="w-3.5 h-3.5 text-cyan-400 group-hover/drop:scale-110 transition-transform" />
+                      <span className="text-xs font-mono text-cyan-300">คลิกเพื่ออัปโหลดรูปภาพ Router 4G {(cameraForm.routerCount || 1) >= 2 && '#1'}</span>
+                    </div>
+                    {cameraForm.routerImages && cameraForm.routerImages.length > 0 && (
+                      <div className="grid grid-cols-4 gap-2 pt-1 max-h-36 overflow-y-auto">
+                        {cameraForm.routerImages.map((img, idx) => (
+                          <div key={idx} className="relative group/thumb rounded-lg overflow-hidden border border-slate-700 aspect-square">
+                            <img src={img} alt={`router-preview-${idx}`} className="w-full h-full object-cover" />
+                            <button type="button" onClick={() => removeRouterImage(idx)} className="absolute top-1 right-1 p-1 rounded-full bg-red-600/90 text-white opacity-0 group-hover/thumb:opacity-100 transition-opacity hover:bg-red-500" title="ลบรูป">
+                              <X className="w-3 h-3" />
+                            </button>
+                            <button type="button" onClick={() => openLightbox(cameraForm.routerImages!, idx)} className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity">
+                              <Eye className="w-4 h-4 text-white" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* ─── Router #2 (แสดงเมื่อ routerCount = 2) ─── */}
+                {(cameraForm.routerCount || 1) >= 2 && (
+                  <div className="space-y-3 pt-3 border-t border-cyan-900/40">
+                    <p className="text-[10px] font-bold text-cyan-500 uppercase tracking-wider font-mono flex items-center gap-1">
+                      <Wifi className="w-3 h-3" /> Router #2
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block mb-1">
+                          ชื่อรุ่น / ยี่ห้อ Router 4G #2
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="เช่น Router 4G LTE, TP-Link..."
+                          value={cameraForm.router2Model || ''}
+                          onChange={e => setCameraForm(f => ({ ...f, router2Model: e.target.value }))}
+                          className="w-full bg-black/60 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:border-cyan-500 outline-none font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block mb-1">
+                          Serial Number (S/N) #2
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="ระบุ S/N Router 4G #2..."
+                          value={cameraForm.router2SerialNumber || ''}
+                          onChange={e => setCameraForm(f => ({ ...f, router2SerialNumber: e.target.value }))}
+                          className="w-full bg-black/60 border border-slate-700 rounded-lg px-3 py-2 text-xs text-cyan-300 focus:border-cyan-500 outline-none font-mono font-medium"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider block mb-1 flex items-center gap-1 font-bold">
+                          <Phone className="w-3 h-3 text-emerald-400" /> เบอร์โทรศัพท์ (ซิม AIS) #2
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="เช่น 081-xxx-xxxx..."
+                          value={cameraForm.router2SimPhoneNumber || ''}
+                          onChange={e => setCameraForm(f => ({ ...f, router2SimPhoneNumber: e.target.value }))}
+                          className="w-full bg-black/60 border border-emerald-500/50 focus:border-emerald-400 rounded-lg px-3 py-2 text-xs text-emerald-300 outline-none font-mono font-bold placeholder-slate-600"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Router #2 Photo Upload */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-mono text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                          <ImageIcon className="w-3 h-3 text-cyan-400" /> รูปภาพ Router 4G #2
+                        </label>
+                        <span className="text-[10px] text-slate-500 font-mono">{cameraForm.router2Images?.length || 0} รูป</span>
+                      </div>
+                      <input ref={router2FileInputRef} type="file" multiple accept="image/*" onChange={handleRouter2ImageUpload} className="hidden" />
+                      <div onClick={() => router2FileInputRef.current?.click()} className="w-full py-2.5 px-3 rounded-lg border border-dashed border-cyan-500/40 hover:border-cyan-400 bg-cyan-950/10 hover:bg-cyan-950/20 transition-all cursor-pointer flex items-center justify-center gap-2 text-center group/drop">
+                        <Upload className="w-3.5 h-3.5 text-cyan-400 group-hover/drop:scale-110 transition-transform" />
+                        <span className="text-xs font-mono text-cyan-300">คลิกเพื่ออัปโหลดรูปภาพ Router 4G #2</span>
+                      </div>
+                      {cameraForm.router2Images && cameraForm.router2Images.length > 0 && (
+                        <div className="grid grid-cols-4 gap-2 pt-1 max-h-36 overflow-y-auto">
+                          {cameraForm.router2Images.map((img, idx) => (
+                            <div key={idx} className="relative group/thumb rounded-lg overflow-hidden border border-slate-700 aspect-square">
+                              <img src={img} alt={`router2-preview-${idx}`} className="w-full h-full object-cover" />
+                              <button type="button" onClick={() => removeRouter2Image(idx)} className="absolute top-1 right-1 p-1 rounded-full bg-red-600/90 text-white opacity-0 group-hover/thumb:opacity-100 transition-opacity hover:bg-red-500" title="ลบรูป">
+                                <X className="w-3 h-3" />
+                              </button>
+                              <button type="button" onClick={() => openLightbox(cameraForm.router2Images!, idx)} className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity">
+                                <Eye className="w-4 h-4 text-white" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Camera count */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                  <Camera className="w-3.5 h-3.5 text-sky-400" /> จำนวนกล้อง (1-8 ตัว)
+                  <Camera className="w-3.5 h-3.5 text-sky-400" /> เธˆเธณเธ™เธงเธ™เธ เธฅเน‰เธญเธ‡ (1-8 เธ•เธฑเธง)
                 </label>
                 <select
                   value={cameraForm.cameraCount}
@@ -1551,16 +1839,16 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                   className="w-full bg-black/50 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:border-sky-500 outline-none font-mono text-sm"
                 >
                   {Array.from({ length: 8 }, (_, i) => i + 1).map(n => (
-                    <option key={n} value={n}>{n} ตัว</option>
+                    <option key={n} value={n}>{n} เธ•เธฑเธง</option>
                   ))}
                 </select>
               </div>
 
-              {/* Serial Numbers — one input per camera */}
+              {/* Serial Numbers โ€” one input per camera */}
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                   <Tag className="w-3.5 h-3.5 text-cyan-400" />
-                  Serial Number กล้อง ({cameraForm.cameraCount} ตัว)
+                  Serial Number เธ เธฅเน‰เธญเธ‡ ({cameraForm.cameraCount} เธ•เธฑเธง)
                 </label>
                 <div className="p-3 bg-black/40 rounded-lg border border-slate-700/60 space-y-2 max-h-56 overflow-y-auto">
                   {Array.from({ length: cameraForm.cameraCount || 1 }, (_, idx) => (
@@ -1570,7 +1858,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                       </span>
                       <input
                         type="text"
-                        placeholder={`S/N กล้องตัวที่ ${idx + 1}...`}
+                        placeholder={`S/N เธเธฅเนเธญเธเธ•เธฑเธงเธ—เธตเน ${idx + 1}...`}
                         value={(cameraForm.serialNumbers || [])[idx] || ''}
                         onChange={e => {
                           const count = cameraForm.cameraCount || 1;
@@ -1593,11 +1881,11 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                 </div>
               </div>
 
-              {/* Storage — only show memory for pier */}
-              {cameraForm.locationType === 'ท่าเรือ' && (
+              {/* Storage โ€” only show memory for pier */}
+              {cameraForm.locationType === 'เธ—เนเธฒเน€เธฃเธทเธญ' && (
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                    <Database className="w-3.5 h-3.5 text-purple-400" /> เมมโมรี่การ์ด (SD Card)
+                    <Database className="w-3.5 h-3.5 text-purple-400" /> เน€เธกเธกเนเธกเธฃเธตเนเธเธฒเธฃเนเธ” (SD Card)
                   </label>
                   <select
                     value={cameraForm.memorySize || '64 GB'}
@@ -1609,26 +1897,26 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                 </div>
               )}
 
-              {/* 💾 อุปกรณ์ NVR 16CH Section (สำหรับในเรือ) */}
-              {cameraForm.locationType === 'ในเรือ' && (
+              {/* ๐’พ เธญเธธเธเธเธฃเธ“เน NVR 16CH Section (เธชเธณเธซเธฃเธฑเธเนเธเน€เธฃเธทเธญ) */}
+              {cameraForm.locationType === 'เนเธเน€เธฃเธทเธญ' && (
                 <div className="space-y-3 p-3.5 bg-black/40 rounded-xl border border-amber-500/40 shadow-sm">
                   <div className="flex items-center justify-between border-b border-amber-900/40 pb-2">
                     <label className="text-xs font-bold text-amber-400 uppercase tracking-widest flex items-center gap-1.5 font-mono">
-                      <HardDrive className="w-3.5 h-3.5 text-amber-400" /> อุปกรณ์ NVR 16CH
+                      <HardDrive className="w-3.5 h-3.5 text-amber-400" /> เธญเธธเธเธเธฃเธ“เน NVR 16CH
                     </label>
                     <span className="text-[10px] text-amber-500 font-mono font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">
-                      16 Channels • 4TB
+                      16 Channels โ€ข 4TB
                     </span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block mb-1">
-                        ชื่อรุ่น / อุปกรณ์ NVR
+                        เธเธทเนเธญเธฃเธธเนเธ / เธญเธธเธเธเธฃเธ“เน NVR
                       </label>
                       <input
                         type="text"
-                        placeholder="เช่น Dahua NVR 16CH (4TB)..."
+                        placeholder="เน€เธเนเธ Dahua NVR 16CH (4TB)..."
                         value={cameraForm.nvrModel || ''}
                         onChange={e => setCameraForm(f => ({ ...f, nvrModel: e.target.value }))}
                         className="w-full bg-black/60 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:border-amber-500 outline-none font-mono"
@@ -1636,11 +1924,11 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                     </div>
                     <div>
                       <label className="text-[10px] font-mono text-amber-400 uppercase tracking-wider block mb-1 font-bold">
-                        Serial Number (S/N) ของ NVR 16CH
+                        Serial Number (S/N) เธเธญเธ NVR 16CH
                       </label>
                       <input
                         type="text"
-                        placeholder="ระบุ S/N เครื่อง NVR 16CH..."
+                        placeholder="เธฃเธฐเธเธธ S/N เน€เธเธฃเธทเนเธญเธ NVR 16CH..."
                         value={cameraForm.nvrSerialNumber || ''}
                         onChange={e => setCameraForm(f => ({ ...f, nvrSerialNumber: e.target.value }))}
                         className="w-full bg-black/60 border border-amber-500/50 focus:border-amber-400 rounded-lg px-3 py-2 text-xs text-amber-300 outline-none font-mono font-bold placeholder-slate-600"
@@ -1652,10 +1940,10 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                   <div className="space-y-1.5 pt-1">
                     <div className="flex items-center justify-between">
                       <label className="text-[10px] font-mono text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                        <ImageIcon className="w-3 h-3 text-amber-400" /> รูปภาพ NVR 16CH
+                        <ImageIcon className="w-3 h-3 text-amber-400" /> เธฃเธนเธเธ เธฒเธ NVR 16CH
                       </label>
                       <span className="text-[10px] text-slate-500 font-mono">
-                        {cameraForm.nvrImages?.length || 0} รูป
+                        {cameraForm.nvrImages?.length || 0} เธฃเธนเธ
                       </span>
                     </div>
 
@@ -1673,7 +1961,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                       className="w-full py-2.5 px-3 rounded-lg border border-dashed border-amber-500/40 hover:border-amber-400 bg-amber-950/10 hover:bg-amber-950/20 transition-all cursor-pointer flex items-center justify-center gap-2 text-center group/drop"
                     >
                       <Upload className="w-3.5 h-3.5 text-amber-400 group-hover/drop:scale-110 transition-transform" />
-                      <span className="text-xs font-mono text-amber-300">คลิกเพื่ออัปโหลดรูปภาพ NVR 16CH</span>
+                      <span className="text-xs font-mono text-amber-300">เธเธฅเธดเธเน€เธเธทเนเธญเธญเธฑเธเนเธซเธฅเธ”เธฃเธนเธเธ เธฒเธ NVR 16CH</span>
                     </div>
 
                     {cameraForm.nvrImages && cameraForm.nvrImages.length > 0 && (
@@ -1685,7 +1973,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                               type="button"
                               onClick={() => removeNvrImage(idx)}
                               className="absolute top-1 right-1 p-1 rounded-full bg-red-600/90 text-white opacity-0 group-hover/thumb:opacity-100 transition-opacity hover:bg-red-500"
-                              title="ลบรูป"
+                              title="เธฅเธเธฃเธนเธ"
                             >
                               <X className="w-3 h-3" />
                             </button>
@@ -1732,7 +2020,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
 
               {/* Status */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">สถานะ</label>
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">เธชเธ–เธฒเธเธฐ</label>
                 <div className="grid grid-cols-2 gap-2">
                   {(Object.keys(STATUS_CONFIG) as CctvStatus[]).map(s => {
                     const cfg = STATUS_CONFIG[s];
@@ -1758,7 +2046,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
               {/* Install date */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5" /> วันที่ติดตั้ง (ไม่บังคับ)
+                  <Calendar className="w-3.5 h-3.5" /> เธงเธฑเธเธ—เธตเนเธ•เธดเธ”เธ•เธฑเนเธ (เนเธกเนเธเธฑเธเธเธฑเธ)
                 </label>
                 <input
                   type="date"
@@ -1768,11 +2056,11 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                 />
               </div>
 
-              {/* 📶 อุปกรณ์ Router 4G Section */}
+              {/* ๐“ถ เธญเธธเธเธเธฃเธ“เน Router 4G Section */}
               <div className="space-y-3 p-3.5 bg-black/40 rounded-xl border border-cyan-900/60 shadow-sm">
                 <div className="flex items-center justify-between border-b border-cyan-950/80 pb-2">
                   <label className="text-xs font-bold text-cyan-400 uppercase tracking-widest flex items-center gap-1.5 font-mono">
-                    <Wifi className="w-3.5 h-3.5 text-cyan-400" /> อุปกรณ์ Router 4G
+                    <Wifi className="w-3.5 h-3.5 text-cyan-400" /> เธญเธธเธเธเธฃเธ“เน Router 4G
                   </label>
                   <span className="text-[10px] text-cyan-600 font-mono font-bold">Network Device</span>
                 </div>
@@ -1780,11 +2068,11 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block mb-1">
-                      ชื่อรุ่น / ยี่ห้อ Router 4G
+                      เธเธทเนเธญเธฃเธธเนเธ / เธขเธตเนเธซเนเธญ Router 4G
                     </label>
                     <input
                       type="text"
-                      placeholder="เช่น Router 4G LTE, TP-Link..."
+                      placeholder="เน€เธเนเธ Router 4G LTE, TP-Link..."
                       value={cameraForm.routerModel || ''}
                       onChange={e => setCameraForm(f => ({ ...f, routerModel: e.target.value }))}
                       className="w-full bg-black/60 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:border-cyan-500 outline-none font-mono"
@@ -1796,7 +2084,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                     </label>
                     <input
                       type="text"
-                      placeholder="ระบุ S/N Router 4G..."
+                      placeholder="เธฃเธฐเธเธธ S/N Router 4G..."
                       value={cameraForm.routerSerialNumber || ''}
                       onChange={e => setCameraForm(f => ({ ...f, routerSerialNumber: e.target.value }))}
                       className="w-full bg-black/60 border border-slate-700 rounded-lg px-3 py-2 text-xs text-cyan-300 focus:border-cyan-500 outline-none font-mono font-medium"
@@ -1804,11 +2092,11 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                   </div>
                   <div>
                     <label className="text-[10px] font-mono text-emerald-400 uppercase tracking-wider block mb-1 flex items-center gap-1 font-bold">
-                      <Phone className="w-3 h-3 text-emerald-400" /> เบอร์โทรศัพท์ (ซิม AIS)
+                      <Phone className="w-3 h-3 text-emerald-400" /> เน€เธเธญเธฃเนเนเธ—เธฃเธจเธฑเธเธ—เน (เธเธดเธก AIS)
                     </label>
                     <input
                       type="text"
-                      placeholder="เช่น 081-xxx-xxxx, 098-xxx-xxxx"
+                      placeholder="เน€เธเนเธ 081-xxx-xxxx, 098-xxx-xxxx"
                       value={cameraForm.simPhoneNumber || ''}
                       onChange={e => setCameraForm(f => ({ ...f, simPhoneNumber: e.target.value }))}
                       className="w-full bg-black/60 border border-emerald-500/50 focus:border-emerald-400 rounded-lg px-3 py-2 text-xs text-emerald-300 outline-none font-mono font-bold placeholder-slate-600"
@@ -1820,10 +2108,10 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                 <div className="space-y-1.5 pt-1">
                   <div className="flex items-center justify-between">
                     <label className="text-[10px] font-mono text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                      <ImageIcon className="w-3 h-3 text-cyan-400" /> รูปภาพ Router 4G
+                      <ImageIcon className="w-3 h-3 text-cyan-400" /> เธฃเธนเธเธ เธฒเธ Router 4G
                     </label>
                     <span className="text-[10px] text-slate-500 font-mono">
-                      {cameraForm.routerImages?.length || 0} รูป
+                      {cameraForm.routerImages?.length || 0} เธฃเธนเธ
                     </span>
                   </div>
 
@@ -1841,7 +2129,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                     className="w-full py-2.5 px-3 rounded-lg border border-dashed border-cyan-500/40 hover:border-cyan-400 bg-cyan-950/10 hover:bg-cyan-950/20 transition-all cursor-pointer flex items-center justify-center gap-2 text-center group/drop"
                   >
                     <Upload className="w-3.5 h-3.5 text-cyan-400 group-hover/drop:scale-110 transition-transform" />
-                    <span className="text-xs font-mono text-cyan-300">คลิกเพื่ออัปโหลดรูปภาพ Router 4G</span>
+                    <span className="text-xs font-mono text-cyan-300">เธเธฅเธดเธเน€เธเธทเนเธญเธญเธฑเธเนเธซเธฅเธ”เธฃเธนเธเธ เธฒเธ Router 4G</span>
                   </div>
 
                   {cameraForm.routerImages && cameraForm.routerImages.length > 0 && (
@@ -1853,7 +2141,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                             type="button"
                             onClick={() => removeRouterImage(idx)}
                             className="absolute top-1 right-1 p-1 rounded-full bg-red-600/90 text-white opacity-0 group-hover/thumb:opacity-100 transition-opacity hover:bg-red-500"
-                            title="ลบรูป"
+                            title="เธฅเธเธฃเธนเธ"
                           >
                             <X className="w-3 h-3" />
                           </button>
@@ -1871,14 +2159,14 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                 </div>
               </div>
 
-              {/* 📷 Unlimited Photo Upload Section */}
+              {/* ๐“ท Unlimited Photo Upload Section */}
               <div className="space-y-2 pt-2 border-t border-slate-800">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-sky-400 uppercase tracking-widest flex items-center gap-1.5">
-                    <ImageIcon className="w-3.5 h-3.5" /> รูปภาพกล้อง / สถานที่ติดตั้ง (ไม่จำกัดจำนวน)
+                    <ImageIcon className="w-3.5 h-3.5" /> เธฃเธนเธเธ เธฒเธเธเธฅเนเธญเธ / เธชเธ–เธฒเธเธ—เธตเนเธ•เธดเธ”เธ•เธฑเนเธ (เนเธกเนเธเธณเธเธฑเธ”เธเธณเธเธงเธ)
                   </label>
                   <span className="text-[10px] text-slate-500 font-mono">
-                    {cameraForm.images?.length || 0} รูป
+                    {cameraForm.images?.length || 0} เธฃเธนเธ
                   </span>
                 </div>
 
@@ -1899,15 +2187,15 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                   {isUploading ? (
                     <div className="flex items-center gap-2 text-sky-400">
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      <span className="text-xs font-mono">กำลังประมวลผลรูปภาพ...</span>
+                      <span className="text-xs font-mono">เธเธณเธฅเธฑเธเธเธฃเธฐเธกเธงเธฅเธเธฅเธฃเธนเธเธ เธฒเธ...</span>
                     </div>
                   ) : (
                     <>
                       <div className="p-2 rounded-full bg-sky-500/20 text-sky-400 group-hover/drop:scale-110 transition-transform">
                         <Upload className="w-4 h-4" />
                       </div>
-                      <p className="text-xs font-bold text-sky-300">คลิกเพื่ออัปโหลดรูปภาพ</p>
-                      <p className="text-[10px] text-slate-500">รองรับ JPG, PNG (อัปโหลดพร้อมกันได้หลายรูปไม่จำกัด)</p>
+                      <p className="text-xs font-bold text-sky-300">เธเธฅเธดเธเน€เธเธทเนเธญเธญเธฑเธเนเธซเธฅเธ”เธฃเธนเธเธ เธฒเธ</p>
+                      <p className="text-[10px] text-slate-500">เธฃเธญเธเธฃเธฑเธ JPG, PNG (เธญเธฑเธเนเธซเธฅเธ”เธเธฃเนเธญเธกเธเธฑเธเนเธ”เนเธซเธฅเธฒเธขเธฃเธนเธเนเธกเนเธเธณเธเธฑเธ”)</p>
                     </>
                   )}
                 </div>
@@ -1922,7 +2210,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                           type="button"
                           onClick={() => removeCameraImage(idx)}
                           className="absolute top-1 right-1 p-1 rounded-full bg-red-600/90 text-white opacity-0 group-hover/thumb:opacity-100 transition-opacity hover:bg-red-500"
-                          title="ลบรูป"
+                          title="เธฅเธเธฃเธนเธ"
                         >
                           <X className="w-3 h-3" />
                         </button>
@@ -1930,7 +2218,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                           type="button"
                           onClick={() => openLightbox(cameraForm.images!, idx)}
                           className="absolute bottom-1 right-1 p-1 rounded-full bg-black/70 text-white opacity-0 group-hover/thumb:opacity-100 transition-opacity hover:bg-black/90"
-                          title="ขยายรูป"
+                          title="เธเธขเธฒเธขเธฃเธนเธ"
                         >
                           <Maximize2 className="w-3 h-3" />
                         </button>
@@ -1945,38 +2233,38 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
 
               {/* Notes */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">หมายเหตุ</label>
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">เธซเธกเธฒเธขเน€เธซเธ•เธธ</label>
                 <textarea
                   value={cameraForm.notes}
                   onChange={e => setCameraForm(f => ({ ...f, notes: e.target.value }))}
                   rows={2}
-                  placeholder="หมายเหตุเพิ่มเติม..."
+                  placeholder="เธซเธกเธฒเธขเน€เธซเธ•เธธเน€เธเธดเนเธกเน€เธ•เธดเธก..."
                   className="w-full bg-black/50 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:border-sky-500 outline-none resize-none text-sm"
                 />
               </div>
             </div>
 
             <div className="p-5 border-t border-slate-800 flex gap-3 justify-end">
-              <Button variant="ghost" onClick={() => setShowCameraModal(false)}>ยกเลิก</Button>
+              <Button variant="ghost" onClick={() => setShowCameraModal(false)}>เธขเธเน€เธฅเธดเธ</Button>
               <Button
                 onClick={saveCamera}
-                className={`text-white border-none ${cameraForm.locationType === 'ท่าเรือ' ? 'bg-sky-600 hover:bg-sky-500' : 'bg-indigo-600 hover:bg-indigo-500'}`}
+                className={`text-white border-none ${cameraForm.locationType === 'เธ—เนเธฒเน€เธฃเธทเธญ' ? 'bg-sky-600 hover:bg-sky-500' : 'bg-indigo-600 hover:bg-indigo-500'}`}
               >
-                <Save className="w-4 h-4 mr-2" /> บันทึก
+                <Save className="w-4 h-4 mr-2" /> เธเธฑเธเธ—เธถเธ
               </Button>
             </div>
           </Card>
         </div>
       )}
 
-      {/* ════ FAULT MODAL ════ */}
+      {/* โ•โ•โ•โ• FAULT MODAL โ•โ•โ•โ• */}
       {showFaultModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <Card className="w-full max-w-lg bg-slate-900 border-red-500/30 shadow-[0_0_50px_rgba(239,68,68,0.15)] max-h-[90vh] overflow-y-auto">
             <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-gradient-to-r from-slate-900 to-red-950/20">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-red-400" />
-                {editingFault ? 'แก้ไขรายการแจ้งปัญหา' : 'แจ้งปัญหา CCTV'}
+                {editingFault ? 'เนเธเนเนเธเธฃเธฒเธขเธเธฒเธฃเนเธเนเธเธเธฑเธเธซเธฒ' : 'เนเธเนเธเธเธฑเธเธซเธฒ CCTV'}
               </h3>
               <button onClick={() => setShowFaultModal(false)} className="text-slate-500 hover:text-white transition-colors">
                 <X className="w-5 h-5" />
@@ -1985,16 +2273,16 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
             <div className="p-5 space-y-4">
               {/* Location type & name */}
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">ประเภทสถานที่</label>
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">เธเธฃเธฐเน€เธ เธ—เธชเธ–เธฒเธเธ—เธตเน</label>
                 <div className="flex gap-2">
-                  {(['ท่าเรือ', 'ในเรือ'] as CctvLocationType[]).map(lt => (
+                  {(['เธ—เนเธฒเน€เธฃเธทเธญ', 'เนเธเน€เธฃเธทเธญ'] as CctvLocationType[]).map(lt => (
                     <button
                       key={lt}
                       type="button"
                       onClick={() => setFaultForm(f => ({
                         ...f,
                         locationType: lt,
-                        locationName: lt === 'ท่าเรือ' ? CCTV_PIERS[0] : CCTV_VESSELS[0],
+                        locationName: lt === 'เธ—เนเธฒเน€เธฃเธทเธญ' ? CCTV_PIERS[0] : CCTV_VESSELS[0],
                       }))}
                       className={`flex-1 py-2.5 rounded-lg text-sm font-bold border transition-all flex items-center justify-center gap-1.5 ${
                         faultForm.locationType === lt
@@ -2002,7 +2290,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                           : 'bg-black/30 border-slate-700 text-slate-500'
                       }`}
                     >
-                      {lt === 'ท่าเรือ' ? <MapPin className="w-3.5 h-3.5" /> : <Ship className="w-3.5 h-3.5" />}
+                      {lt === 'เธ—เนเธฒเน€เธฃเธทเธญ' ? <MapPin className="w-3.5 h-3.5" /> : <Ship className="w-3.5 h-3.5" />}
                       {lt}
                     </button>
                   ))}
@@ -2010,22 +2298,22 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">สถานที่</label>
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">เธชเธ–เธฒเธเธ—เธตเน</label>
                 <select
                   value={faultForm.locationName}
                   onChange={e => setFaultForm(f => ({ ...f, locationName: e.target.value }))}
                   className="w-full bg-black/50 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:border-red-500 outline-none text-sm"
                 >
-                  {faultForm.locationType === 'ท่าเรือ'
+                  {faultForm.locationType === 'เธ—เนเธฒเน€เธฃเธทเธญ'
                     ? CCTV_PIERS.map(p => <option key={p} value={p}>{p}</option>)
-                    : CCTV_VESSELS.map(v => <option key={v} value={v}>เรือ {v}</option>)
+                    : CCTV_VESSELS.map(v => <option key={v} value={v}>เน€เธฃเธทเธญ {v}</option>)
                   }
                 </select>
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5" /> วันที่แจ้ง
+                  <Calendar className="w-3.5 h-3.5" /> เธงเธฑเธเธ—เธตเนเนเธเนเธ
                 </label>
                 <input
                   type="date"
@@ -2037,19 +2325,19 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
 
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5" /> ชื่อผู้แจ้ง
+                  <User className="w-3.5 h-3.5" /> เธเธทเนเธญเธเธนเนเนเธเนเธ
                 </label>
                 <input
                   type="text"
                   value={faultForm.reporterName}
                   onChange={e => setFaultForm(f => ({ ...f, reporterName: e.target.value }))}
-                  placeholder="กรอกชื่อ-นามสกุล"
+                  placeholder="เธเธฃเธญเธเธเธทเนเธญ-เธเธฒเธกเธชเธเธธเธฅ"
                   className="w-full bg-black/50 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:border-red-500 outline-none"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-red-400 uppercase tracking-widest">สาเหตุ (เลือกได้หลายอย่าง)</label>
+                <label className="text-xs font-bold text-red-400 uppercase tracking-widest">เธชเธฒเน€เธซเธ•เธธ (เน€เธฅเธทเธญเธเนเธ”เนเธซเธฅเธฒเธขเธญเธขเนเธฒเธ)</label>
                 <div className="grid grid-cols-2 gap-2">
                   {FAULT_CAUSES.map((cause, idx) => (
                     <button
@@ -2071,14 +2359,14 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                 </div>
               </div>
 
-              {/* 📷 Fault Photos */}
+              {/* ๐“ท Fault Photos */}
               <div className="space-y-2 pt-2 border-t border-slate-800">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-red-400 uppercase tracking-widest flex items-center gap-1.5">
-                    <ImageIcon className="w-3.5 h-3.5" /> แนบรูปภาพปัญหา (ไม่จำกัดจำนวน)
+                    <ImageIcon className="w-3.5 h-3.5" /> เนเธเธเธฃเธนเธเธ เธฒเธเธเธฑเธเธซเธฒ (เนเธกเนเธเธณเธเธฑเธ”เธเธณเธเธงเธ)
                   </label>
                   <span className="text-[10px] text-slate-500 font-mono">
-                    {faultForm.images?.length || 0} รูป
+                    {faultForm.images?.length || 0} เธฃเธนเธ
                   </span>
                 </div>
 
@@ -2096,7 +2384,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                   className="w-full py-3 px-4 rounded-xl border-2 border-dashed border-red-500/30 hover:border-red-400 bg-red-950/10 hover:bg-red-950/20 transition-all cursor-pointer flex flex-col items-center justify-center gap-1 text-center"
                 >
                   <Upload className="w-4 h-4 text-red-400" />
-                  <p className="text-xs font-bold text-red-300">คลิกเพื่ออัปโหลดรูปภาพปัญหา</p>
+                  <p className="text-xs font-bold text-red-300">เธเธฅเธดเธเน€เธเธทเนเธญเธญเธฑเธเนเธซเธฅเธ”เธฃเธนเธเธ เธฒเธเธเธฑเธเธซเธฒ</p>
                 </div>
 
                 {faultForm.images && faultForm.images.length > 0 && (
@@ -2125,7 +2413,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                     onChange={e => setFaultForm(f => ({ ...f, isFixed: e.target.checked }))}
                     className="w-4 h-4 accent-emerald-500"
                   />
-                  <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest">แก้ไขเสร็จเรียบร้อย</span>
+                  <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest">เนเธเนเนเธเน€เธชเธฃเนเธเน€เธฃเธตเธขเธเธฃเนเธญเธข</span>
                 </label>
                 {faultForm.isFixed && (
                   <input
@@ -2138,28 +2426,28 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">รายละเอียดเพิ่มเติม</label>
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">เธฃเธฒเธขเธฅเธฐเน€เธญเธตเธขเธ”เน€เธเธดเนเธกเน€เธ•เธดเธก</label>
                 <textarea
                   value={faultForm.causeDetails}
                   onChange={e => setFaultForm(f => ({ ...f, causeDetails: e.target.value }))}
                   rows={2}
-                  placeholder="อธิบายรายละเอียดเพิ่มเติม..."
+                  placeholder="เธญเธเธดเธเธฒเธขเธฃเธฒเธขเธฅเธฐเน€เธญเธตเธขเธ”เน€เธเธดเนเธกเน€เธ•เธดเธก..."
                   className="w-full bg-black/50 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:border-red-500 outline-none resize-none text-sm"
                 />
               </div>
             </div>
 
             <div className="p-5 border-t border-slate-800 flex gap-3 justify-end">
-              <Button variant="ghost" onClick={() => setShowFaultModal(false)}>ยกเลิก</Button>
+              <Button variant="ghost" onClick={() => setShowFaultModal(false)}>เธขเธเน€เธฅเธดเธ</Button>
               <Button onClick={saveFault} className="bg-red-600 hover:bg-red-500 text-white border-none">
-                <Save className="w-4 h-4 mr-2" /> บันทึก
+                <Save className="w-4 h-4 mr-2" /> เธเธฑเธเธ—เธถเธ
               </Button>
             </div>
           </Card>
         </div>
       )}
 
-      {/* ════ LIGHTBOX IMAGE VIEWER MODAL ════ */}
+      {/* โ•โ•โ•โ• LIGHTBOX IMAGE VIEWER MODAL โ•โ•โ•โ• */}
       {lightboxImages && lightboxImages.length > 0 && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-md p-4 animate-in fade-in duration-200">
           <button
@@ -2193,7 +2481,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
               className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl border border-slate-800"
             />
             <div className="mt-3 px-4 py-1.5 rounded-full bg-black/60 border border-slate-800 text-slate-300 text-xs font-mono">
-              รูปที่ {lightboxIndex + 1} จากทั้งหมด {lightboxImages.length} รูป
+              เธฃเธนเธเธ—เธตเน {lightboxIndex + 1} เธเธฒเธเธ—เธฑเนเธเธซเธกเธ” {lightboxImages.length} เธฃเธนเธ
             </div>
           </div>
         </div>
@@ -2201,3 +2489,4 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
     </div>
   );
 };
+
