@@ -4,7 +4,7 @@ import {
   CheckCircle, MapPin, Ship, User, Calendar, HardDrive,
   Camera, Eye, Layers, ShieldCheck, Database, Smartphone,
   Upload, Image as ImageIcon, Maximize2, ChevronLeft, ChevronRight, Loader2,
-  WifiOff, LayoutGrid, ExternalLink, Tag, Hash
+  WifiOff, LayoutGrid, ExternalLink, Tag, Hash, Wifi, Radio
 } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
@@ -28,7 +28,15 @@ export const CCTV_PIERS = [
   'ท่าเอเชียทีค',
 ] as const;
 
-export const CCTV_VESSELS = ['CTB1', 'CTB2', 'CTB3', 'R1', 'R2', 'R3', 'R4'] as const;
+export const CCTV_VESSELS = [
+  'CTB 1',
+  'CTB 2',
+  'CTB 3',
+  'R 1',
+  'R 2',
+  'R 3',
+  'R 4',
+] as const;
 
 export type PierName = typeof CCTV_PIERS[number];
 export type VesselName = typeof CCTV_VESSELS[number];
@@ -39,9 +47,14 @@ export type CctvStatus = 'ปกติ' | 'มีปัญหา' | 'ซ่อ�
 export type CctvAppType = 'EZVIZ' | 'DMSS';
 
 export type CctvFaultCause =
-  | 'กล้องดับ'
-  | 'กระตุก'
-  | 'ดู Online ไม่ได้'
+  | 'ไฟดับ'
+  | 'หม้อแปลงเสีย'
+  | 'สายแลนหลุด/ขาด'
+  | 'กล้องออฟไลน์'
+  | 'ซิมเน็ตหมดอายุ/ไม่มีสัญญาณ'
+  | 'การ์ดหน่วยความจำเสีย'
+  | 'เครื่องบันทึก NVR เสีย'
+  | 'มุมกล้องเคลื่อน'
   | 'กล้องไม่บันทึก'
   | 'ใช้งานได้ปกติ';
 
@@ -57,6 +70,9 @@ export interface CctvCamera {
   storageType: 'SD Card' | 'NVR';
   memorySize?: CctvMemorySize;    // for EZVIZ (SD card)
   nvrCapacity?: '4TB';            // for Dahua
+  routerModel?: string;           // Router 4G Model / Name
+  routerSerialNumber?: string;    // Router 4G S/N
+  routerImages?: string[];        // Router 4G Photos
   installDate?: string;
   status: CctvStatus;
   appType?: CctvAppType;          // EZVIZ or DMSS
@@ -452,6 +468,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
   const cameraFileInputRef = useRef<HTMLInputElement | null>(null);
+  const routerFileInputRef = useRef<HTMLInputElement | null>(null);
   const faultFileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Safe references
@@ -487,6 +504,9 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
     serialNumber: '',
     storageType: 'SD Card',
     memorySize: '64 GB',
+    routerModel: 'Router 4G',
+    routerSerialNumber: '',
+    routerImages: [],
     status: 'ปกติ',
     installDate: '',
     appType: 'EZVIZ',
@@ -503,6 +523,9 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
     serialNumber: '',
     storageType: 'NVR',
     nvrCapacity: '4TB',
+    routerModel: 'Router 4G',
+    routerSerialNumber: '',
+    routerImages: [],
     status: 'ปกติ',
     installDate: '',
     appType: 'DMSS',
@@ -592,6 +615,47 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
     }));
   };
 
+  const handleRouterImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    const newImages: string[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      try {
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        const compressed = await compressImage(base64, 1024, 0.75);
+        newImages.push(compressed);
+      } catch (err) {
+        console.error('Error compressing router image:', err);
+      }
+    }
+
+    setCameraForm(prev => ({
+      ...prev,
+      routerImages: [...(prev.routerImages || []), ...newImages],
+    }));
+
+    setIsUploading(false);
+    if (routerFileInputRef.current) {
+      routerFileInputRef.current.value = '';
+    }
+  };
+
+  const removeRouterImage = (indexToRemove: number) => {
+    setCameraForm(prev => ({
+      ...prev,
+      routerImages: (prev.routerImages || []).filter((_, idx) => idx !== indexToRemove),
+    }));
+  };
+
   const handleFaultImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -669,6 +733,9 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
       storageType: cam.storageType,
       memorySize: cam.memorySize,
       nvrCapacity: cam.nvrCapacity,
+      routerModel: cam.routerModel || 'Router 4G',
+      routerSerialNumber: cam.routerSerialNumber || '',
+      routerImages: cam.routerImages || [],
       status: cam.status,
       installDate: cam.installDate || '',
       appType: cam.appType || (cam.brand === 'EZVIZ' ? 'EZVIZ' : 'DMSS'),
@@ -868,6 +935,43 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                     </p>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Router 4G Display in Card */}
+            {(cam.routerSerialNumber || (cam.routerImages && cam.routerImages.length > 0)) && (
+              <div className="mt-2.5 p-2 bg-black/30 rounded-lg border border-cyan-900/50 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <p className="text-[9px] text-cyan-400 uppercase tracking-wider font-mono flex items-center gap-1 font-bold">
+                    <Wifi className="w-3 h-3 text-cyan-400" /> {cam.routerModel || 'Router 4G'}
+                  </p>
+                  {cam.routerImages && cam.routerImages.length > 0 && (
+                    <button
+                      onClick={() => openLightbox(cam.routerImages!, 0)}
+                      className="text-[9px] text-cyan-400 hover:text-cyan-300 font-mono flex items-center gap-0.5"
+                    >
+                      <ImageIcon className="w-2.5 h-2.5" /> รูป Router ({cam.routerImages.length})
+                    </button>
+                  )}
+                </div>
+                {cam.routerSerialNumber && (
+                  <p className="text-[10px] font-mono text-slate-300">
+                    <span className="text-slate-500">S/N:</span> <span className="text-cyan-300 font-bold">{cam.routerSerialNumber}</span>
+                  </p>
+                )}
+                {cam.routerImages && cam.routerImages.length > 0 && (
+                  <div className="flex gap-1.5 overflow-x-auto pt-0.5 pb-0.5">
+                    {cam.routerImages.map((rImg, rIdx) => (
+                      <div
+                        key={rIdx}
+                        onClick={() => openLightbox(cam.routerImages!, rIdx)}
+                        className="w-12 h-12 rounded-lg border border-cyan-900/60 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity shrink-0 relative group/rimg"
+                      >
+                        <img src={rImg} alt={`Router-${rIdx}`} className="w-full h-full object-cover" />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -1478,6 +1582,97 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                   onChange={e => setCameraForm(f => ({ ...f, installDate: e.target.value }))}
                   className="w-full bg-black/50 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:border-sky-500 outline-none font-mono"
                 />
+              </div>
+
+              {/* 📶 อุปกรณ์ Router 4G Section */}
+              <div className="space-y-3 p-3.5 bg-black/40 rounded-xl border border-cyan-900/60 shadow-sm">
+                <div className="flex items-center justify-between border-b border-cyan-950/80 pb-2">
+                  <label className="text-xs font-bold text-cyan-400 uppercase tracking-widest flex items-center gap-1.5 font-mono">
+                    <Wifi className="w-3.5 h-3.5 text-cyan-400" /> อุปกรณ์ Router 4G
+                  </label>
+                  <span className="text-[10px] text-cyan-600 font-mono font-bold">Network Device</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block mb-1">
+                      ชื่อรุ่น / ยี่ห้อ Router 4G
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="เช่น Router 4G LTE, TP-Link..."
+                      value={cameraForm.routerModel || ''}
+                      onChange={e => setCameraForm(f => ({ ...f, routerModel: e.target.value }))}
+                      className="w-full bg-black/60 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:border-cyan-500 outline-none font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block mb-1">
+                      Serial Number (S/N) ของ Router 4G
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="ระบุ S/N Router 4G..."
+                      value={cameraForm.routerSerialNumber || ''}
+                      onChange={e => setCameraForm(f => ({ ...f, routerSerialNumber: e.target.value }))}
+                      className="w-full bg-black/60 border border-slate-700 rounded-lg px-3 py-2 text-xs text-cyan-300 focus:border-cyan-500 outline-none font-mono font-medium"
+                    />
+                  </div>
+                </div>
+
+                {/* Router 4G Photo Upload */}
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-mono text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                      <ImageIcon className="w-3 h-3 text-cyan-400" /> รูปภาพ Router 4G
+                    </label>
+                    <span className="text-[10px] text-slate-500 font-mono">
+                      {cameraForm.routerImages?.length || 0} รูป
+                    </span>
+                  </div>
+
+                  <input
+                    ref={routerFileInputRef}
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={handleRouterImageUpload}
+                    className="hidden"
+                  />
+
+                  <div
+                    onClick={() => routerFileInputRef.current?.click()}
+                    className="w-full py-2.5 px-3 rounded-lg border border-dashed border-cyan-500/40 hover:border-cyan-400 bg-cyan-950/10 hover:bg-cyan-950/20 transition-all cursor-pointer flex items-center justify-center gap-2 text-center group/drop"
+                  >
+                    <Upload className="w-3.5 h-3.5 text-cyan-400 group-hover/drop:scale-110 transition-transform" />
+                    <span className="text-xs font-mono text-cyan-300">คลิกเพื่ออัปโหลดรูปภาพ Router 4G</span>
+                  </div>
+
+                  {cameraForm.routerImages && cameraForm.routerImages.length > 0 && (
+                    <div className="grid grid-cols-4 gap-2 pt-1 max-h-36 overflow-y-auto">
+                      {cameraForm.routerImages.map((img, idx) => (
+                        <div key={idx} className="relative group/thumb rounded-lg overflow-hidden border border-slate-700 aspect-square">
+                          <img src={img} alt={`router-preview-${idx}`} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => removeRouterImage(idx)}
+                            className="absolute top-1 right-1 p-1 rounded-full bg-red-600/90 text-white opacity-0 group-hover/thumb:opacity-100 transition-opacity hover:bg-red-500"
+                            title="ลบรูป"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openLightbox(cameraForm.routerImages!, idx)}
+                            className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity"
+                          >
+                            <Eye className="w-4 h-4 text-white" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* 📷 Unlimited Photo Upload Section */}
