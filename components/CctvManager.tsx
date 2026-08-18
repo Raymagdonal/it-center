@@ -4,7 +4,7 @@ import {
   CheckCircle, MapPin, Ship, User, Calendar, HardDrive,
   Camera, Eye, Layers, ShieldCheck, Database, Smartphone,
   Upload, Image as ImageIcon, Maximize2, ChevronLeft, ChevronRight, Loader2,
-  WifiOff, LayoutGrid, ExternalLink
+  WifiOff, LayoutGrid, ExternalLink, Tag, Hash
 } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
@@ -52,6 +52,8 @@ export interface CctvCamera {
   locationName: string;           // pier name or vessel name
   brand: 'EZVIZ' | 'Dahua';
   cameraCount: number;            // 1-8 cameras
+  serialNumbers?: string[];       // S/N for each camera (1 to cameraCount)
+  serialNumber?: string;          // Combined or single S/N string
   storageType: 'SD Card' | 'NVR';
   memorySize?: CctvMemorySize;    // for EZVIZ (SD card)
   nvrCapacity?: '4TB';            // for Dahua
@@ -481,6 +483,8 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
     locationName: CCTV_PIERS[0],
     brand: 'EZVIZ',
     cameraCount: 2,
+    serialNumbers: ['', ''],
+    serialNumber: '',
     storageType: 'SD Card',
     memorySize: '64 GB',
     status: 'ปกติ',
@@ -495,6 +499,8 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
     locationName: CCTV_VESSELS[0],
     brand: 'Dahua',
     cameraCount: 4,
+    serialNumbers: ['', '', '', ''],
+    serialNumber: '',
     storageType: 'NVR',
     nvrCapacity: '4TB',
     status: 'ปกติ',
@@ -641,11 +647,25 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
 
   const openEditCamera = (cam: CctvCamera) => {
     setEditingCamera(cam);
+    const count = cam.cameraCount || 1;
+    let sns: string[] = [];
+    if (Array.isArray(cam.serialNumbers) && cam.serialNumbers.length > 0) {
+      sns = [...cam.serialNumbers];
+    } else if (cam.serialNumber) {
+      sns = cam.serialNumber.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
+    }
+    const normalizedSNs: string[] = [];
+    for (let i = 0; i < count; i++) {
+      normalizedSNs.push(sns[i] || '');
+    }
+
     setCameraForm({
       locationType: cam.locationType,
       locationName: cam.locationName,
       brand: cam.brand,
-      cameraCount: cam.cameraCount,
+      cameraCount: count,
+      serialNumbers: normalizedSNs,
+      serialNumber: normalizedSNs.filter(Boolean).join(', ') || cam.serialNumber || '',
       storageType: cam.storageType,
       memorySize: cam.memorySize,
       nvrCapacity: cam.nvrCapacity,
@@ -833,6 +853,23 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                 Application: <span className="font-bold text-cyan-300">{currentApp}</span>
               </p>
             </div>
+
+            {/* Serial Numbers display — show if any S/N recorded */}
+            {cam.serialNumbers && cam.serialNumbers.some(Boolean) && (
+              <div className="mt-2.5 p-2 bg-black/20 rounded-lg border border-slate-800/60">
+                <p className="text-[9px] text-slate-500 uppercase tracking-wider mb-1.5 font-mono flex items-center gap-1">
+                  <Tag className="w-2.5 h-2.5 text-cyan-500" /> Serial Numbers
+                </p>
+                <div className="space-y-0.5">
+                  {cam.serialNumbers.map((sn, idx) => (
+                    <p key={idx} className="text-[10px] font-mono flex items-center gap-1.5">
+                      <span className="text-sky-500 font-bold w-5 shrink-0">#{idx + 1}</span>
+                      <span className="text-slate-300 truncate">{sn || <span className="text-slate-600 italic">ไม่ระบุ</span>}</span>
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {cam.notes && (
               <p className="mt-2 text-[11px] text-slate-400 line-clamp-2">{cam.notes}</p>
@@ -1293,13 +1330,63 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                 </label>
                 <select
                   value={cameraForm.cameraCount}
-                  onChange={e => setCameraForm(f => ({ ...f, cameraCount: parseInt(e.target.value) }))}
+                  onChange={e => {
+                    const newCount = parseInt(e.target.value);
+                    const prevSNs = cameraForm.serialNumbers || [];
+                    const newSNs: string[] = [];
+                    for (let i = 0; i < newCount; i++) {
+                      newSNs.push(prevSNs[i] || '');
+                    }
+                    setCameraForm(f => ({
+                      ...f,
+                      cameraCount: newCount,
+                      serialNumbers: newSNs,
+                      serialNumber: newSNs.filter(Boolean).join(', ')
+                    }));
+                  }}
                   className="w-full bg-black/50 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:border-sky-500 outline-none font-mono text-sm"
                 >
                   {Array.from({ length: 8 }, (_, i) => i + 1).map(n => (
                     <option key={n} value={n}>{n} ตัว</option>
                   ))}
                 </select>
+              </div>
+
+              {/* Serial Numbers — one input per camera */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5 text-cyan-400" />
+                  Serial Number กล้อง ({cameraForm.cameraCount} ตัว)
+                </label>
+                <div className="p-3 bg-black/40 rounded-lg border border-slate-700/60 space-y-2 max-h-56 overflow-y-auto">
+                  {Array.from({ length: cameraForm.cameraCount || 1 }, (_, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono text-sky-400 font-bold w-8 shrink-0 flex items-center gap-0.5">
+                        <Hash className="w-2.5 h-2.5" />{idx + 1}
+                      </span>
+                      <input
+                        type="text"
+                        placeholder={`S/N กล้องตัวที่ ${idx + 1}...`}
+                        value={(cameraForm.serialNumbers || [])[idx] || ''}
+                        onChange={e => {
+                          const count = cameraForm.cameraCount || 1;
+                          const prevSNs = cameraForm.serialNumbers || [];
+                          const newSNs: string[] = [];
+                          for (let i = 0; i < count; i++) {
+                            newSNs.push(prevSNs[i] || '');
+                          }
+                          newSNs[idx] = e.target.value;
+                          setCameraForm(f => ({
+                            ...f,
+                            serialNumbers: newSNs,
+                            serialNumber: newSNs.filter(Boolean).join(', ')
+                          }));
+                        }}
+                        className="flex-1 bg-black/60 border border-slate-700 rounded px-3 py-1.5 text-xs text-white focus:border-sky-500 outline-none font-mono"
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* Storage — only show memory for pier */}
