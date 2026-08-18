@@ -1,9 +1,8 @@
-
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Tablet, Search, Plus, Edit, Trash2, X, Save,
   Hash, Calendar, FileText, MapPin,
-  Filter, RefreshCcw, Loader2, CloudOff, Cloud
+  Filter, RefreshCcw, Loader2, CloudOff, Cloud, CheckSquare, Square
 } from 'lucide-react';
 import { TicketMachine } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
@@ -75,6 +74,7 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
   const [editingItem, setEditingItem] = useState<TicketMachine | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const initialFormState = {
     serialNumber: '',
@@ -102,12 +102,7 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
     } finally {
       setIsLoading(false);
     }
-  }, []);
-
-  useEffect(() => {
-    // We skip automatic load on mount because App.tsx already handles the initial sync
-    // loadFromApi(); 
-  }, []);
+  }, [onUpdate]);
 
   // Get unique locations from data
   const uniqueLocations = useMemo(() => {
@@ -127,6 +122,38 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
       return matchesSearch && matchesLocation;
     });
   }, [items, searchTerm, filterLocation]);
+
+  // Select all matching filter toggle
+  const isAllSelected = useMemo(() => {
+    return filteredItems.length > 0 && filteredItems.every(i => selectedIds.has(i.id));
+  }, [filteredItems, selectedIds]);
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      // Deselect all filtered items
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        filteredItems.forEach(i => next.delete(i.id));
+        return next;
+      });
+    } else {
+      // Select all filtered items
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        filteredItems.forEach(i => next.add(i.id));
+        return next;
+      });
+    }
+  };
+
+  const toggleSelectItem = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   // Stats
   const stats = useMemo(() => ({
@@ -186,14 +213,42 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
     setEditingItem(null);
   };
 
+  // Single Delete Handler
   const handleDelete = async (id: string) => {
-    if (!confirm('ยืนยันการลบรายการนี้?')) return;
-    setIsLoading(true);
+    const target = items.find(i => i.id === id);
+    const targetName = target ? `${target.deviceName} (${target.serialNumber})` : 'รายการนี้';
+    if (!confirm(`ยืนยันการลบ ${targetName} ใช่หรือไม่?`)) return;
+
+    // Optimistic local update
+    onUpdate(items.filter(i => i.id !== id));
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+
     try {
       await deleteTicketMachine(id);
-      onUpdate(items.filter(i => i.id !== id));
-    } finally {
-      setIsLoading(false);
+    } catch (err) {
+      console.warn('API delete warning:', err);
+    }
+  };
+
+  // Batch Delete Handler
+  const handleBatchDelete = async () => {
+    if (selectedIds.size === 0) return;
+    const count = selectedIds.size;
+    if (!confirm(`ยืนยันการลบเครื่องจำหน่ายตั๋วที่เลือกทั้งหมด ${count} รายการ ใช่หรือไม่?`)) return;
+
+    const toDeleteIds = Array.from(selectedIds);
+    // Optimistic local update
+    onUpdate(items.filter(i => !selectedIds.has(i.id)));
+    setSelectedIds(new Set());
+
+    try {
+      await Promise.allSettled(toDeleteIds.map(id => deleteTicketMachine(id)));
+    } catch (err) {
+      console.warn('API batch delete warning:', err);
     }
   };
 
@@ -254,7 +309,7 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
             <RefreshCcw className="mr-2 h-4 w-4" /> รีเซ็ตข้อมูล
           </Button>
 
-          <Button onClick={() => handleOpenModal()} disabled={isLoading}>
+          <Button onClick={() => handleOpenModal()} disabled={isLoading} className="shadow-[0_0_20px_rgba(0,242,255,0.3)]">
             <Plus className="mr-2 h-4 w-4" /> เพิ่มเครื่อง
           </Button>
         </div>
@@ -264,11 +319,11 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
       {isLoading && (
         <div className="flex items-center justify-center gap-3 py-3 text-cyan-400 font-mono text-sm">
           <Loader2 className="w-5 h-5 animate-spin" />
-          กำลังโหลดข้อมูลจาก API...
+          กำลังโหลดข้อมูล...
         </div>
       )}
 
-      {/* Search & Filter Bar */}
+      {/* Search & Filter & Bulk Actions Bar */}
       <div className="bg-black/60 border border-cyan-900/30 p-3 rounded-lg flex flex-col md:flex-row items-center justify-between gap-3 sticky top-0 z-30 backdrop-blur-md">
         <div className="relative w-full md:max-w-lg group">
           <input
@@ -281,19 +336,32 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
           <Search className="absolute left-3 top-2.5 h-5 w-5 text-slate-500 group-focus-within:text-cyan-400 transition-colors" />
         </div>
 
-        <div className="flex items-center gap-3">
-          <Filter className="w-4 h-4 text-slate-500" />
-          <select
-            value={filterLocation}
-            onChange={(e) => setFilterLocation(e.target.value)}
-            className="bg-black border border-slate-700 rounded-lg px-3 py-2 text-sm text-cyan-400 font-bold outline-none focus:border-cyan-500 cursor-pointer appearance-none pr-8"
-            style={{ backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2394a3b8\' stroke-width=\'2\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '16px' }}
-          >
-            <option value="ALL">ทุกสถานที่</option>
-            {uniqueLocations.map(loc => (
-              <option key={loc} value={loc}>{loc}</option>
-            ))}
-          </select>
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
+          {/* Bulk Delete Button when items selected */}
+          {selectedIds.size > 0 && (
+            <button
+              onClick={handleBatchDelete}
+              className="px-3 py-2 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/50 rounded-lg text-xs font-mono font-bold flex items-center gap-2 transition-all shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-in fade-in duration-200"
+            >
+              <Trash2 className="w-4 h-4" />
+              ลบที่เลือก ({selectedIds.size} รายการ)
+            </button>
+          )}
+
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-slate-500" />
+            <select
+              value={filterLocation}
+              onChange={(e) => setFilterLocation(e.target.value)}
+              className="bg-black border border-slate-700 rounded-lg px-3 py-2 text-sm text-cyan-400 font-bold outline-none focus:border-cyan-500 cursor-pointer appearance-none pr-8"
+              style={{ backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2394a3b8\' stroke-width=\'2\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '16px' }}
+            >
+              <option value="ALL">ทุกสถานที่</option>
+              {uniqueLocations.map(loc => (
+                <option key={loc} value={loc}>{loc}</option>
+              ))}
+            </select>
+          </div>
 
           <div className="text-xs font-mono text-cyan-600 uppercase tracking-widest font-bold flex items-center gap-2">
             แสดง: <span className="text-white">{filteredItems.length}</span> / {items.length}
@@ -308,7 +376,22 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-900/80 border-b border-cyan-900/50">
-                  <th className="py-4 pl-6 pr-2 text-[10px] font-mono font-bold text-cyan-600 uppercase tracking-widest w-12">#</th>
+                  {/* Select All Checkbox */}
+                  <th className="py-4 pl-4 pr-2 w-10 text-center">
+                    <button
+                      type="button"
+                      onClick={toggleSelectAll}
+                      className="text-slate-400 hover:text-cyan-400 transition-colors"
+                      title={isAllSelected ? "ยกเลิกเลือกทั้งหมด" : "เลือกทั้งหมด"}
+                    >
+                      {isAllSelected ? (
+                        <CheckSquare className="w-4 h-4 text-cyan-400" />
+                      ) : (
+                        <Square className="w-4 h-4 text-slate-600" />
+                      )}
+                    </button>
+                  </th>
+                  <th className="py-4 px-2 text-[10px] font-mono font-bold text-cyan-600 uppercase tracking-widest w-12">#</th>
                   <th className="py-4 px-4 text-[10px] font-mono font-bold text-cyan-600 uppercase tracking-widest">
                     <div className="flex items-center gap-2"><Hash className="w-3 h-3" /> เลข Serial No.</div>
                   </th>
@@ -324,13 +407,13 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
                   <th className="py-4 px-4 text-[10px] font-mono font-bold text-cyan-600 uppercase tracking-widest">
                     <div className="flex items-center gap-2"><MapPin className="w-3 h-3" /> สถานที่</div>
                   </th>
-                  <th className="py-4 px-6 text-[10px] font-mono font-bold text-cyan-600 uppercase tracking-widest text-right w-24">จัดการ</th>
+                  <th className="py-4 px-6 text-[10px] font-mono font-bold text-cyan-600 uppercase tracking-widest text-right w-28">จัดการ</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/50">
                 {filteredItems.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-16 text-center">
+                    <td colSpan={8} className="py-16 text-center">
                       <Tablet className="w-12 h-12 text-slate-800 mx-auto mb-3" />
                       <p className="text-slate-500 font-mono text-sm">ไม่พบข้อมูลเครื่องจำหน่ายตั๋ว</p>
                       <Button onClick={() => handleOpenModal()} className="mt-4" size="sm">
@@ -339,41 +422,73 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
                     </td>
                   </tr>
                 ) : (
-                  filteredItems.map((item, index) => (
-                    <tr key={item.id} className="group hover:bg-cyan-900/10 transition-colors">
-                      <td className="py-3 pl-6 pr-2">
-                        <span className="text-slate-500 font-mono text-sm font-bold">{index + 1}</span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="text-cyan-300 font-mono text-sm tracking-wide">{item.serialNumber}</span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="text-slate-300 text-sm">{formatDate(item.purchaseDate)}</span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="text-slate-400 text-sm">{item.notes || '-'}</span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="text-white font-bold text-sm">{item.deviceName}</span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${getLocationColor(item.location)}`}>
-                          <MapPin className="w-3 h-3" />
-                          {item.location}
-                        </span>
-                      </td>
-                      <td className="py-3 px-6 text-right">
-                        <div className="flex justify-end gap-1.5 opacity-20 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => handleOpenModal(item)} className="p-1.5 bg-slate-900 border border-slate-700 text-cyan-400 hover:text-black hover:bg-cyan-500 rounded transition-all">
-                            <Edit className="w-3.5 h-3.5" />
+                  filteredItems.map((item, index) => {
+                    const isSelected = selectedIds.has(item.id);
+                    return (
+                      <tr
+                        key={item.id}
+                        className={`group transition-colors ${
+                          isSelected
+                            ? 'bg-cyan-950/40 border-l-2 border-cyan-400'
+                            : 'hover:bg-cyan-900/10'
+                        }`}
+                      >
+                        {/* Row Checkbox */}
+                        <td className="py-3 pl-4 pr-2 text-center">
+                          <button
+                            type="button"
+                            onClick={() => toggleSelectItem(item.id)}
+                            className="text-slate-400 hover:text-cyan-400 transition-colors"
+                          >
+                            {isSelected ? (
+                              <CheckSquare className="w-4 h-4 text-cyan-400" />
+                            ) : (
+                              <Square className="w-4 h-4 text-slate-600 group-hover:text-slate-400" />
+                            )}
                           </button>
-                          <button onClick={() => handleDelete(item.id)} className="p-1.5 bg-slate-900 border border-slate-700 text-red-500 hover:text-black hover:bg-red-500 rounded transition-all">
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                        </td>
+                        <td className="py-3 px-2">
+                          <span className="text-slate-500 font-mono text-sm font-bold">{index + 1}</span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="text-cyan-300 font-mono text-sm tracking-wide font-medium">{item.serialNumber}</span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="text-slate-300 text-sm">{formatDate(item.purchaseDate)}</span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="text-slate-400 text-sm">{item.notes || '-'}</span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="text-white font-bold text-sm font-display">{item.deviceName}</span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${getLocationColor(item.location)}`}>
+                            <MapPin className="w-3 h-3" />
+                            {item.location}
+                          </span>
+                        </td>
+                        <td className="py-3 px-6 text-right">
+                          <div className="flex justify-end gap-1.5 opacity-70 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => handleOpenModal(item)}
+                              className="p-1.5 bg-slate-900 border border-slate-700 text-cyan-400 hover:text-black hover:bg-cyan-400 rounded transition-all"
+                              title="แก้ไขข้อมูล"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(item.id)}
+                              className="p-1.5 bg-slate-900 border border-slate-700 text-red-400 hover:text-white hover:bg-red-600 rounded transition-all"
+                              title="ลบรายการนี้"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -395,20 +510,20 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
               <form onSubmit={handleSave} className="space-y-5">
                 <div>
                   <label className="block text-[10px] font-mono font-bold text-cyan-600 uppercase mb-2 tracking-widest">เลข Serial No.</label>
-                  <input required className="w-full bg-black border border-slate-800 p-3 text-cyan-300 focus:border-cyan-500 outline-none font-mono text-sm" value={formData.serialNumber} onChange={e => setFormData({ ...formData, serialNumber: e.target.value })} placeholder="(01)03770004396818(21)XXXXX" />
+                  <input required className="w-full bg-black border border-slate-800 p-3 text-cyan-300 focus:border-cyan-500 outline-none font-mono text-sm rounded" value={formData.serialNumber} onChange={e => setFormData({ ...formData, serialNumber: e.target.value })} placeholder="(01)03770004396818(21)XXXXX" />
                 </div>
                 <div>
                   <label className="block text-[10px] font-mono font-bold text-cyan-600 uppercase mb-2 tracking-widest">ชื่ออุปกรณ์</label>
-                  <input required className="w-full bg-black border border-slate-800 p-3 text-white focus:border-cyan-500 outline-none font-display tracking-wide" value={formData.deviceName} onChange={e => setFormData({ ...formData, deviceName: e.target.value })} placeholder="Famoco FX205" />
+                  <input required className="w-full bg-black border border-slate-800 p-3 text-white focus:border-cyan-500 outline-none font-display tracking-wide rounded" value={formData.deviceName} onChange={e => setFormData({ ...formData, deviceName: e.target.value })} placeholder="Famoco FX205" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[10px] font-mono font-bold text-cyan-600 uppercase mb-2 tracking-widest">วันที่ซื้อ</label>
-                    <input type="date" required className="w-full bg-black border border-slate-800 p-3 text-white focus:border-cyan-500 outline-none" value={formData.purchaseDate} onChange={e => setFormData({ ...formData, purchaseDate: e.target.value })} />
+                    <input type="date" required className="w-full bg-black border border-slate-800 p-3 text-white focus:border-cyan-500 outline-none rounded" value={formData.purchaseDate} onChange={e => setFormData({ ...formData, purchaseDate: e.target.value })} />
                   </div>
                   <div>
                     <label className="block text-[10px] font-mono font-bold text-cyan-600 uppercase mb-2 tracking-widest">สถานที่</label>
-                    <input required list="location-options" className="w-full bg-black border border-slate-800 p-3 text-white focus:border-cyan-500 outline-none" value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} placeholder="เลือกหรือพิมพ์สถานที่" />
+                    <input required list="location-options" className="w-full bg-black border border-slate-800 p-3 text-white focus:border-cyan-500 outline-none rounded" value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} placeholder="เลือกหรือพิมพ์สถานที่" />
                     <datalist id="location-options">
                       {ALL_LOCATIONS.map(loc => (<option key={loc} value={loc} />))}
                     </datalist>
@@ -416,9 +531,23 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
                 </div>
                 <div>
                   <label className="block text-[10px] font-mono font-bold text-cyan-600 uppercase mb-2 tracking-widest">หมายเหตุ</label>
-                  <input className="w-full bg-black border border-slate-800 p-3 text-white focus:border-cyan-500 outline-none" value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} placeholder="เช่น ซื้อจาก BSS" />
+                  <input className="w-full bg-black border border-slate-800 p-3 text-white focus:border-cyan-500 outline-none rounded" value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} placeholder="เช่น ซื้อจาก BSS" />
                 </div>
-                <div className="pt-4 flex gap-4">
+                <div className="pt-4 flex gap-3">
+                  {editingItem && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleDelete(editingItem.id);
+                        setIsModalOpen(false);
+                      }}
+                      className="px-4 py-2.5 bg-red-950/40 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/50 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all"
+                      title="ลบเครื่องนี้"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      ลบเครื่องนี้
+                    </button>
+                  )}
                   <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)} className="flex-1">ยกเลิก</Button>
                   <Button type="submit" className="flex-[2] shadow-[0_0_20px_rgba(0,242,255,0.4)]" disabled={isLoading}>
                     {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
