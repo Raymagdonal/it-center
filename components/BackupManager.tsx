@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Database, Download, Upload, RefreshCw, AlertTriangle, CheckCircle2, ShieldCheck, Package, Trash2 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
-import { MaintenanceTicket, StockItem, MaritimeItem, TrackedAsset, ProcurementFolder, SimCard, TicketMachine, RadioData, ViabusData, CctvData } from '../types';
+import { MaintenanceTicket, StockItem, MaritimeItem, TrackedAsset, ProcurementFolder, SimCard, TicketMachine, RadioData, ViabusData, CctvData, MeetingReport } from '../types';
 import { STORAGE_KEYS, CURRENT_DATA_VERSION, getStorageUsage, formatBytes, getStoredData } from '../utils/storageUtils';
 
 export interface BackupData {
@@ -18,6 +18,8 @@ export interface BackupData {
   radioData?: RadioData;
   viabusData?: ViabusData;
   cctvData?: CctvData;
+  meetingReports?: MeetingReport[];
+  reports?: MeetingReport[]; // Alias
 }
 
 interface BackupManagerProps {
@@ -32,6 +34,7 @@ interface BackupManagerProps {
     radioData: RadioData;
     viabusData: ViabusData;
     cctvData: CctvData;
+    meetingReports?: MeetingReport[];
   };
   onRestore: (data: BackupData) => Promise<void> | void;
 }
@@ -50,7 +53,7 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ currentData, onRes
   const handleExport = () => {
     setStatus('processing');
     try {
-      // Export ALL 10 active data types from live props or fallback to localStorage
+      // Export ALL active data types from live props or fallback to localStorage
       const tickets = currentData?.tickets ?? getStoredData<MaintenanceTicket[]>(STORAGE_KEYS.TICKETS, []);
       const stock = currentData?.stock ?? getStoredData<StockItem[]>(STORAGE_KEYS.STOCK, []);
       const maritime = currentData?.maritime ?? getStoredData<MaritimeItem[]>(STORAGE_KEYS.MARITIME, []);
@@ -61,6 +64,7 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ currentData, onRes
       const radioData = currentData?.radioData ?? getStoredData<RadioData>(STORAGE_KEYS.RADIO_DATA, { faultLogs: [], signalLogs: [] });
       const viabusData = currentData?.viabusData ?? getStoredData<ViabusData>(STORAGE_KEYS.VIABUS_DATA, { faultLogs: [], signalLogs: [] });
       const cctvData = currentData?.cctvData ?? getStoredData<CctvData>(STORAGE_KEYS.CCTV_DATA, { cameras: [], faultLogs: [] });
+      const meetingReports = currentData?.meetingReports ?? getStoredData<MeetingReport[]>(STORAGE_KEYS.MEETING_REPORTS, []);
 
       const backupData = {
         version: CURRENT_DATA_VERSION,
@@ -76,6 +80,7 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ currentData, onRes
           radioData,
           viabusData,
           cctvData,
+          meetingReports,
         },
         metadata: {
           ticketsCount: tickets.length,
@@ -91,6 +96,7 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ currentData, onRes
           viabusSignalLogsCount: viabusData?.signalLogs?.length ?? 0,
           cctvCamerasCount: cctvData?.cameras?.length ?? 0,
           cctvFaultLogsCount: cctvData?.faultLogs?.length ?? 0,
+          meetingReportsCount: meetingReports.length,
         }
       };
 
@@ -105,7 +111,7 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ currentData, onRes
       URL.revokeObjectURL(url);
 
       setStatus('success');
-      setMessage(`สำรองข้อมูลเรียบร้อยแล้ว (${formatBytes(blob.size)})`);
+      setMessage(`สำรองข้อมูลครบทุกหัวข้อเรียบร้อยแล้ว (${formatBytes(blob.size)})`);
       setTimeout(() => setStatus('idle'), 3000);
     } catch (err) {
       console.error(err);
@@ -151,22 +157,24 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ currentData, onRes
             cameras: Array.isArray(payload.cctvData.cameras) ? payload.cctvData.cameras : [],
             faultLogs: Array.isArray(payload.cctvData.faultLogs) ? payload.cctvData.faultLogs : [],
           } : undefined,
+          meetingReports: Array.isArray(payload.meetingReports) ? payload.meetingReports : (Array.isArray(payload.reports) ? payload.reports : undefined),
         };
 
         // Show confirmation with data summary
         const dataTypes = [];
-        if (normalizedData.tickets) dataTypes.push(`• รายการแจ้งซ่อม: ${normalizedData.tickets.length} รายการ`);
-        if (normalizedData.stock) dataTypes.push(`• สต็อกอุปกรณ์: ${normalizedData.stock.length} รายการ`);
-        if (normalizedData.maritime) dataTypes.push(`• ข้อมูลเรือ/ท่า: ${normalizedData.maritime.length} รายการ`);
-        if (normalizedData.trackedAssets) dataTypes.push(`• อุปกรณ์ติดตาม: ${normalizedData.trackedAssets.length} รายการ`);
-        if (normalizedData.procurementFolders) dataTypes.push(`• โฟลเดอร์จัดซื้อ: ${normalizedData.procurementFolders.length} โฟลเดอร์`);
-        if (normalizedData.simCards) dataTypes.push(`• ข้อมูล SIM Cards: ${normalizedData.simCards.length} เบอร์`);
+        if (normalizedData.tickets) dataTypes.push(`• แจ้งซ่อมบำรุง / ปฏิทิน: ${normalizedData.tickets.length} รายการ`);
+        if (normalizedData.procurementFolders) dataTypes.push(`• จัดซื้ออุปกรณ์: ${normalizedData.procurementFolders.length} โฟลเดอร์`);
         if (normalizedData.ticketMachines) dataTypes.push(`• เครื่องจำหน่ายตั๋ว: ${normalizedData.ticketMachines.length} เครื่อง`);
         if (normalizedData.radioData) dataTypes.push(`• วิทยุสื่อสาร: แจ้งเสีย ${normalizedData.radioData.faultLogs.length} / สัญญาณ ${normalizedData.radioData.signalLogs.length} รายการ`);
         if (normalizedData.viabusData) dataTypes.push(`• Viabus: แจ้งเสีย ${normalizedData.viabusData.faultLogs.length} / สัญญาณ ${normalizedData.viabusData.signalLogs.length} รายการ`);
-        if (normalizedData.cctvData) dataTypes.push(`• กล้อง CCTV: ทำเนียบ ${normalizedData.cctvData.cameras.length} / แจ้งเสีย ${normalizedData.cctvData.faultLogs.length} รายการ`);
+        if (normalizedData.cctvData) dataTypes.push(`• กล้องวงจรปิด CCTV: ทำเนียบ ${normalizedData.cctvData.cameras.length} / แจ้งเสีย ${normalizedData.cctvData.faultLogs.length} รายการ`);
+        if (normalizedData.maritime) dataTypes.push(`• ตรวจอุปกรณ์ในเรือ/บนท่า: ${normalizedData.maritime.length} รายการ`);
+        if (normalizedData.simCards) dataTypes.push(`• SIM AIS (ซิมการ์ด): ${normalizedData.simCards.length} เบอร์`);
+        if (normalizedData.stock) dataTypes.push(`• คลังอุปกรณ์: ${normalizedData.stock.length} รายการ`);
+        if (normalizedData.trackedAssets) dataTypes.push(`• อุปกรณ์ติดตาม: ${normalizedData.trackedAssets.length} รายการ`);
+        if (normalizedData.meetingReports) dataTypes.push(`• รายงานการประชุม: ${normalizedData.meetingReports.length} รายการ`);
 
-        const confirmMessage = `ไฟล์สำรอง v${json.version || '4.0'} (${json.timestamp ? new Date(json.timestamp).toLocaleString('th-TH') : 'ไม่ระบุเวลา'})\n\nข้อมูลที่จะนำเข้าครบถ้วน:\n${dataTypes.join('\n')}\n\nการคืนค่าข้อมูลจะอัปเดตและบันทึกลงสู่ระบบทันที คุณแน่ใจหรือไม่?`;
+        const confirmMessage = `ไฟล์สำรอง v${json.version || '4.0'} (${json.timestamp ? new Date(json.timestamp).toLocaleString('th-TH') : 'ไม่ระบุเวลา'})\n\nข้อมูลที่จะนำเข้าครบถ้วนทุกหัวข้อ:\n${dataTypes.join('\n')}\n\nการคืนค่าข้อมูลจะอัปเดตและบันทึกลงสู่ระบบทันที คุณแน่ใจหรือไม่?`;
 
         if (confirm(confirmMessage)) {
           await onRestore(normalizedData);
@@ -195,9 +203,6 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ currentData, onRes
       setMessage(`ลบข้อมูล ${label} เรียบร้อยแล้ว`);
       setStatus('success');
       setTimeout(() => setStatus('idle'), 3000);
-      // Trigger a reload or state update in App if needed, but App.tsx usually syncs from state to storage.
-      // Actually, if we delete from localStorage, App.tsx might overwrite it back if it's still in state.
-      // So we should probably reload the page or tell the user to reload.
       alert('ข้อมูลถูกลบออกจาก Storage แล้ว โปรดรีโหลดหน้าเว็บเพื่อให้ผลลัพธ์แสดงผลสมบูรณ์');
       window.location.reload();
     }
@@ -225,7 +230,7 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ currentData, onRes
             <Database className="h-10 w-10 text-cyan-400 drop-shadow-[0_0_10px_rgba(34,211,238,0.8)]" />
             Backup_Center
           </h1>
-          <p className="text-cyan-500 font-mono text-[10px] mt-2 tracking-[0.2em] font-bold uppercase">PROTOCOL: IT_PERSISTENCE_MANAGEMENT</p>
+          <p className="text-cyan-500 font-mono text-[10px] mt-2 tracking-[0.2em] font-bold uppercase">PROTOCOL: IT_PERSISTENCE_MANAGEMENT • FULL_SYSTEM_BACKUP</p>
         </div>
       </div>
 
@@ -240,17 +245,19 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ currentData, onRes
               <p className="text-sm text-slate-400 leading-relaxed">
                 ดาวน์โหลดข้อมูลทั้งหมดในระบบออกมาเป็นไฟล์ <span className="text-cyan-400 font-mono">.json</span> เพื่อใช้เก็บรักษาไว้นอกระบบ หรือย้ายไปใช้งานในเครื่องอื่น
               </p>
-              <ul className="mt-4 space-y-2 text-[10px] font-mono text-slate-500 uppercase">
-                <li className="flex items-center gap-2"><div className="w-1 h-1 bg-cyan-500"></div> รายการแจ้งซ่อมทั้งหมด (Tickets)</li>
-                <li className="flex items-center gap-2"><div className="w-1 h-1 bg-cyan-500"></div> ข้อมูลคลังอุปกรณ์ (Stock)</li>
-                <li className="flex items-center gap-2"><div className="w-1 h-1 bg-cyan-500"></div> ข้อมูลเรือและท่าเรือ (Maritime)</li>
-                <li className="flex items-center gap-2"><div className="w-1 h-1 bg-cyan-500"></div> อุปกรณ์ติดตาม (Tracked Assets)</li>
-                <li className="flex items-center gap-2"><div className="w-1 h-1 bg-cyan-500"></div> โฟลเดอร์จัดซื้อ (Procurement)</li>
-                <li className="flex items-center gap-2"><div className="w-1 h-1 bg-cyan-500"></div> ข้อมูล SIM Cards</li>
-                <li className="flex items-center gap-2"><div className="w-1 h-1 bg-violet-500"></div> เครื่องจำหน่ายตั๋ว (Ticket Machines)</li>
-                <li className="flex items-center gap-2"><div className="w-1 h-1 bg-violet-500"></div> วิทยุสื่อสาร (Radio Data)</li>
-                <li className="flex items-center gap-2"><div className="w-1 h-1 bg-indigo-500"></div> Viabus (Viabus Data)</li>
-                <li className="flex items-center gap-2"><div className="w-1 h-1 bg-sky-500"></div> กล้องวงจรปิด CCTV (CCTV Data)</li>
+              <ul className="mt-4 space-y-2 text-[10px] font-mono text-slate-400 uppercase">
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-cyan-400 rounded-full"></div> รายการแจ้งซ่อมทั้งหมด (Tickets / ซ่อมบำรุง)</li>
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-cyan-400 rounded-full"></div> จัดซื้ออุปกรณ์ (Procurement Folders)</li>
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-cyan-400 rounded-full"></div> เครื่องจำหน่ายตั๋ว (Ticket Machines)</li>
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-cyan-400 rounded-full"></div> วิทยุสื่อสาร (Radio Data)</li>
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-cyan-400 rounded-full"></div> Viabus (Viabus Data)</li>
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-cyan-400 rounded-full"></div> กล้องวงจรปิด CCTV (CCTV Data)</li>
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-cyan-400 rounded-full"></div> ตรวจอุปกรณ์ในเรือ/บนท่า (Maritime)</li>
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-cyan-400 rounded-full"></div> ปฏิทินกิจกรรม (Calendar / Work Schedule)</li>
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-cyan-400 rounded-full"></div> SIM AIS (จัดการซิมการ์ด)</li>
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-cyan-400 rounded-full"></div> ข้อมูลคลังอุปกรณ์ (Stock)</li>
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-cyan-400 rounded-full"></div> อุปกรณ์ติดตาม (Tracked Assets)</li>
+                <li className="flex items-center gap-2"><div className="w-1.5 h-1.5 bg-cyan-400 rounded-full"></div> รายงานการประชุม (Meeting Reports)</li>
               </ul>
             </div>
             <Button
@@ -258,7 +265,7 @@ export const BackupManager: React.FC<BackupManagerProps> = ({ currentData, onRes
               onClick={handleExport}
               disabled={status === 'processing'}
             >
-              <Download className="mr-2 h-5 w-5" /> สร้างไฟล์สำรองข้อมูล
+              <Download className="mr-2 h-5 w-5" /> สร้างไฟล์สำรองข้อมูล (ครบทุกหัวข้อ)
             </Button>
           </CardContent>
         </Card>

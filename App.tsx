@@ -798,6 +798,7 @@ const App: React.FC = () => {
       cameras: Array.isArray(data.cctvData.cameras) ? data.cctvData.cameras : (cctvData.cameras || []),
       faultLogs: Array.isArray(data.cctvData.faultLogs) ? data.cctvData.faultLogs : (cctvData.faultLogs || [])
     } : cctvData;
+    const newReports = data.meetingReports || data.reports || meetingReports;
 
     // 1. Immediately update React state
     if (data.tickets) setTickets(newTickets);
@@ -810,12 +811,14 @@ const App: React.FC = () => {
     if (data.radioData) setRadioData(newRadioData);
     if (data.viabusData) setViabusData(newViabusData);
     if (data.cctvData) setCctvData(newCctvData);
+    if (data.meetingReports || data.reports) setMeetingReports(newReports);
 
     // 2. Immediately write to LocalStorage
     safeSetItem(STORAGE_KEYS.TICKETS, JSON.stringify(newTickets));
     safeSetItem(STORAGE_KEYS.STOCK, JSON.stringify(newStock));
     safeSetItem(STORAGE_KEYS.TRACKED_ASSETS, JSON.stringify(newAssets));
     safeSetItem(STORAGE_KEYS.MARITIME, JSON.stringify(newMaritime));
+    safeSetItem(STORAGE_KEYS.MEETING_REPORTS, JSON.stringify(newReports));
     safeSetItem(STORAGE_KEYS.PROCUREMENT_FOLDERS, JSON.stringify(newFolders));
     safeSetItem(STORAGE_KEYS.SIM_CARDS, JSON.stringify(newSimCards));
     safeSetItem(STORAGE_KEYS.TICKET_MACHINES, JSON.stringify(newTicketMachines));
@@ -829,6 +832,7 @@ const App: React.FC = () => {
       stock: newStock,
       assets: newAssets,
       maritime: newMaritime,
+      reports: newReports,
       folders: newFolders,
       simCards: newSimCards,
       ticketMachines: newTicketMachines,
@@ -949,7 +953,8 @@ const App: React.FC = () => {
                   ticketMachines,
                   radioData,
                   viabusData,
-                  cctvData
+                  cctvData,
+                  meetingReports
                 }}
                 onRestore={handleRestore}
               />
