@@ -2,7 +2,8 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Tablet, Search, Plus, Edit, Trash2, X, Save,
   Hash, Calendar, FileText, MapPin,
-  Filter, RefreshCcw, Loader2, CloudOff, Cloud, CheckSquare, Square
+  Filter, RefreshCcw, Loader2, CloudOff, Cloud, CheckSquare, Square,
+  AlertTriangle, Check
 } from 'lucide-react';
 import { TicketMachine } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
@@ -67,6 +68,11 @@ const ALL_LOCATIONS = [
   'นายตรวจเด', 'นายตรวจต้อม', 'นายตรวจเบน', 'นายตรวจต๋อ',
 ];
 
+// Helper to get a stable unique key for each item
+const getItemKey = (item: TicketMachine, index?: number): string => {
+  return item.id || (item as any)._id || item.serialNumber || `item_${index}`;
+};
+
 export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ items, onUpdate, onReset }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterLocation, setFilterLocation] = useState('ALL');
@@ -74,7 +80,7 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
   const [editingItem, setEditingItem] = useState<TicketMachine | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
 
   const initialFormState = {
     serialNumber: '',
@@ -86,7 +92,7 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
   };
   const [formData, setFormData] = useState(initialFormState);
 
-  // Fetch data from MongoDB on mount
+  // Fetch data from API
   const loadFromApi = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -123,36 +129,44 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
     });
   }, [items, searchTerm, filterLocation]);
 
-  // Select all matching filter toggle
+  // Check if all currently visible filtered items are selected
   const isAllSelected = useMemo(() => {
-    return filteredItems.length > 0 && filteredItems.every(i => selectedIds.has(i.id));
-  }, [filteredItems, selectedIds]);
+    if (filteredItems.length === 0) return false;
+    return filteredItems.every(i => selectedKeys.has(getItemKey(i)));
+  }, [filteredItems, selectedKeys]);
 
   const toggleSelectAll = () => {
     if (isAllSelected) {
-      // Deselect all filtered items
-      setSelectedIds(prev => {
+      // Unselect all filtered items
+      setSelectedKeys(prev => {
         const next = new Set(prev);
-        filteredItems.forEach(i => next.delete(i.id));
+        filteredItems.forEach(i => next.delete(getItemKey(i)));
         return next;
       });
     } else {
       // Select all filtered items
-      setSelectedIds(prev => {
+      setSelectedKeys(prev => {
         const next = new Set(prev);
-        filteredItems.forEach(i => next.add(i.id));
+        filteredItems.forEach(i => next.add(getItemKey(i)));
         return next;
       });
     }
   };
 
-  const toggleSelectItem = (id: string) => {
-    setSelectedIds(prev => {
+  const toggleSelectItem = (key: string) => {
+    setSelectedKeys(prev => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
       return next;
     });
+  };
+
+  const clearSelection = () => {
+    setSelectedKeys(new Set());
   };
 
   // Stats
@@ -191,20 +205,14 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
     setIsLoading(true);
     try {
       if (editingItem) {
-        const updated = await updateTicketMachine(editingItem.id, formData);
-        if (updated) {
-          onUpdate(items.map(i => i.id === editingItem.id ? updated : i));
-        } else {
-          onUpdate(items.map(i => i.id === editingItem.id ? { ...i, ...formData } : i));
-        }
+        const editingKey = getItemKey(editingItem);
+        const updatedItems = items.map(i => getItemKey(i) === editingKey ? { ...i, ...formData } : i);
+        onUpdate(updatedItems);
+        updateTicketMachine(editingItem.id, formData).catch(() => {});
       } else {
-        const created = await createTicketMachine(formData);
-        if (created) {
-          onUpdate([...items, created]);
-        } else {
-          const newItem: TicketMachine = { id: Math.random().toString(36).substr(2, 9), ...formData };
-          onUpdate([...items, newItem]);
-        }
+        const newItem: TicketMachine = { id: `tm_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, ...formData };
+        onUpdate([...items, newItem]);
+        createTicketMachine(formData).catch(() => {});
       }
     } finally {
       setIsLoading(false);
@@ -214,59 +222,65 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
   };
 
   // Single Delete Handler
-  const handleDelete = async (id: string) => {
-    const target = items.find(i => i.id === id);
-    const targetName = target ? `${target.deviceName} (${target.serialNumber})` : 'รายการนี้';
-    if (!confirm(`ยืนยันการลบ ${targetName} ใช่หรือไม่?`)) return;
+  const handleDelete = (item: TicketMachine) => {
+    const key = getItemKey(item);
+    const label = `${item.deviceName} (${item.serialNumber})`;
+    if (!confirm(`ยืนยันการลบ ${label} ใช่หรือไม่?`)) return;
 
-    // Optimistic local update
-    onUpdate(items.filter(i => i.id !== id));
-    setSelectedIds(prev => {
+    // Instant local state update
+    const updatedItems = items.filter(i => getItemKey(i) !== key);
+    onUpdate(updatedItems);
+
+    // Remove from selected set
+    setSelectedKeys(prev => {
       const next = new Set(prev);
-      next.delete(id);
+      next.delete(key);
       return next;
     });
 
-    try {
-      await deleteTicketMachine(id);
-    } catch (err) {
-      console.warn('API delete warning:', err);
+    // Background API call
+    if (item.id) {
+      deleteTicketMachine(item.id).catch(() => {});
     }
   };
 
   // Batch Delete Handler
-  const handleBatchDelete = async () => {
-    if (selectedIds.size === 0) return;
-    const count = selectedIds.size;
+  const handleBatchDelete = () => {
+    if (selectedKeys.size === 0) return;
+    const count = selectedKeys.size;
     if (!confirm(`ยืนยันการลบเครื่องจำหน่ายตั๋วที่เลือกทั้งหมด ${count} รายการ ใช่หรือไม่?`)) return;
 
-    const toDeleteIds = Array.from(selectedIds);
-    // Optimistic local update
-    onUpdate(items.filter(i => !selectedIds.has(i.id)));
-    setSelectedIds(new Set());
+    // Filter out all items that match any selected key
+    const updatedItems = items.filter(i => !selectedKeys.has(getItemKey(i)));
+    const deletedItems = items.filter(i => selectedKeys.has(getItemKey(i)));
 
-    try {
-      await Promise.allSettled(toDeleteIds.map(id => deleteTicketMachine(id)));
-    } catch (err) {
-      console.warn('API batch delete warning:', err);
-    }
+    // Instant local state update
+    onUpdate(updatedItems);
+    setSelectedKeys(new Set());
+
+    // Background API calls
+    deletedItems.forEach(i => {
+      if (i.id) {
+        deleteTicketMachine(i.id).catch(() => {});
+      }
+    });
   };
 
   const handleReset = async () => {
     if (!confirm('ต้องการรีเซ็ตข้อมูลทั้งหมดเป็นค่าเริ่มต้น (102 รายการ) ใช่หรือไม่?')) return;
     setIsLoading(true);
     try {
-      const success = await resetTicketMachines();
-      if (success) {
-        await loadFromApi();
+      if (onReset) {
+        onReset();
       }
+      await resetTicketMachines();
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="p-6 max-w-[1920px] mx-auto space-y-6 animate-in fade-in duration-500">
+    <div className="p-6 max-w-[1920px] mx-auto space-y-6 animate-in fade-in duration-500 pb-28">
 
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-cyan-500/20 pb-6">
@@ -276,11 +290,11 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
             เครื่องจำหน่ายตั๋ว
           </h1>
           <p className="text-slate-400 mt-1 font-mono text-[10px] uppercase tracking-widest flex items-center gap-2">
-            Ticket Machine Management • Famoco FX205 Fleet
+            Ticket Machine Management • Famoco FX205 & Printers
             {isOnline ? (
-              <span className="flex items-center gap-1 text-emerald-400"><Cloud className="w-3 h-3" /> API Server</span>
+              <span className="flex items-center gap-1 text-emerald-400"><Cloud className="w-3 h-3" /> ออนไลน์</span>
             ) : (
-              <span className="flex items-center gap-1 text-amber-400"><CloudOff className="w-3 h-3" /> Offline</span>
+              <span className="flex items-center gap-1 text-amber-400"><CloudOff className="w-3 h-3" /> ออฟไลน์</span>
             )}
           </p>
         </div>
@@ -319,11 +333,11 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
       {isLoading && (
         <div className="flex items-center justify-center gap-3 py-3 text-cyan-400 font-mono text-sm">
           <Loader2 className="w-5 h-5 animate-spin" />
-          กำลังโหลดข้อมูล...
+          กำลังดำเนินการ...
         </div>
       )}
 
-      {/* Search & Filter & Bulk Actions Bar */}
+      {/* Search & Filter Bar */}
       <div className="bg-black/60 border border-cyan-900/30 p-3 rounded-lg flex flex-col md:flex-row items-center justify-between gap-3 sticky top-0 z-30 backdrop-blur-md">
         <div className="relative w-full md:max-w-lg group">
           <input
@@ -337,17 +351,26 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
         </div>
 
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
-          {/* Bulk Delete Button when items selected */}
-          {selectedIds.size > 0 && (
-            <button
-              onClick={handleBatchDelete}
-              className="px-3 py-2 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/50 rounded-lg text-xs font-mono font-bold flex items-center gap-2 transition-all shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-in fade-in duration-200"
-            >
-              <Trash2 className="w-4 h-4" />
-              ลบที่เลือก ({selectedIds.size} รายการ)
-            </button>
-          )}
+          {/* Quick Select All / Unselect All */}
+          <button
+            type="button"
+            onClick={toggleSelectAll}
+            className="px-3 py-2 bg-slate-900 border border-slate-700 hover:border-cyan-500 text-xs font-mono font-bold text-slate-300 hover:text-white rounded-lg flex items-center gap-2 transition-all"
+          >
+            {isAllSelected ? (
+              <>
+                <CheckSquare className="w-4 h-4 text-cyan-400" />
+                ยกเลิกเลือกทั้งหมด
+              </>
+            ) : (
+              <>
+                <Square className="w-4 h-4 text-slate-500" />
+                เลือกทั้งหมดในหน้านี้ ({filteredItems.length})
+              </>
+            )}
+          </button>
 
+          {/* Location Filter */}
           <div className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-slate-500" />
             <select
@@ -356,7 +379,7 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
               className="bg-black border border-slate-700 rounded-lg px-3 py-2 text-sm text-cyan-400 font-bold outline-none focus:border-cyan-500 cursor-pointer appearance-none pr-8"
               style={{ backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2394a3b8\' stroke-width=\'2\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '16px' }}
             >
-              <option value="ALL">ทุกสถานที่</option>
+              <option value="ALL">ทุกสถานที่ ({items.length})</option>
               {uniqueLocations.map(loc => (
                 <option key={loc} value={loc}>{loc}</option>
               ))}
@@ -375,21 +398,20 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-900/80 border-b border-cyan-900/50">
-                  {/* Select All Checkbox */}
-                  <th className="py-4 pl-4 pr-2 w-10 text-center">
-                    <button
-                      type="button"
+                <tr className="bg-slate-900/90 border-b border-cyan-900/50">
+                  {/* Select All Checkbox Header */}
+                  <th className="py-4 pl-4 pr-2 w-12 text-center">
+                    <div
                       onClick={toggleSelectAll}
-                      className="text-slate-400 hover:text-cyan-400 transition-colors"
+                      className="cursor-pointer inline-flex items-center justify-center p-1 text-slate-400 hover:text-cyan-400 transition-colors"
                       title={isAllSelected ? "ยกเลิกเลือกทั้งหมด" : "เลือกทั้งหมด"}
                     >
                       {isAllSelected ? (
-                        <CheckSquare className="w-4 h-4 text-cyan-400" />
+                        <CheckSquare className="w-5 h-5 text-cyan-400" />
                       ) : (
-                        <Square className="w-4 h-4 text-slate-600" />
+                        <Square className="w-5 h-5 text-slate-600" />
                       )}
-                    </button>
+                    </div>
                   </th>
                   <th className="py-4 px-2 text-[10px] font-mono font-bold text-cyan-600 uppercase tracking-widest w-12">#</th>
                   <th className="py-4 px-4 text-[10px] font-mono font-bold text-cyan-600 uppercase tracking-widest">
@@ -410,7 +432,7 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
                   <th className="py-4 px-6 text-[10px] font-mono font-bold text-cyan-600 uppercase tracking-widest text-right w-28">จัดการ</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/50">
+              <tbody className="divide-y divide-slate-800/60">
                 {filteredItems.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="py-16 text-center">
@@ -423,66 +445,74 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
                   </tr>
                 ) : (
                   filteredItems.map((item, index) => {
-                    const isSelected = selectedIds.has(item.id);
+                    const key = getItemKey(item, index);
+                    const isSelected = selectedKeys.has(key);
                     return (
                       <tr
-                        key={item.id}
-                        className={`group transition-colors ${
+                        key={key}
+                        className={`transition-colors ${
                           isSelected
-                            ? 'bg-cyan-950/40 border-l-2 border-cyan-400'
+                            ? 'bg-cyan-950/60 border-l-4 border-cyan-400'
                             : 'hover:bg-cyan-900/10'
                         }`}
                       >
                         {/* Row Checkbox */}
-                        <td className="py-3 pl-4 pr-2 text-center">
-                          <button
-                            type="button"
-                            onClick={() => toggleSelectItem(item.id)}
-                            className="text-slate-400 hover:text-cyan-400 transition-colors"
-                          >
+                        <td
+                          className="py-3.5 pl-4 pr-2 text-center cursor-pointer select-none"
+                          onClick={() => toggleSelectItem(key)}
+                        >
+                          <div className="inline-flex items-center justify-center">
                             {isSelected ? (
-                              <CheckSquare className="w-4 h-4 text-cyan-400" />
+                              <CheckSquare className="w-5 h-5 text-cyan-400 drop-shadow-[0_0_8px_rgba(0,242,255,0.6)]" />
                             ) : (
-                              <Square className="w-4 h-4 text-slate-600 group-hover:text-slate-400" />
+                              <Square className="w-5 h-5 text-slate-600 hover:text-slate-400 transition-colors" />
                             )}
-                          </button>
+                          </div>
                         </td>
-                        <td className="py-3 px-2">
+                        <td className="py-3.5 px-2">
                           <span className="text-slate-500 font-mono text-sm font-bold">{index + 1}</span>
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-3.5 px-4">
                           <span className="text-cyan-300 font-mono text-sm tracking-wide font-medium">{item.serialNumber}</span>
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-3.5 px-4">
                           <span className="text-slate-300 text-sm">{formatDate(item.purchaseDate)}</span>
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-3.5 px-4">
                           <span className="text-slate-400 text-sm">{item.notes || '-'}</span>
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-3.5 px-4">
                           <span className="text-white font-bold text-sm font-display">{item.deviceName}</span>
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-3.5 px-4">
                           <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${getLocationColor(item.location)}`}>
                             <MapPin className="w-3 h-3" />
                             {item.location}
                           </span>
                         </td>
-                        <td className="py-3 px-6 text-right">
-                          <div className="flex justify-end gap-1.5 opacity-70 group-hover:opacity-100 transition-opacity">
+                        <td className="py-3.5 px-6 text-right">
+                          <div className="flex justify-end items-center gap-2">
                             <button
-                              onClick={() => handleOpenModal(item)}
-                              className="p-1.5 bg-slate-900 border border-slate-700 text-cyan-400 hover:text-black hover:bg-cyan-400 rounded transition-all"
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenModal(item);
+                              }}
+                              className="p-2 bg-slate-900 border border-slate-700 text-cyan-400 hover:text-black hover:bg-cyan-400 rounded-lg transition-all shadow-sm"
                               title="แก้ไขข้อมูล"
                             >
-                              <Edit className="w-3.5 h-3.5" />
+                              <Edit className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => handleDelete(item.id)}
-                              className="p-1.5 bg-slate-900 border border-slate-700 text-red-400 hover:text-white hover:bg-red-600 rounded transition-all"
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(item);
+                              }}
+                              className="p-2 bg-red-950/40 border border-red-700/60 text-red-400 hover:text-white hover:bg-red-600 rounded-lg transition-all shadow-sm"
                               title="ลบรายการนี้"
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
                         </td>
@@ -495,6 +525,42 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
           </div>
         </CardContent>
       </Card>
+
+      {/* Floating Bottom Sticky Action Bar when items are selected */}
+      {selectedKeys.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5 duration-300">
+          <div className="bg-slate-950/95 border-2 border-cyan-500/80 rounded-2xl px-6 py-4 shadow-[0_0_50px_rgba(0,242,255,0.3)] backdrop-blur-xl flex items-center gap-6">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-cyan-500/20 border border-cyan-500/50 flex items-center justify-center text-cyan-300 font-mono font-bold text-sm">
+                {selectedKeys.size}
+              </div>
+              <div className="text-sm text-white font-display font-bold tracking-wide">
+                เลือกเครื่องจำหน่ายตั๋วอยู่ <span className="text-cyan-400 font-mono">{selectedKeys.size}</span> รายการ
+              </div>
+            </div>
+
+            <div className="h-6 w-[1px] bg-slate-800" />
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={clearSelection}
+                className="px-4 py-2 text-xs font-mono font-bold text-slate-400 hover:text-white transition-colors"
+              >
+                ยกเลิกการเลือก
+              </button>
+              <button
+                type="button"
+                onClick={handleBatchDelete}
+                className="px-5 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white rounded-xl text-xs font-mono font-bold flex items-center gap-2 transition-all shadow-[0_0_25px_rgba(239,68,68,0.5)] active:scale-95"
+              >
+                <Trash2 className="w-4 h-4" />
+                ลบ {selectedKeys.size} รายการที่เลือก
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add/Edit Modal */}
       {isModalOpen && (
@@ -538,10 +604,10 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
                     <button
                       type="button"
                       onClick={() => {
-                        handleDelete(editingItem.id);
+                        handleDelete(editingItem);
                         setIsModalOpen(false);
                       }}
-                      className="px-4 py-2.5 bg-red-950/40 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/50 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all"
+                      className="px-4 py-2.5 bg-red-950/60 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/50 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all"
                       title="ลบเครื่องนี้"
                     >
                       <Trash2 className="w-4 h-4" />
