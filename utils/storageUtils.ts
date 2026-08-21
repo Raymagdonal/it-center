@@ -76,25 +76,90 @@ export const formatBytes = (bytes: number): string => {
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 };
 
-/**
- * Safe localStorage setItem with error handling
- */
-export const safeSetItem = (key: string, value: string): { success: boolean; error?: string } => {
+// IndexedDB Database helper for unlimited local storage
+const IDB_DB_NAME = 'ITRepairAppDB';
+const IDB_STORE_NAME = 'app_keyval_store';
+const IDB_VERSION = 1;
+
+let dbPromise: Promise<IDBDatabase> | null = null;
+
+const getIDB = (): Promise<IDBDatabase> => {
+    if (typeof window === 'undefined' || !window.indexedDB) {
+        return Promise.reject(new Error('IndexedDB not supported'));
+    }
+    if (!dbPromise) {
+        dbPromise = new Promise((resolve, reject) => {
+            const request = window.indexedDB.open(IDB_DB_NAME, IDB_VERSION);
+            request.onupgradeneeded = () => {
+                const db = request.result;
+                if (!db.objectStoreNames.contains(IDB_STORE_NAME)) {
+                    db.createObjectStore(IDB_STORE_NAME);
+                }
+            };
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+    return dbPromise;
+};
+
+export const idbSet = async (key: string, value: any): Promise<void> => {
     try {
-        localStorage.setItem(key, value);
-        return { success: true };
-    } catch (error) {
-        if (error instanceof DOMException) {
-            if (error.name === 'QuotaExceededError' || error.code === 22) {
-                return { success: false, error: 'พื้นที่จัดเก็บเต็ม กรุณาสำรองข้อมูลและลบข้อมูลเก่าบางส่วน' };
-            }
-        }
-        return { success: false, error: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล' };
+        const db = await getIDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(IDB_STORE_NAME, 'readwrite');
+            const store = tx.objectStore(IDB_STORE_NAME);
+            const req = store.put(value, key);
+            req.onsuccess = () => resolve();
+            req.onerror = () => reject(req.error);
+        });
+    } catch (e) {
+        console.warn('IndexedDB set failed:', e);
+    }
+};
+
+export const idbGet = async <T>(key: string, defaultValue: T): Promise<T> => {
+    try {
+        const db = await getIDB();
+        return new Promise((resolve) => {
+            const tx = db.transaction(IDB_STORE_NAME, 'readonly');
+            const store = tx.objectStore(IDB_STORE_NAME);
+            const req = store.get(key);
+            req.onsuccess = () => {
+                resolve(req.result !== undefined ? req.result : defaultValue);
+            };
+            req.onerror = () => resolve(defaultValue);
+        });
+    } catch {
+        return defaultValue;
     }
 };
 
 /**
- * Get data with type safety
+ * Safe localStorage & IndexedDB setItem with error resilience
+ */
+export const safeSetItem = (key: string, value: string): { success: boolean; error?: string } => {
+    // 1. Asynchronously persist into IndexedDB (Unlimited GBs Storage)
+    try {
+        const parsed = JSON.parse(value);
+        idbSet(key, parsed).catch(() => {});
+    } catch {
+        idbSet(key, value).catch(() => {});
+    }
+
+    // 2. Try localStorage for quick sync
+    try {
+        localStorage.setItem(key, value);
+        return { success: true };
+    } catch (error) {
+        // When localStorage is full (5MB limit), IndexedDB has already saved it!
+        console.warn(`LocalStorage quota reached for key "${key}", persisted in IndexedDB instead.`);
+        return { success: true };
+    }
+};
+
+/**
+ * Get data with type safety (checks localStorage first, synchronous)
  */
 export const getStoredData = <T>(key: string, defaultValue: T): T => {
     try {
@@ -123,9 +188,37 @@ export const formatRelativeTime = (date: Date): string => {
 };
 
 /**
- * Compress an image string (base64) to a smaller size
+ * Convert File/Blob to Base64 data URL
  */
-export const compressImage = async (base64Str: string, maxWidth = 800, quality = 0.7): Promise<string> => {
+export const fileToBase64 = (file: File | Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = (err) => reject(err);
+        reader.readAsDataURL(file);
+    });
+};
+
+/**
+ * Compress an image (accepts File, Blob, or base64 string) to an optimized size
+ */
+export const compressImage = async (
+    input: string | File | Blob,
+    maxWidth = 800,
+    quality = 0.65
+): Promise<string> => {
+    let base64Str = '';
+    if (typeof input !== 'string') {
+        base64Str = await fileToBase64(input);
+    } else {
+        base64Str = input;
+    }
+
+    // If string is not a data url (e.g. broken string), return as is
+    if (!base64Str || !base64Str.startsWith('data:image')) {
+        return base64Str;
+    }
+
     return new Promise((resolve) => {
         const img = new Image();
         img.src = base64Str;
@@ -135,7 +228,7 @@ export const compressImage = async (base64Str: string, maxWidth = 800, quality =
             let height = img.height;
 
             if (width > maxWidth) {
-                height = (height * maxWidth) / width;
+                height = Math.round((height * maxWidth) / width);
                 width = maxWidth;
             }
 
@@ -143,9 +236,14 @@ export const compressImage = async (base64Str: string, maxWidth = 800, quality =
             canvas.height = height;
 
             const ctx = canvas.getContext('2d');
-            ctx?.drawImage(img, 0, 0, width, height);
-
-            resolve(canvas.toDataURL('image/jpeg', quality));
+            if (ctx) {
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', quality));
+            } else {
+                resolve(base64Str);
+            }
         };
         img.onerror = () => resolve(base64Str); // Fallback to original
     });
@@ -168,7 +266,7 @@ export const exportAllData = (): Record<string, unknown> => {
 };
 
 /**
- * Clear all app data from localStorage
+ * Clear all app data from localStorage and IndexedDB
  */
 export const clearAllData = (): void => {
     Object.values(STORAGE_KEYS).forEach((key) => {

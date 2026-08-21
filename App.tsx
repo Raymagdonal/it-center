@@ -19,7 +19,7 @@ import { ViabusManager, ViabusData } from './components/ViabusManager';
 import { CctvManager, CctvData } from './components/CctvManager';
 import { SaveIndicator } from './components/SaveIndicator';
 import { Activity } from 'lucide-react';
-import { safeSetItem, STORAGE_KEYS, checkStorageQuota } from './utils/storageUtils';
+import { safeSetItem, STORAGE_KEYS, checkStorageQuota, idbGet } from './utils/storageUtils';
 import { fetchAllData, saveAllData, AppData } from './services/syncService';
 
 import { AppMode, MaintenanceTicket, StockItem, MaritimeItem, TrackedAsset, MeetingReport, ProcurementFolder, InventorySelection, SimCard, TicketMachine } from './types';
@@ -346,7 +346,7 @@ const App: React.FC = () => {
       setSaveError(null);
 
       try {
-        // 1. Save to LocalStorage (for offline cache)
+        // 1. Save to LocalStorage & IndexedDB (for offline cache)
         const results = [
           safeSetItem(STORAGE_KEYS.TICKETS, JSON.stringify(tickets)),
           safeSetItem(STORAGE_KEYS.STOCK, JSON.stringify(stockItems)),
@@ -356,9 +356,9 @@ const App: React.FC = () => {
           safeSetItem(STORAGE_KEYS.PROCUREMENT_FOLDERS, JSON.stringify(procurementFolders)),
           safeSetItem(STORAGE_KEYS.SIM_CARDS, JSON.stringify(simCards)),
           safeSetItem(STORAGE_KEYS.TICKET_MACHINES, JSON.stringify(ticketMachines)),
-          safeSetItem('techfix_radio_data', JSON.stringify(radioData)),
-          safeSetItem('techfix_viabus_data', JSON.stringify(viabusData)),
-          safeSetItem('techfix_cctv_data', JSON.stringify(cctvData)),
+          safeSetItem(STORAGE_KEYS.RADIO_DATA, JSON.stringify(radioData)),
+          safeSetItem(STORAGE_KEYS.VIABUS_DATA, JSON.stringify(viabusData)),
+          safeSetItem(STORAGE_KEYS.CCTV_DATA, JSON.stringify(cctvData)),
         ];
 
         // 2. Save to Backend (Render) - Expanded Storage

@@ -178,10 +178,17 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
     setSelectedKeys(new Set());
   };
 
-  // Lightbox handlers
+// Helper to filter out corrupted or invalid image strings
+const sanitizeImages = (imgs?: any[]): string[] => {
+  if (!Array.isArray(imgs)) return [];
+  return imgs.filter(img => typeof img === 'string' && (img.startsWith('data:image') || img.startsWith('http') || img.startsWith('/')));
+};
+
+// Lightbox handlers
   const openLightbox = (images: string[], index = 0) => {
-    if (!images || images.length === 0) return;
-    setLightboxImages(images);
+    const valid = sanitizeImages(images);
+    if (valid.length === 0) return;
+    setLightboxImages(valid);
     setLightboxIndex(index);
   };
 
@@ -210,12 +217,15 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
     try {
       const compressedList: string[] = [];
       for (let i = 0; i < files.length; i++) {
-        const comp = await compressImage(files[i]);
-        compressedList.push(comp);
+        const file = files[i];
+        const comp = await compressImage(file, 800, 0.65);
+        if (comp && comp.startsWith('data:image')) {
+          compressedList.push(comp);
+        }
       }
       setFormData(prev => ({
         ...prev,
-        images: [...(prev.images || []), ...compressedList],
+        images: [...sanitizeImages(prev.images), ...compressedList],
       }));
     } catch (err) {
       console.error('Failed to compress image:', err);
@@ -228,7 +238,7 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
   const removeImage = (indexToRemove: number) => {
     setFormData(prev => ({
       ...prev,
-      images: (prev.images || []).filter((_, idx) => idx !== indexToRemove),
+      images: sanitizeImages(prev.images).filter((_, idx) => idx !== indexToRemove),
     }));
   };
 
@@ -243,9 +253,8 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
   const handleOpenModal = (item?: TicketMachine) => {
     if (item) {
       setEditingItem(item);
-      const itemImages = Array.isArray(item.images) && item.images.length > 0
-        ? item.images
-        : (item.imageUrl ? [item.imageUrl] : []);
+      const rawImages = Array.isArray(item.images) ? item.images : (item.imageUrl ? [item.imageUrl] : []);
+      const itemImages = sanitizeImages(rawImages);
       setFormData({
         serialNumber: item.serialNumber,
         purchaseDate: item.purchaseDate,
@@ -517,9 +526,8 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
                   filteredItems.map((item, index) => {
                     const key = getItemKey(item, index);
                     const isSelected = selectedKeys.has(key);
-                    const itemImages = Array.isArray(item.images) && item.images.length > 0
-                      ? item.images
-                      : (item.imageUrl ? [item.imageUrl] : []);
+                    const rawImages = Array.isArray(item.images) ? item.images : (item.imageUrl ? [item.imageUrl] : []);
+                    const itemImages = sanitizeImages(rawImages);
 
                     return (
                       <tr
