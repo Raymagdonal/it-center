@@ -8,13 +8,15 @@ const API_URL = `${API_BASE}/api/ticket-machines`;
 
 // Helper: Convert MongoDB document to frontend TicketMachine format
 const toTicketMachine = (doc: any): TicketMachine => ({
-  id: doc._id,
+  id: doc._id || doc.id,
   serialNumber: doc.serialNumber,
   purchaseDate: doc.purchaseDate,
   notes: doc.notes || '',
   deviceName: doc.deviceName,
   location: doc.location,
   status: doc.status || 'ACTIVE',
+  images: Array.isArray(doc.images) ? doc.images : (doc.imageUrl ? [doc.imageUrl] : []),
+  imageUrl: doc.imageUrl || (Array.isArray(doc.images) && doc.images.length > 0 ? doc.images[0] : undefined),
 });
 
 // GET all ticket machines

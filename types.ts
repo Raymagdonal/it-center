@@ -165,6 +165,8 @@ export interface TicketMachine {
   deviceName: string;
   location: string;
   status?: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
+  images?: string[];
+  imageUrl?: string;
 }
 
 export type AppMode = 'HOME' | 'REPORT' | 'TRACK' | 'ADMIN' | 'PROCUREMENT' | 'ASSET_TRACKING' | 'MARITIME' | 'BACKUP' | 'ALL_DEVICES' | 'MEETING_REPORT' | 'SIM_AIS' | 'CALENDAR' | 'RADIO' | 'VIABUS' | 'CCTV_MANAGEMENT';

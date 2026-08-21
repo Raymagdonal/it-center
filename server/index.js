@@ -186,7 +186,8 @@ app.delete('/api/ticket-machines/:id', (req, res) => {
 
 app.post('/api/ticket-machines/reset', (req, res) => {
   const db = readDb();
-  db.ticketMachines = require('./seed-data');
+  const seed = require('./seed-data');
+  db.ticketMachines = seed.SEED_DATA || seed.FULL_SEED?.ticketMachines || [];
   writeDb(db);
   res.json({ message: 'Reset successful', total: db.ticketMachines.length });
 });
