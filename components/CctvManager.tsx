@@ -1699,13 +1699,29 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                     {cameraForm.nvrImages && cameraForm.nvrImages.length > 0 && (
                       <div className="grid grid-cols-4 gap-2 pt-1 max-h-36 overflow-y-auto">
                         {cameraForm.nvrImages.map((img, idx) => (
-                          <div key={idx} className="relative group/thumb rounded-lg overflow-hidden border border-slate-700 aspect-square">
+                          <div key={idx} className="relative group/thumb rounded-lg overflow-hidden border border-slate-700 aspect-square bg-black">
                             <img src={img} alt={`nvr-${idx}`} className="w-full h-full object-cover" />
-                            <button type="button" onClick={() => removeNvrImage(idx)} className="absolute top-1 right-1 p-1 rounded-full bg-red-600/90 text-white opacity-0 group-hover/thumb:opacity-100 transition-opacity hover:bg-red-500">
-                              <X className="w-3 h-3" />
-                            </button>
-                            <button type="button" onClick={() => openLightbox(cameraForm.nvrImages!, idx)} className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openLightbox(cameraForm.nvrImages!, idx);
+                              }}
+                              className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity z-10"
+                              title="ดูรูปขยาย"
+                            >
                               <Eye className="w-4 h-4 text-white" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeNvrImage(idx);
+                              }}
+                              className="absolute top-1 right-1 p-1 rounded-full bg-red-600 hover:bg-red-500 text-white opacity-0 group-hover/thumb:opacity-100 transition-opacity z-20 shadow-md cursor-pointer"
+                              title="ลบรูปนี้"
+                            >
+                              <X className="w-3 h-3" />
                             </button>
                           </div>
                         ))}
@@ -1784,16 +1800,15 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-cyan-950/80 pb-2">
                   <label className="text-xs font-bold text-cyan-400 uppercase tracking-widest flex items-center gap-1.5 font-mono">
-                    <Wifi className="w-3.5 h-3.5 text-cyan-400" /> อุปกรณ์ Router 4G
+                    <Wifi className="w-3.5 h-3.5 text-cyan-400" /> ข้อมูล Router 4G & ซิมการ์ด AIS
                   </label>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-cyan-600 font-mono font-bold">{cameraForm.routerCount || 1} ตัว</span>
                     {(cameraForm.routerCount || 1) < 2 ? (
                       <button type="button" onClick={() => setCameraForm(f => ({ ...f, routerCount: 2 }))} className="text-[10px] font-mono font-bold text-cyan-400 hover:text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/40 px-2 py-0.5 rounded transition-all">
                         + เพิ่ม Router ที่ 2
                       </button>
                     ) : (
-                      <button type="button" onClick={() => setCameraForm(f => ({ ...f, routerCount: 1 }))} className="text-[10px] font-mono font-bold text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 border border-red-500/40 px-2 py-0.5 rounded transition-all">
+                      <button type="button" onClick={() => setCameraForm(f => ({ ...f, routerCount: 1, router2Model: '', router2SerialNumber: '', router2SimPhoneNumber: '', router2Images: [] }))} className="text-[10px] font-mono font-bold text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 border border-red-500/40 px-2 py-0.5 rounded transition-all">
                         ✕ ลบ Router ที่ 2
                       </button>
                     )}
@@ -1836,10 +1851,30 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                     {cameraForm.routerImages && cameraForm.routerImages.length > 0 && (
                       <div className="grid grid-cols-4 gap-2 pt-1 max-h-36 overflow-y-auto">
                         {cameraForm.routerImages.map((img, idx) => (
-                          <div key={idx} className="relative group/thumb rounded-lg overflow-hidden border border-slate-700 aspect-square">
+                          <div key={idx} className="relative group/thumb rounded-lg overflow-hidden border border-slate-700 aspect-square bg-black">
                             <img src={img} alt={`router-preview-${idx}`} className="w-full h-full object-cover" />
-                            <button type="button" onClick={() => removeRouterImage(idx)} className="absolute top-1 right-1 p-1 rounded-full bg-red-600/90 text-white opacity-0 group-hover/thumb:opacity-100 transition-opacity hover:bg-red-500" title="ลบรูป"><X className="w-3 h-3" /></button>
-                            <button type="button" onClick={() => openLightbox(cameraForm.routerImages!, idx)} className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity"><Eye className="w-4 h-4 text-white" /></button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openLightbox(cameraForm.routerImages!, idx);
+                              }}
+                              className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity z-10"
+                              title="ดูรูปขยาย"
+                            >
+                              <Eye className="w-4 h-4 text-white" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeRouterImage(idx);
+                              }}
+                              className="absolute top-1 right-1 p-1 rounded-full bg-red-600 hover:bg-red-500 text-white opacity-0 group-hover/thumb:opacity-100 transition-opacity z-20 shadow-md cursor-pointer"
+                              title="ลบรูปนี้"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
                           </div>
                         ))}
                       </div>
@@ -1882,10 +1917,30 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                       {cameraForm.router2Images && cameraForm.router2Images.length > 0 && (
                         <div className="grid grid-cols-4 gap-2 pt-1 max-h-36 overflow-y-auto">
                           {cameraForm.router2Images.map((img, idx) => (
-                            <div key={idx} className="relative group/thumb rounded-lg overflow-hidden border border-slate-700 aspect-square">
+                            <div key={idx} className="relative group/thumb rounded-lg overflow-hidden border border-slate-700 aspect-square bg-black">
                               <img src={img} alt={`router2-preview-${idx}`} className="w-full h-full object-cover" />
-                              <button type="button" onClick={() => removeRouter2Image(idx)} className="absolute top-1 right-1 p-1 rounded-full bg-red-600/90 text-white opacity-0 group-hover/thumb:opacity-100 transition-opacity hover:bg-red-500" title="ลบรูป"><X className="w-3 h-3" /></button>
-                              <button type="button" onClick={() => openLightbox(cameraForm.router2Images!, idx)} className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity"><Eye className="w-4 h-4 text-white" /></button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openLightbox(cameraForm.router2Images!, idx);
+                                }}
+                                className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity z-10"
+                                title="ดูรูปขยาย"
+                              >
+                                <Eye className="w-4 h-4 text-white" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeRouter2Image(idx);
+                                }}
+                                className="absolute top-1 right-1 p-1 rounded-full bg-red-600 hover:bg-red-500 text-white opacity-0 group-hover/thumb:opacity-100 transition-opacity z-20 shadow-md cursor-pointer"
+                                title="ลบรูปนี้"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
                             </div>
                           ))}
                         </div>
@@ -1940,25 +1995,31 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                 {cameraForm.images && cameraForm.images.length > 0 && (
                   <div className="grid grid-cols-4 gap-2 pt-2 max-h-48 overflow-y-auto">
                     {cameraForm.images.map((img, idx) => (
-                      <div key={idx} className="relative group/thumb rounded-lg overflow-hidden border border-slate-700 aspect-square">
+                      <div key={idx} className="relative group/thumb rounded-lg overflow-hidden border border-slate-700 aspect-square bg-black">
                         <img src={img} alt={`preview-${idx}`} className="w-full h-full object-cover" />
                         <button
                           type="button"
-                          onClick={() => removeCameraImage(idx)}
-                          className="absolute top-1 right-1 p-1 rounded-full bg-red-600/90 text-white opacity-0 group-hover/thumb:opacity-100 transition-opacity hover:bg-red-500"
-                          title="ลบรูป"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openLightbox(cameraForm.images!, idx);
+                          }}
+                          className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity z-10"
+                          title="ดูรูปขยาย"
                         >
-                          <X className="w-3 h-3" />
+                          <Eye className="w-4 h-4 text-white" />
                         </button>
                         <button
                           type="button"
-                          onClick={() => openLightbox(cameraForm.images!, idx)}
-                          className="absolute bottom-1 right-1 p-1 rounded-full bg-black/70 text-white opacity-0 group-hover/thumb:opacity-100 transition-opacity hover:bg-black/90"
-                          title="ขยายรูป"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeCameraImage(idx);
+                          }}
+                          className="absolute top-1 right-1 p-1 rounded-full bg-red-600 hover:bg-red-500 text-white opacity-0 group-hover/thumb:opacity-100 transition-opacity z-20 shadow-md cursor-pointer"
+                          title="ลบรูปนี้"
                         >
-                          <Maximize2 className="w-3 h-3" />
+                          <X className="w-3 h-3" />
                         </button>
-                        <span className="absolute bottom-1 left-1 px-1 rounded bg-black/70 text-[9px] font-mono text-slate-300">
+                        <span className="absolute bottom-1 left-1 px-1 rounded bg-black/70 text-[9px] font-mono text-slate-300 z-10">
                           #{idx + 1}
                         </span>
                       </div>
@@ -1966,6 +2027,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                   </div>
                 )}
               </div>
+
 
               {/* Notes */}
               <div className="space-y-1.5">
@@ -2126,12 +2188,27 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                 {faultForm.images && faultForm.images.length > 0 && (
                   <div className="grid grid-cols-4 gap-2 pt-2 max-h-36 overflow-y-auto">
                     {faultForm.images.map((img, idx) => (
-                      <div key={idx} className="relative group/thumb rounded-lg overflow-hidden border border-slate-700 aspect-square">
+                      <div key={idx} className="relative group/thumb rounded-lg overflow-hidden border border-slate-700 aspect-square bg-black">
                         <img src={img} alt={`fault-thumb-${idx}`} className="w-full h-full object-cover" />
                         <button
                           type="button"
-                          onClick={() => removeFaultImage(idx)}
-                          className="absolute top-1 right-1 p-1 rounded-full bg-red-600/90 text-white opacity-0 group-hover/thumb:opacity-100 transition-opacity hover:bg-red-500"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openLightbox(faultForm.images!, idx);
+                          }}
+                          className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity z-10"
+                          title="ดูรูปขยาย"
+                        >
+                          <Eye className="w-4 h-4 text-white" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeFaultImage(idx);
+                          }}
+                          className="absolute top-1 right-1 p-1 rounded-full bg-red-600 hover:bg-red-500 text-white opacity-0 group-hover/thumb:opacity-100 transition-opacity z-20 shadow-md cursor-pointer"
+                          title="ลบรูปนี้"
                         >
                           <X className="w-3 h-3" />
                         </button>
