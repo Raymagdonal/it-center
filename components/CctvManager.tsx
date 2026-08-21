@@ -66,6 +66,7 @@ export interface CctvCamera {
   brand: 'EZVIZ' | 'Dahua';
   cameraCount: number;            // 1-8 cameras
   serialNumbers?: string[];       // S/N for each camera (1 to cameraCount)
+  cameraSerialImages?: string[][]; // Photos for each individual camera S/N (index matches camera 0 to cameraCount-1)
   serialNumber?: string;          // Combined or single S/N string
   storageType: 'SD Card' | 'NVR';
   memorySize?: CctvMemorySize;    // for EZVIZ (SD card)
@@ -512,6 +513,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
     brand: 'EZVIZ',
     cameraCount: 2,
     serialNumbers: ['', ''],
+    cameraSerialImages: [[], []],
     serialNumber: '',
     storageType: 'SD Card',
     memorySize: '64 GB',
@@ -537,6 +539,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
     brand: 'Dahua',
     cameraCount: 4,
     serialNumbers: ['', '', '', ''],
+    cameraSerialImages: [[], [], [], []],
     serialNumber: '',
     storageType: 'NVR',
     nvrCapacity: '4TB',
@@ -577,6 +580,44 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
   });
 
   const [faultForm, setFaultForm] = useState(emptyFault());
+
+  // ── Image Handlers for each individual camera S/N ──
+  const handleCameraSnImageUpload = async (cameraIdx: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setIsUploading(true);
+    const newImages: string[] = [];
+    for (let i = 0; i < files.length; i++) {
+      try {
+        const comp = await compressImage(files[i], 1024, 0.75);
+        if (comp && comp.startsWith('data:image')) {
+          newImages.push(comp);
+        }
+      } catch (err) {
+        console.error('Error compressing camera SN image:', err);
+      }
+    }
+    setCameraForm(prev => {
+      const existing = [...(prev.cameraSerialImages || [])];
+      while (existing.length <= cameraIdx) {
+        existing.push([]);
+      }
+      existing[cameraIdx] = [...(existing[cameraIdx] || []), ...newImages];
+      return { ...prev, cameraSerialImages: existing };
+    });
+    setIsUploading(false);
+    e.target.value = '';
+  };
+
+  const removeCameraSnImage = (cameraIdx: number, imgIdx: number) => {
+    setCameraForm(prev => {
+      const existing = [...(prev.cameraSerialImages || [])];
+      if (existing[cameraIdx]) {
+        existing[cameraIdx] = existing[cameraIdx].filter((_, i) => i !== imgIdx);
+      }
+      return { ...prev, cameraSerialImages: existing };
+    });
+  };
 
   // ── Cameras by type ──
   const pierCameras = useMemo(() =>
@@ -795,8 +836,12 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
       sns = cam.serialNumber.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
     }
     const normalizedSNs: string[] = [];
+    const initialSerialImages: string[][] = [];
     for (let i = 0; i < count; i++) {
       normalizedSNs.push(sns[i] || '');
+      initialSerialImages.push(
+        Array.isArray(cam.cameraSerialImages?.[i]) ? [...cam.cameraSerialImages[i]] : []
+      );
     }
 
     setCameraForm({
@@ -805,6 +850,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
       brand: cam.brand,
       cameraCount: count,
       serialNumbers: normalizedSNs,
+      cameraSerialImages: initialSerialImages,
       serialNumber: normalizedSNs.filter(Boolean).join(', ') || cam.serialNumber || '',
       storageType: cam.storageType,
       memorySize: cam.memorySize,
@@ -1009,16 +1055,39 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
             {/* Serial Numbers display — show if any S/N recorded */}
             {cam.serialNumbers && cam.serialNumbers.some(Boolean) && (
               <div className="mt-2.5 p-2 bg-black/20 rounded-lg border border-slate-800/60">
-                <p className="text-[9px] text-slate-500 uppercase tracking-wider mb-1.5 font-mono flex items-center gap-1">
-                  <Tag className="w-2.5 h-2.5 text-cyan-500" /> Serial Numbers
-                </p>
-                <div className="space-y-0.5">
-                  {cam.serialNumbers.map((sn, idx) => (
-                    <p key={idx} className="text-[10px] font-mono flex items-center gap-1.5">
-                      <span className="text-sky-500 font-bold w-5 shrink-0">#{idx + 1}</span>
-                      <span className="text-slate-300 truncate">{sn || <span className="text-slate-600 italic">ไม่ระบุ</span>}</span>
-                    </p>
-                  ))}
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="text-[9px] text-slate-500 uppercase tracking-wider font-mono flex items-center gap-1">
+                    <Tag className="w-2.5 h-2.5 text-cyan-500" /> Serial Numbers
+                  </p>
+                  {cam.cameraSerialImages && cam.cameraSerialImages.some(imgs => Array.isArray(imgs) && imgs.length > 0) && (
+                    <span className="text-[9px] text-cyan-400 font-mono flex items-center gap-0.5 font-medium">
+                      <ImageIcon className="w-2.5 h-2.5" /> มีรูปรายกล้อง
+                    </span>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  {cam.serialNumbers.map((sn, idx) => {
+                    const snImages = cam.cameraSerialImages?.[idx] || [];
+                    return (
+                      <div key={idx} className="flex items-center justify-between gap-1.5 bg-black/30 px-2 py-1 rounded border border-slate-800/40">
+                        <p className="text-[10px] font-mono flex items-center gap-1.5 truncate">
+                          <span className="text-sky-500 font-bold w-5 shrink-0">#{idx + 1}</span>
+                          <span className="text-slate-300 truncate font-medium">{sn || <span className="text-slate-600 italic">ไม่ระบุ</span>}</span>
+                        </p>
+                        {snImages.length > 0 ? (
+                          <button
+                            type="button"
+                            onClick={() => openLightbox(snImages, 0)}
+                            className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/40 text-cyan-300 text-[9px] font-mono transition-all shrink-0 cursor-pointer"
+                            title={`ดูรูปกล้อง #${idx + 1} (${snImages.length} รูป)`}
+                          >
+                            <img src={snImages[0]} alt="" className="w-3.5 h-3.5 rounded-sm object-cover" />
+                            <span>{snImages.length} รูป</span>
+                          </button>
+                        ) : null}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -1593,14 +1662,18 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                   onChange={e => {
                     const newCount = parseInt(e.target.value);
                     const prevSNs = cameraForm.serialNumbers || [];
+                    const prevImages = cameraForm.cameraSerialImages || [];
                     const newSNs: string[] = [];
+                    const newSerialImages: string[][] = [];
                     for (let i = 0; i < newCount; i++) {
                       newSNs.push(prevSNs[i] || '');
+                      newSerialImages.push(prevImages[i] || []);
                     }
                     setCameraForm(f => ({
                       ...f,
                       cameraCount: newCount,
                       serialNumbers: newSNs,
+                      cameraSerialImages: newSerialImages,
                       serialNumber: newSNs.filter(Boolean).join(', ')
                     }));
                   }}
@@ -1612,40 +1685,94 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                 </select>
               </div>
 
-              {/* Serial Numbers — one input per camera */}
+              {/* Serial Numbers — one input per camera with individual photo upload */}
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                  <Tag className="w-3.5 h-3.5 text-cyan-400" />
-                  Serial Number กล้อง ({cameraForm.cameraCount} ตัว)
-                </label>
-                <div className="p-3 bg-black/40 rounded-lg border border-slate-700/60 space-y-2 max-h-56 overflow-y-auto">
-                  {Array.from({ length: cameraForm.cameraCount || 1 }, (_, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
-                      <span className="text-[10px] font-mono text-sky-400 font-bold w-8 shrink-0 flex items-center gap-0.5">
-                        <Hash className="w-2.5 h-2.5" />{idx + 1}
-                      </span>
-                      <input
-                        type="text"
-                        placeholder={`S/N กล้องตัวที่ ${idx + 1}...`}
-                        value={(cameraForm.serialNumbers || [])[idx] || ''}
-                        onChange={e => {
-                          const count = cameraForm.cameraCount || 1;
-                          const prevSNs = cameraForm.serialNumbers || [];
-                          const newSNs: string[] = [];
-                          for (let i = 0; i < count; i++) {
-                            newSNs.push(prevSNs[i] || '');
-                          }
-                          newSNs[idx] = e.target.value;
-                          setCameraForm(f => ({
-                            ...f,
-                            serialNumbers: newSNs,
-                            serialNumber: newSNs.filter(Boolean).join(', ')
-                          }));
-                        }}
-                        className="flex-1 bg-black/60 border border-slate-700 rounded px-3 py-1.5 text-xs text-white focus:border-sky-500 outline-none font-mono"
-                      />
-                    </div>
-                  ))}
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                    <Tag className="w-3.5 h-3.5 text-cyan-400" />
+                    Serial Number กล้อง & รูปภาพ ({cameraForm.cameraCount} ตัว)
+                  </label>
+                  <span className="text-[10px] text-slate-500 font-mono">
+                    แนบรูปกล้องแต่ละ S/N ได้
+                  </span>
+                </div>
+                <div className="p-3 bg-black/40 rounded-lg border border-slate-700/60 space-y-2.5 max-h-72 overflow-y-auto">
+                  {Array.from({ length: cameraForm.cameraCount || 1 }, (_, idx) => {
+                    const snImages = cameraForm.cameraSerialImages?.[idx] || [];
+                    return (
+                      <div key={idx} className="p-2 bg-slate-900/60 rounded-lg border border-slate-800/80 space-y-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-mono text-sky-400 font-bold w-7 shrink-0 flex items-center gap-0.5">
+                            <Hash className="w-2.5 h-2.5" />{idx + 1}
+                          </span>
+                          <input
+                            type="text"
+                            placeholder={`S/N กล้องตัวที่ ${idx + 1}...`}
+                            value={(cameraForm.serialNumbers || [])[idx] || ''}
+                            onChange={e => {
+                              const count = cameraForm.cameraCount || 1;
+                              const prevSNs = cameraForm.serialNumbers || [];
+                              const newSNs: string[] = [];
+                              for (let i = 0; i < count; i++) {
+                                newSNs.push(prevSNs[i] || '');
+                              }
+                              newSNs[idx] = e.target.value;
+                              setCameraForm(f => ({
+                                ...f,
+                                serialNumbers: newSNs,
+                                serialNumber: newSNs.filter(Boolean).join(', ')
+                              }));
+                            }}
+                            className="flex-1 bg-black/60 border border-slate-700 rounded px-3 py-1.5 text-xs text-white focus:border-sky-500 outline-none font-mono"
+                          />
+                          <label className="cursor-pointer px-2.5 py-1.5 rounded bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/40 text-cyan-300 text-[10px] font-mono font-bold flex items-center gap-1 transition-all shrink-0">
+                            <Camera className="w-3 h-3 text-cyan-400" />
+                            <span>+ รูปกล้อง #{idx + 1}</span>
+                            <input
+                              type="file"
+                              multiple
+                              accept="image/*"
+                              onChange={e => handleCameraSnImageUpload(idx, e)}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
+
+                        {/* Thumbnail preview of photos for this S/N */}
+                        {snImages.length > 0 && (
+                          <div className="flex items-center gap-1.5 pl-9 flex-wrap pt-0.5">
+                            {snImages.map((img, imgIdx) => (
+                              <div key={imgIdx} className="relative group/thumb w-10 h-10 rounded border border-cyan-500/40 overflow-hidden bg-black shrink-0">
+                                <img src={img} alt={`camera-${idx}-${imgIdx}`} className="w-full h-full object-cover" />
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openLightbox(snImages, imgIdx);
+                                  }}
+                                  className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity z-10"
+                                  title="ดูรูปขยาย"
+                                >
+                                  <Eye className="w-3 h-3 text-white" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    removeCameraSnImage(idx, imgIdx);
+                                  }}
+                                  className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-red-600 hover:bg-red-500 text-white opacity-0 group-hover/thumb:opacity-100 transition-opacity z-20 shadow-md cursor-pointer"
+                                  title="ลบรูปนี้"
+                                >
+                                  <X className="w-2.5 h-2.5" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
