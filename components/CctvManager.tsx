@@ -490,6 +490,24 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [lightboxImages, setLightboxImages] = useState<string[] | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [lightboxTitles, setLightboxTitles] = useState<string[] | null>(null);
+
+  // Keyboard navigation for Lightbox
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!lightboxImages || lightboxImages.length === 0) return;
+      if (e.key === 'Escape') {
+        setLightboxImages(null);
+        setLightboxTitles(null);
+      } else if (e.key === 'ArrowRight') {
+        setLightboxIndex((prev) => (prev < lightboxImages.length - 1 ? prev + 1 : 0));
+      } else if (e.key === 'ArrowLeft') {
+        setLightboxIndex((prev) => (prev > 0 ? prev - 1 : lightboxImages.length - 1));
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [lightboxImages]);
 
   const cameraFileInputRef = useRef<HTMLInputElement | null>(null);
   const routerFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -925,9 +943,11 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
     }));
   };
 
-  const openLightbox = (images: string[], startIndex = 0) => {
+  const openLightbox = (images: string[], startIndex = 0, titles?: string[]) => {
+    if (!images || images.length === 0) return;
     setLightboxImages(images);
-    setLightboxIndex(startIndex);
+    setLightboxIndex(startIndex >= 0 && startIndex < images.length ? startIndex : 0);
+    setLightboxTitles(titles || null);
   };
 
   // ── Camera CRUD ──
@@ -1176,44 +1196,69 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
             </div>
 
             {/* Serial Numbers display — show if any S/N recorded */}
-            {cam.serialNumbers && cam.serialNumbers.some(Boolean) && (
-              <div className="mt-2.5 p-2 bg-black/20 rounded-lg border border-slate-800/60">
-                <div className="flex items-center justify-between mb-1.5">
-                  <p className="text-[9px] text-slate-500 uppercase tracking-wider font-mono flex items-center gap-1">
-                    <Tag className="w-2.5 h-2.5 text-cyan-500" /> Serial Numbers
-                  </p>
-                  {cam.cameraSerialImages && cam.cameraSerialImages.some(imgs => Array.isArray(imgs) && imgs.length > 0) && (
-                    <span className="text-[9px] text-cyan-400 font-mono flex items-center gap-0.5 font-medium">
-                      <ImageIcon className="w-2.5 h-2.5" /> มีรูปรายกล้อง
-                    </span>
-                  )}
+            {cam.serialNumbers && cam.serialNumbers.some(Boolean) && (() => {
+              // Pre-calculate all camera S/N images for this card
+              const allSnPhotos: { image: string; title: string; cameraIdx: number }[] = [];
+              cam.serialNumbers.forEach((sn, cIdx) => {
+                const imgs = cam.cameraSerialImages?.[cIdx] || [];
+                imgs.forEach((img, i) => {
+                  allSnPhotos.push({
+                    image: img,
+                    title: `กล้อง #${cIdx + 1}${sn ? ` (S/N: ${sn})` : ''}${imgs.length > 1 ? ` [รูปที่ ${i + 1}/${imgs.length}]` : ''}`,
+                    cameraIdx: cIdx,
+                  });
+                });
+              });
+
+              return (
+                <div className="mt-2.5 p-2 bg-black/20 rounded-lg border border-slate-800/60">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-[9px] text-slate-500 uppercase tracking-wider font-mono flex items-center gap-1">
+                      <Tag className="w-2.5 h-2.5 text-cyan-500" /> Serial Numbers
+                    </p>
+                    {allSnPhotos.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => openLightbox(allSnPhotos.map(p => p.image), 0, allSnPhotos.map(p => p.title))}
+                        className="text-[9px] text-cyan-400 hover:text-cyan-300 font-mono flex items-center gap-0.5 font-medium cursor-pointer transition-colors"
+                        title="ดูรูปกล้องทั้งหมด"
+                      >
+                        <ImageIcon className="w-2.5 h-2.5" /> มีรูปรายกล้อง ({allSnPhotos.length} รูป)
+                      </button>
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    {cam.serialNumbers.map((sn, idx) => {
+                      const snImages = cam.cameraSerialImages?.[idx] || [];
+                      const targetStartIndex = allSnPhotos.findIndex(p => p.cameraIdx === idx);
+                      return (
+                        <div key={idx} className="flex items-center justify-between gap-1.5 bg-black/30 px-2 py-1 rounded border border-slate-800/40">
+                          <p className="text-[10px] font-mono flex items-center gap-1.5 truncate">
+                            <span className="text-sky-500 font-bold w-5 shrink-0">#{idx + 1}</span>
+                            <span className="text-slate-300 truncate font-medium">{sn || <span className="text-slate-600 italic">ไม่ระบุ</span>}</span>
+                          </p>
+                          {snImages.length > 0 ? (
+                            <button
+                              type="button"
+                              onClick={() => openLightbox(
+                                allSnPhotos.map(p => p.image),
+                                targetStartIndex >= 0 ? targetStartIndex : 0,
+                                allSnPhotos.map(p => p.title)
+                              )}
+                              className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/40 text-cyan-300 text-[9px] font-mono transition-all shrink-0 cursor-pointer"
+                              title={`ดูรูปกล้อง #${idx + 1} (เลื่อนดูได้ทั้งหมด ${allSnPhotos.length} รูป)`}
+                            >
+                              <img src={snImages[0]} alt="" className="w-3.5 h-3.5 rounded-sm object-cover" />
+                              <span>{snImages.length} รูป</span>
+                            </button>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  {cam.serialNumbers.map((sn, idx) => {
-                    const snImages = cam.cameraSerialImages?.[idx] || [];
-                    return (
-                      <div key={idx} className="flex items-center justify-between gap-1.5 bg-black/30 px-2 py-1 rounded border border-slate-800/40">
-                        <p className="text-[10px] font-mono flex items-center gap-1.5 truncate">
-                          <span className="text-sky-500 font-bold w-5 shrink-0">#{idx + 1}</span>
-                          <span className="text-slate-300 truncate font-medium">{sn || <span className="text-slate-600 italic">ไม่ระบุ</span>}</span>
-                        </p>
-                        {snImages.length > 0 ? (
-                          <button
-                            type="button"
-                            onClick={() => openLightbox(snImages, 0)}
-                            className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/40 text-cyan-300 text-[9px] font-mono transition-all shrink-0 cursor-pointer"
-                            title={`ดูรูปกล้อง #${idx + 1} (${snImages.length} รูป)`}
-                          >
-                            <img src={snImages[0]} alt="" className="w-3.5 h-3.5 rounded-sm object-cover" />
-                            <span>{snImages.length} รูป</span>
-                          </button>
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* NVR 16CH Display in Card (for vessels) */}
             {(cam.locationType === 'ในเรือ' || cam.nvrSerialNumber || (cam.nvrImages && cam.nvrImages.length > 0)) && (
@@ -1223,7 +1268,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                     <HardDrive className="w-3 h-3 text-amber-400" /> {cam.nvrModel || 'Dahua NVR 16CH (4TB)'}
                   </p>
                   {cam.nvrImages && cam.nvrImages.length > 0 && (
-                    <button onClick={() => openLightbox(cam.nvrImages!, 0)} className="text-[9px] text-amber-400 hover:text-amber-300 font-mono flex items-center gap-0.5">
+                    <button onClick={() => openLightbox(cam.nvrImages!, 0, cam.nvrImages!.map((_, i) => `${cam.locationName} - NVR (${i + 1}/${cam.nvrImages!.length})`))} className="text-[9px] text-amber-400 hover:text-amber-300 font-mono flex items-center gap-0.5">
                       <ImageIcon className="w-2.5 h-2.5" /> รูป NVR ({cam.nvrImages.length})
                     </button>
                   )}
@@ -1236,7 +1281,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                 {cam.nvrImages && cam.nvrImages.length > 0 && (
                   <div className="flex gap-1.5 overflow-x-auto pt-0.5 pb-0.5">
                     {cam.nvrImages.map((nImg, nIdx) => (
-                      <div key={nIdx} onClick={() => openLightbox(cam.nvrImages!, nIdx)} className="w-12 h-12 rounded-lg border border-amber-500/40 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity shrink-0">
+                      <div key={nIdx} onClick={() => openLightbox(cam.nvrImages!, nIdx, cam.nvrImages!.map((_, i) => `${cam.locationName} - NVR (${i + 1}/${cam.nvrImages!.length})`))} className="w-12 h-12 rounded-lg border border-amber-500/40 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity shrink-0">
                         <img src={nImg} alt={`NVR-${nIdx}`} className="w-full h-full object-cover" />
                       </div>
                     ))}
@@ -1254,7 +1299,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                     {(cam.routerCount || 1) >= 2 && <span className="ml-1 text-[8px] bg-cyan-500/20 px-1 py-0.5 rounded">#1</span>}
                   </p>
                   {cam.routerImages && cam.routerImages.length > 0 && (
-                    <button onClick={() => openLightbox(cam.routerImages!, 0)} className="text-[9px] text-cyan-400 hover:text-cyan-300 font-mono flex items-center gap-0.5">
+                    <button onClick={() => openLightbox(cam.routerImages!, 0, cam.routerImages!.map((_, i) => `${cam.locationName} - Router #1 (${i + 1}/${cam.routerImages!.length})`))} className="text-[9px] text-cyan-400 hover:text-cyan-300 font-mono flex items-center gap-0.5">
                       <ImageIcon className="w-2.5 h-2.5" /> รูป Router ({cam.routerImages.length})
                     </button>
                   )}
@@ -1275,7 +1320,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                 {cam.routerImages && cam.routerImages.length > 0 && (
                   <div className="flex gap-1.5 overflow-x-auto pt-0.5 pb-0.5">
                     {cam.routerImages.map((rImg, rIdx) => (
-                      <div key={rIdx} onClick={() => openLightbox(cam.routerImages!, rIdx)} className="w-12 h-12 rounded-lg border border-cyan-900/60 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity shrink-0">
+                      <div key={rIdx} onClick={() => openLightbox(cam.routerImages!, rIdx, cam.routerImages!.map((_, i) => `${cam.locationName} - Router #1 (${i + 1}/${cam.routerImages!.length})`))} className="w-12 h-12 rounded-lg border border-cyan-900/60 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity shrink-0">
                         <img src={rImg} alt={`Router-${rIdx}`} className="w-full h-full object-cover" />
                       </div>
                     ))}
@@ -1293,7 +1338,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                     <span className="ml-1 text-[8px] bg-cyan-500/20 px-1 py-0.5 rounded">#2</span>
                   </p>
                   {cam.router2Images && cam.router2Images.length > 0 && (
-                    <button onClick={() => openLightbox(cam.router2Images!, 0)} className="text-[9px] text-cyan-400 hover:text-cyan-300 font-mono flex items-center gap-0.5">
+                    <button onClick={() => openLightbox(cam.router2Images!, 0, cam.router2Images!.map((_, i) => `${cam.locationName} - Router #2 (${i + 1}/${cam.router2Images!.length})`))} className="text-[9px] text-cyan-400 hover:text-cyan-300 font-mono flex items-center gap-0.5">
                       <ImageIcon className="w-2.5 h-2.5" /> รูป ({cam.router2Images.length})
                     </button>
                   )}
@@ -1314,7 +1359,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                 {cam.router2Images && cam.router2Images.length > 0 && (
                   <div className="flex gap-1.5 overflow-x-auto pt-0.5 pb-0.5">
                     {cam.router2Images.map((rImg, rIdx) => (
-                      <div key={rIdx} onClick={() => openLightbox(cam.router2Images!, rIdx)} className="w-12 h-12 rounded-lg border border-cyan-800/50 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity shrink-0">
+                      <div key={rIdx} onClick={() => openLightbox(cam.router2Images!, rIdx, cam.router2Images!.map((_, i) => `${cam.locationName} - Router #2 (${i + 1}/${cam.router2Images!.length})`))} className="w-12 h-12 rounded-lg border border-cyan-800/50 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity shrink-0">
                         <img src={rImg} alt={`Router2-${rIdx}`} className="w-full h-full object-cover" />
                       </div>
                     ))}
@@ -1338,7 +1383,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                         <span>🔊</span> แอมป์เสียง
                       </p>
                       {cam.ampImages && cam.ampImages.length > 0 && (
-                        <button onClick={() => openLightbox(cam.ampImages!, 0)} className="text-[9px] text-orange-400 hover:text-orange-300 font-mono flex items-center gap-0.5">
+                        <button onClick={() => openLightbox(cam.ampImages!, 0, cam.ampImages!.map((_, i) => `${cam.locationName} - แอมป์เสียง (${i + 1}/${cam.ampImages!.length})`))} className="text-[9px] text-orange-400 hover:text-orange-300 font-mono flex items-center gap-0.5">
                           <ImageIcon className="w-2.5 h-2.5" /> รูป ({cam.ampImages.length})
                         </button>
                       )}
@@ -1351,7 +1396,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                     {cam.ampImages && cam.ampImages.length > 0 && (
                       <div className="flex gap-1.5 overflow-x-auto pt-0.5 pb-0.5">
                         {cam.ampImages.map((img, aIdx) => (
-                          <div key={aIdx} onClick={() => openLightbox(cam.ampImages!, aIdx)} className="w-12 h-12 rounded-lg border border-orange-500/40 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity shrink-0">
+                          <div key={aIdx} onClick={() => openLightbox(cam.ampImages!, aIdx, cam.ampImages!.map((_, i) => `${cam.locationName} - แอมป์เสียง (${i + 1}/${cam.ampImages!.length})`))} className="w-12 h-12 rounded-lg border border-orange-500/40 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity shrink-0">
                             <img src={img} alt={`Amp-${aIdx}`} className="w-full h-full object-cover" />
                           </div>
                         ))}
@@ -1361,23 +1406,41 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                 )}
 
                 {/* Speakers */}
-                {cam.speakerPhotos?.some(s => s.image) && (
-                  <div className="p-2 bg-black/30 rounded-lg border border-purple-500/30 space-y-1.5">
-                    <p className="text-[9px] text-purple-400 uppercase tracking-wider font-mono flex items-center gap-1 font-bold">
-                      <span>🔉</span> รูปลำโพง ({cam.speakerPhotos.filter(s => s.image).length} รูป)
-                    </p>
-                    <div className="flex gap-1.5 overflow-x-auto pb-0.5">
-                      {cam.speakerPhotos.map((sp, sIdx) => sp.image ? (
-                        <div key={sIdx} className="flex flex-col items-center gap-0.5 shrink-0">
-                          <div onClick={() => openLightbox(cam.speakerPhotos!.filter(s => s.image).map(s => s.image), cam.speakerPhotos!.filter(s=>s.image).findIndex((_,i)=>cam.speakerPhotos![sIdx]===cam.speakerPhotos!.filter(s=>s.image)[i]))} className="w-10 h-10 rounded border border-purple-500/40 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity">
-                            <img src={sp.image} alt={`Speaker-${sIdx+1}`} className="w-full h-full object-cover" />
+                {cam.speakerPhotos?.some(s => s.image) && (() => {
+                  const spList = (cam.speakerPhotos || [])
+                    .map((sp, idx) => ({ ...sp, slotNumber: idx + 1 }))
+                    .filter(sp => Boolean(sp.image));
+                  return (
+                    <div className="p-2 bg-black/30 rounded-lg border border-purple-500/30 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[9px] text-purple-400 uppercase tracking-wider font-mono flex items-center gap-1 font-bold">
+                          <span>🔉</span> รูปลำโพง ({spList.length} รูป)
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => openLightbox(spList.map(s => s.image!), 0, spList.map(s => `ลำโพง #${s.slotNumber}${s.note ? ` (${s.note})` : ''}`))}
+                          className="text-[9px] text-purple-400 hover:text-purple-300 font-mono flex items-center gap-0.5"
+                        >
+                          <ImageIcon className="w-2.5 h-2.5" /> ดูทั้งหมด
+                        </button>
+                      </div>
+                      <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+                        {spList.map((sp, sIdx) => (
+                          <div key={sIdx} className="flex flex-col items-center gap-0.5 shrink-0">
+                            <div
+                              onClick={() => openLightbox(spList.map(s => s.image!), sIdx, spList.map(s => `ลำโพง #${s.slotNumber}${s.note ? ` (${s.note})` : ''}`))}
+                              className="w-10 h-10 rounded border border-purple-500/40 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                              title={`ลำโพง #${sp.slotNumber}${sp.note ? ` - ${sp.note}` : ''}`}
+                            >
+                              <img src={sp.image!} alt={`Speaker-${sp.slotNumber}`} className="w-full h-full object-cover" />
+                            </div>
+                            <span className="text-[8px] text-purple-300 font-mono">#{sp.slotNumber}</span>
                           </div>
-                          <span className="text-[8px] text-purple-300 font-mono">#{sIdx+1}</span>
-                        </div>
-                      ) : null)}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* Marine Radio */}
                 {(cam.marineRadioImages?.length || cam.marineRadioBrand || cam.marineRadioInstallDate) && (
@@ -1387,7 +1450,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                         <span>📻</span> วิทยุมารีน
                       </p>
                       {cam.marineRadioImages && cam.marineRadioImages.length > 0 && (
-                        <button onClick={() => openLightbox(cam.marineRadioImages!, 0)} className="text-[9px] text-teal-400 hover:text-teal-300 font-mono flex items-center gap-0.5">
+                        <button onClick={() => openLightbox(cam.marineRadioImages!, 0, cam.marineRadioImages!.map((_, i) => `${cam.locationName} - วิทยุมารีน (${i + 1}/${cam.marineRadioImages!.length})`))} className="text-[9px] text-teal-400 hover:text-teal-300 font-mono flex items-center gap-0.5">
                           <ImageIcon className="w-2.5 h-2.5" /> รูป ({cam.marineRadioImages.length})
                         </button>
                       )}
@@ -1405,7 +1468,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                     {cam.marineRadioImages && cam.marineRadioImages.length > 0 && (
                       <div className="flex gap-1.5 overflow-x-auto pt-0.5 pb-0.5">
                         {cam.marineRadioImages.map((img, mIdx) => (
-                          <div key={mIdx} onClick={() => openLightbox(cam.marineRadioImages!, mIdx)} className="w-12 h-12 rounded-lg border border-teal-500/40 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity shrink-0">
+                          <div key={mIdx} onClick={() => openLightbox(cam.marineRadioImages!, mIdx, cam.marineRadioImages!.map((_, i) => `${cam.locationName} - วิทยุมารีน (${i + 1}/${cam.marineRadioImages!.length})`))} className="w-12 h-12 rounded-lg border border-teal-500/40 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity shrink-0">
                             <img src={img} alt={`MarineRadio-${mIdx}`} className="w-full h-full object-cover" />
                           </div>
                         ))}
@@ -1424,7 +1487,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                     <ImageIcon className="w-3 h-3 text-sky-400" /> รูปภาพกล้อง ({cam.images!.length} รูป)
                   </span>
                   <button
-                    onClick={() => openLightbox(cam.images!, 0)}
+                    onClick={() => openLightbox(cam.images!, 0, cam.images!.map((_, i) => `${cam.locationName} - รูปกล้อง (${i + 1}/${cam.images!.length})`))}
                     className="text-[10px] text-sky-400 hover:text-sky-300 font-mono flex items-center gap-0.5"
                   >
                     <Maximize2 className="w-2.5 h-2.5" /> ดูทั้งหมด
@@ -1434,7 +1497,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                   {cam.images!.slice(0, 4).map((img, idx) => (
                     <div
                       key={idx}
-                      onClick={() => openLightbox(cam.images!, idx)}
+                      onClick={() => openLightbox(cam.images!, idx, cam.images!.map((_, i) => `${cam.locationName} - รูปกล้อง (${i + 1}/${cam.images!.length})`))}
                       className="relative w-14 h-14 rounded-lg overflow-hidden border border-slate-700/80 cursor-pointer hover:opacity-80 transition-opacity shrink-0 group/img"
                     >
                       <img src={img} alt={`cctv-${idx}`} className="w-full h-full object-cover" />
@@ -1909,82 +1972,103 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                   </span>
                 </div>
                 <div className="p-3 bg-black/40 rounded-lg border border-slate-700/60 space-y-2.5 max-h-72 overflow-y-auto">
-                  {Array.from({ length: cameraForm.cameraCount || 1 }, (_, idx) => {
-                    const snImages = cameraForm.cameraSerialImages?.[idx] || [];
-                    return (
-                      <div key={idx} className="p-2 bg-slate-900/60 rounded-lg border border-slate-800/80 space-y-1.5">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-mono text-sky-400 font-bold w-7 shrink-0 flex items-center gap-0.5">
-                            <Hash className="w-2.5 h-2.5" />{idx + 1}
-                          </span>
-                          <input
-                            type="text"
-                            placeholder={`S/N กล้องตัวที่ ${idx + 1}...`}
-                            value={(cameraForm.serialNumbers || [])[idx] || ''}
-                            onChange={e => {
-                              const count = cameraForm.cameraCount || 1;
-                              const prevSNs = cameraForm.serialNumbers || [];
-                              const newSNs: string[] = [];
-                              for (let i = 0; i < count; i++) {
-                                newSNs.push(prevSNs[i] || '');
-                              }
-                              newSNs[idx] = e.target.value;
-                              setCameraForm(f => ({
-                                ...f,
-                                serialNumbers: newSNs,
-                                serialNumber: newSNs.filter(Boolean).join(', ')
-                              }));
-                            }}
-                            className="flex-1 bg-black/60 border border-slate-700 rounded px-3 py-1.5 text-xs text-white focus:border-sky-500 outline-none font-mono"
-                          />
-                          <label className="cursor-pointer px-2.5 py-1.5 rounded bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/40 text-cyan-300 text-[10px] font-mono font-bold flex items-center gap-1 transition-all shrink-0">
-                            <Camera className="w-3 h-3 text-cyan-400" />
-                            <span>+ รูปกล้อง #{idx + 1}</span>
-                            <input
-                              type="file"
-                              multiple
-                              accept="image/*"
-                              onChange={e => handleCameraSnImageUpload(idx, e)}
-                              className="hidden"
-                            />
-                          </label>
-                        </div>
+                  {(() => {
+                    const count = cameraForm.cameraCount || 1;
+                    const allModalSnPhotos: { image: string; title: string; cameraIdx: number; imgIdx: number }[] = [];
+                    for (let cIdx = 0; cIdx < count; cIdx++) {
+                      const sn = (cameraForm.serialNumbers || [])[cIdx];
+                      const imgs = cameraForm.cameraSerialImages?.[cIdx] || [];
+                      imgs.forEach((img, i) => {
+                        allModalSnPhotos.push({
+                          image: img,
+                          title: `กล้อง #${cIdx + 1}${sn ? ` (S/N: ${sn})` : ''}${imgs.length > 1 ? ` [รูปที่ ${i + 1}/${imgs.length}]` : ''}`,
+                          cameraIdx: cIdx,
+                          imgIdx: i,
+                        });
+                      });
+                    }
 
-                        {/* Thumbnail preview of photos for this S/N */}
-                        {snImages.length > 0 && (
-                          <div className="flex items-center gap-1.5 pl-9 flex-wrap pt-0.5">
-                            {snImages.map((img, imgIdx) => (
-                              <div key={imgIdx} className="relative group/thumb w-10 h-10 rounded border border-cyan-500/40 overflow-hidden bg-black shrink-0">
-                                <img src={img} alt={`camera-${idx}-${imgIdx}`} className="w-full h-full object-cover" />
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openLightbox(snImages, imgIdx);
-                                  }}
-                                  className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity z-10"
-                                  title="ดูรูปขยาย"
-                                >
-                                  <Eye className="w-3 h-3 text-white" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    removeCameraSnImage(idx, imgIdx);
-                                  }}
-                                  className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-red-600 hover:bg-red-500 text-white opacity-0 group-hover/thumb:opacity-100 transition-opacity z-20 shadow-md cursor-pointer"
-                                  title="ลบรูปนี้"
-                                >
-                                  <X className="w-2.5 h-2.5" />
-                                </button>
-                              </div>
-                            ))}
+                    return Array.from({ length: count }, (_, idx) => {
+                      const snImages = cameraForm.cameraSerialImages?.[idx] || [];
+                      return (
+                        <div key={idx} className="p-2 bg-slate-900/60 rounded-lg border border-slate-800/80 space-y-1.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-mono text-sky-400 font-bold w-7 shrink-0 flex items-center gap-0.5">
+                              <Hash className="w-2.5 h-2.5" />{idx + 1}
+                            </span>
+                            <input
+                              type="text"
+                              placeholder={`S/N กล้องตัวที่ ${idx + 1}...`}
+                              value={(cameraForm.serialNumbers || [])[idx] || ''}
+                              onChange={e => {
+                                const prevSNs = cameraForm.serialNumbers || [];
+                                const newSNs: string[] = [];
+                                for (let i = 0; i < count; i++) {
+                                  newSNs.push(prevSNs[i] || '');
+                                }
+                                newSNs[idx] = e.target.value;
+                                setCameraForm(f => ({
+                                  ...f,
+                                  serialNumbers: newSNs,
+                                  serialNumber: newSNs.filter(Boolean).join(', ')
+                                }));
+                              }}
+                              className="flex-1 bg-black/60 border border-slate-700 rounded px-3 py-1.5 text-xs text-white focus:border-sky-500 outline-none font-mono"
+                            />
+                            <label className="cursor-pointer px-2.5 py-1.5 rounded bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/40 text-cyan-300 text-[10px] font-mono font-bold flex items-center gap-1 transition-all shrink-0">
+                              <Camera className="w-3 h-3 text-cyan-400" />
+                              <span>+ รูปกล้อง #{idx + 1}</span>
+                              <input
+                                type="file"
+                                multiple
+                                accept="image/*"
+                                onChange={e => handleCameraSnImageUpload(idx, e)}
+                                className="hidden"
+                              />
+                            </label>
                           </div>
-                        )}
-                      </div>
-                    );
-                  })}
+
+                          {/* Thumbnail preview of photos for this S/N */}
+                          {snImages.length > 0 && (
+                            <div className="flex items-center gap-1.5 pl-9 flex-wrap pt-0.5">
+                              {snImages.map((img, imgIdx) => (
+                                <div key={imgIdx} className="relative group/thumb w-10 h-10 rounded border border-cyan-500/40 overflow-hidden bg-black shrink-0">
+                                  <img src={img} alt={`camera-${idx}-${imgIdx}`} className="w-full h-full object-cover" />
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const targetIdx = allModalSnPhotos.findIndex(p => p.cameraIdx === idx && p.imgIdx === imgIdx);
+                                      openLightbox(
+                                        allModalSnPhotos.map(p => p.image),
+                                        targetIdx >= 0 ? targetIdx : 0,
+                                        allModalSnPhotos.map(p => p.title)
+                                      );
+                                    }}
+                                    className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity z-10"
+                                    title="ดูรูปขยาย (เลื่อนดูรูปกล้องอื่นๆ ได้)"
+                                  >
+                                    <Eye className="w-3 h-3 text-white" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      removeCameraSnImage(idx, imgIdx);
+                                    }}
+                                    className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-red-600 hover:bg-red-500 text-white opacity-0 group-hover/thumb:opacity-100 transition-opacity z-20 shadow-md cursor-pointer"
+                                    title="ลบรูปนี้"
+                                  >
+                                    <X className="w-2.5 h-2.5" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
               </div>
 
@@ -2140,7 +2224,23 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                         {sp.image ? (
                           <div className="relative group/spthumb w-full aspect-video rounded overflow-hidden border border-purple-500/40 bg-black">
                             <img src={sp.image} alt={`speaker-${sIdx+1}`} className="w-full h-full object-cover" />
-                            <button type="button" onClick={(e) => { e.stopPropagation(); openLightbox([sp.image], 0); }} className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/spthumb:opacity-100 transition-opacity z-10" title="ดูรูปขยาย">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const validSpeakers = (cameraForm.speakerPhotos || [])
+                                  .map((s, i) => ({ ...s, slotNum: i + 1 }))
+                                  .filter(s => Boolean(s.image));
+                                const tIdx = validSpeakers.findIndex(s => s.slotNum === sIdx + 1);
+                                openLightbox(
+                                  validSpeakers.map(s => s.image),
+                                  tIdx >= 0 ? tIdx : 0,
+                                  validSpeakers.map(s => `ลำโพง #${s.slotNum}${s.note ? ` (${s.note})` : ''}`)
+                                );
+                              }}
+                              className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/spthumb:opacity-100 transition-opacity z-10"
+                              title="ดูรูปขยาย (เลื่อนดูรูปลำโพงอื่นๆ ได้)"
+                            >
                               <Eye className="w-4 h-4 text-white" />
                             </button>
                             <button type="button" onClick={(e) => { e.stopPropagation(); removeSpeakerImage(sIdx); }} className="absolute top-1 right-1 p-1 rounded-full bg-red-600 hover:bg-red-500 text-white opacity-0 group-hover/spthumb:opacity-100 transition-opacity z-20 shadow-md cursor-pointer" title="ลบรูปนี้">
@@ -2765,39 +2865,101 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
 
       {/* ════ LIGHTBOX IMAGE VIEWER MODAL ════ */}
       {lightboxImages && lightboxImages.length > 0 && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-md p-4 animate-in fade-in duration-200">
+        <div
+          onClick={() => {
+            setLightboxImages(null);
+            setLightboxTitles(null);
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-md p-4 animate-in fade-in duration-200 select-none"
+        >
+          {/* Close button */}
           <button
-            onClick={() => setLightboxImages(null)}
-            className="absolute top-4 right-4 p-2 rounded-full bg-slate-800 text-white hover:bg-slate-700 transition-colors z-10"
+            onClick={() => {
+              setLightboxImages(null);
+              setLightboxTitles(null);
+            }}
+            className="absolute top-4 right-4 p-2.5 rounded-full bg-slate-800/80 hover:bg-red-600 text-white transition-all z-20 cursor-pointer shadow-lg hover:scale-105"
+            title="ปิด (Esc)"
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5" />
           </button>
 
+          {/* Left / Previous button */}
           {lightboxImages.length > 1 && (
-            <>
-              <button
-                onClick={() => setLightboxIndex((prev) => (prev > 0 ? prev - 1 : lightboxImages.length - 1))}
-                className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/60 text-white hover:bg-black/90 transition-all z-10"
-              >
-                <ChevronLeft className="w-6 h-6" />
-              </button>
-              <button
-                onClick={() => setLightboxIndex((prev) => (prev < lightboxImages.length - 1 ? prev + 1 : 0))}
-                className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/60 text-white hover:bg-black/90 transition-all z-10"
-              >
-                <ChevronRight className="w-6 h-6" />
-              </button>
-            </>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxIndex((prev) => (prev > 0 ? prev - 1 : lightboxImages.length - 1));
+              }}
+              className="absolute left-3 md:left-6 top-1/2 -translate-y-1/2 p-3.5 md:p-4 rounded-full bg-black/70 hover:bg-sky-600 border border-slate-700/80 text-white shadow-2xl transition-all z-20 hover:scale-110 cursor-pointer"
+              title="รูปก่อนหน้า (ลูกศรซ้าย)"
+            >
+              <ChevronLeft className="w-6 h-6 md:w-8 md:h-8" />
+            </button>
           )}
 
-          <div className="flex flex-col items-center max-w-4xl max-h-[85vh] w-full">
-            <img
-              src={lightboxImages[lightboxIndex]}
-              alt={`cctv-full-${lightboxIndex}`}
-              className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl border border-slate-800"
-            />
-            <div className="mt-3 px-4 py-1.5 rounded-full bg-black/60 border border-slate-800 text-slate-300 text-xs font-mono">
-              รูปที่ {lightboxIndex + 1} จากทั้งหมด {lightboxImages.length} รูป
+          {/* Right / Next button */}
+          {lightboxImages.length > 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setLightboxIndex((prev) => (prev < lightboxImages.length - 1 ? prev + 1 : 0));
+              }}
+              className="absolute right-3 md:right-6 top-1/2 -translate-y-1/2 p-3.5 md:p-4 rounded-full bg-black/70 hover:bg-sky-600 border border-slate-700/80 text-white shadow-2xl transition-all z-20 hover:scale-110 cursor-pointer"
+              title="รูปถัดไป (ลูกศรขวา)"
+            >
+              <ChevronRight className="w-6 h-6 md:w-8 md:h-8" />
+            </button>
+          )}
+
+          {/* Main Image Container */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="flex flex-col items-center max-w-5xl max-h-[90vh] w-full"
+          >
+            {/* Title / Caption */}
+            {lightboxTitles && lightboxTitles[lightboxIndex] && (
+              <div className="mb-2 px-4 py-1.5 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 text-xs md:text-sm font-mono font-bold shadow-lg text-center max-w-full truncate">
+                {lightboxTitles[lightboxIndex]}
+              </div>
+            )}
+
+            {/* Photo */}
+            <div className="relative flex items-center justify-center max-h-[70vh] w-full">
+              <img
+                src={lightboxImages[lightboxIndex]}
+                alt={`cctv-full-${lightboxIndex}`}
+                className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-2xl border border-slate-800"
+              />
+            </div>
+
+            {/* Counter and Thumbnails */}
+            <div className="mt-3 flex flex-col items-center gap-2">
+              <div className="px-4 py-1 rounded-full bg-black/70 border border-slate-800 text-slate-300 text-xs font-mono">
+                รูปที่ <span className="text-sky-400 font-bold">{lightboxIndex + 1}</span> จากทั้งหมด <span className="font-bold">{lightboxImages.length}</span> รูป
+                {lightboxImages.length > 1 && <span className="text-slate-500 ml-2">(กดปุ่มซ้าย/ขวา หรือ แป้นพิมพ์ ◀ ▶ เพื่อเลื่อน)</span>}
+              </div>
+
+              {/* Thumbnails list */}
+              {lightboxImages.length > 1 && (
+                <div className="flex gap-1.5 overflow-x-auto max-w-lg px-2 py-1 scrollbar-thin">
+                  {lightboxImages.map((img, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setLightboxIndex(i)}
+                      className={`relative w-11 h-11 rounded overflow-hidden border transition-all shrink-0 cursor-pointer ${
+                        i === lightboxIndex
+                          ? 'border-sky-400 ring-2 ring-sky-400/50 scale-105 opacity-100'
+                          : 'border-slate-700 opacity-50 hover:opacity-100'
+                      }`}
+                    >
+                      <img src={img} alt={`thumb-${i}`} className="w-full h-full object-cover" />
+                      <span className="absolute bottom-0 right-0 bg-black/80 text-[8px] text-white px-1 font-mono">{i + 1}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
