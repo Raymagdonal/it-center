@@ -84,6 +84,10 @@ export interface CctvCamera {
   ampInstallDate?: string;        // วันที่ติดตั้งแอมป์
   // ── ลำโพงในเรือ (สูงสุด 8 ตัว) ──
   speakerPhotos?: SpeakerPhotoEntry[];  // รูปภาพลำโพง พร้อมหมายเหตุ (max 8)
+  // ── วิทยุมารีนในเรือ ──
+  marineRadioBrand?: string;       // ยี่ห้อ/รุ่น วิทยุมารีน
+  marineRadioInstallDate?: string; // วันที่ติดตั้งวิทยุมารีน
+  marineRadioImages?: string[];    // รูปภาพวิทยุมารีน
   routerModel?: string;           // Router #1 4G Model / Name
   routerSerialNumber?: string;    // Router #1 4G S/N
   simPhoneNumber?: string;        // เบอร์โทรศัพท์ซิม AIS #1
@@ -559,6 +563,9 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
     ampImages: [],
     ampInstallDate: '',
     speakerPhotos: Array(8).fill(null).map(() => ({ image: '', note: '' })),
+    marineRadioBrand: '',
+    marineRadioInstallDate: '',
+    marineRadioImages: [],
     routerModel: 'Router 4G',
     routerSerialNumber: '',
     simPhoneNumber: '',
@@ -812,6 +819,32 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
     setCameraForm(prev => ({ ...prev, ampImages: (prev.ampImages || []).filter((_, idx) => idx !== indexToRemove) }));
   };
 
+  // ── Marine Radio image handlers ──
+  const handleMarineRadioImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setIsUploading(true);
+    const newImages: string[] = [];
+    for (let i = 0; i < files.length; i++) {
+      try {
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(files[i]);
+        });
+        newImages.push(await compressImage(base64, 1024, 0.75));
+      } catch (err) { console.error('Marine radio image error:', err); }
+    }
+    setCameraForm(prev => ({ ...prev, marineRadioImages: [...(prev.marineRadioImages || []), ...newImages] }));
+    setIsUploading(false);
+    if (e.target) e.target.value = '';
+  };
+
+  const removeMarineRadioImage = (indexToRemove: number) => {
+    setCameraForm(prev => ({ ...prev, marineRadioImages: (prev.marineRadioImages || []).filter((_, idx) => idx !== indexToRemove) }));
+  };
+
   // ── Speaker photo handlers ──
   const handleSpeakerImageUpload = async (slotIdx: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -945,6 +978,9 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
         );
         return result;
       })(),
+      marineRadioBrand: cam.marineRadioBrand || '',
+      marineRadioInstallDate: cam.marineRadioInstallDate || '',
+      marineRadioImages: cam.marineRadioImages || [],
       routerModel: cam.routerModel || 'Router 4G',
       routerSerialNumber: cam.routerSerialNumber || '',
       simPhoneNumber: cam.simPhoneNumber || '',
@@ -1292,7 +1328,7 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
             )}
 
             {/* 🔊 แอมป์ + ลำโพง Display in Card (vessel only) */}
-            {cam.locationType === 'ในเรือ' && (cam.ampImages?.length || cam.ampInstallDate || cam.speakerPhotos?.some(s => s.image)) && (
+            {cam.locationType === 'ในเรือ' && (cam.ampImages?.length || cam.ampInstallDate || cam.speakerPhotos?.some(s => s.image) || cam.marineRadioBrand || cam.marineRadioInstallDate || cam.marineRadioImages?.length) && (
               <div className="mt-2.5 space-y-2">
                 {/* Amp */}
                 {(cam.ampImages?.length || cam.ampInstallDate) && (
@@ -1340,6 +1376,41 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                         </div>
                       ) : null)}
                     </div>
+                  </div>
+                )}
+
+                {/* Marine Radio */}
+                {(cam.marineRadioImages?.length || cam.marineRadioBrand || cam.marineRadioInstallDate) && (
+                  <div className="p-2 bg-black/30 rounded-lg border border-teal-500/30 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[9px] text-teal-400 uppercase tracking-wider font-mono flex items-center gap-1 font-bold">
+                        <span>📻</span> วิทยุมารีน
+                      </p>
+                      {cam.marineRadioImages && cam.marineRadioImages.length > 0 && (
+                        <button onClick={() => openLightbox(cam.marineRadioImages!, 0)} className="text-[9px] text-teal-400 hover:text-teal-300 font-mono flex items-center gap-0.5">
+                          <ImageIcon className="w-2.5 h-2.5" /> รูป ({cam.marineRadioImages.length})
+                        </button>
+                      )}
+                    </div>
+                    {cam.marineRadioBrand && (
+                      <p className="text-[10px] font-mono text-slate-300">
+                        <span className="text-slate-500">ยี่ห้อ/รุ่น:</span> <span className="text-teal-300 font-bold">{cam.marineRadioBrand}</span>
+                      </p>
+                    )}
+                    {cam.marineRadioInstallDate && (
+                      <p className="text-[10px] font-mono text-slate-300">
+                        <span className="text-slate-500">ติดตั้ง:</span> <span className="text-teal-300 font-bold">{cam.marineRadioInstallDate}</span>
+                      </p>
+                    )}
+                    {cam.marineRadioImages && cam.marineRadioImages.length > 0 && (
+                      <div className="flex gap-1.5 overflow-x-auto pt-0.5 pb-0.5">
+                        {cam.marineRadioImages.map((img, mIdx) => (
+                          <div key={mIdx} onClick={() => openLightbox(cam.marineRadioImages!, mIdx)} className="w-12 h-12 rounded-lg border border-teal-500/40 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity shrink-0">
+                            <img src={img} alt={`MarineRadio-${mIdx}`} className="w-full h-full object-cover" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -2093,6 +2164,72 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                         />
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 📻 วิทยุมารีน (สำหรับในเรือ) */}
+              {cameraForm.locationType === 'ในเรือ' && (
+                <div className="space-y-3 p-3.5 bg-black/40 rounded-xl border border-teal-500/40">
+                  <div className="flex items-center justify-between border-b border-teal-900/40 pb-2">
+                    <label className="text-xs font-bold text-teal-400 uppercase tracking-widest flex items-center gap-1.5 font-mono">
+                      <span>📻</span> วิทยุมารีน
+                    </label>
+                  </div>
+
+                  {/* ยี่ห้อ/รุ่น */}
+                  <div>
+                    <label className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block mb-1">ยี่ห้อ / รุ่น วิทยุมารีน</label>
+                    <input
+                      type="text"
+                      placeholder="เช่น Icom IC-M93D, Standard Horizon GX1800..."
+                      value={cameraForm.marineRadioBrand || ''}
+                      onChange={e => setCameraForm(f => ({ ...f, marineRadioBrand: e.target.value }))}
+                      className="w-full bg-black/60 border border-teal-500/40 focus:border-teal-400 rounded-lg px-3 py-2 text-xs text-teal-100 outline-none font-mono placeholder-slate-600"
+                    />
+                  </div>
+
+                  {/* วันที่ติดตั้ง */}
+                  <div>
+                    <label className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block mb-1 flex items-center gap-1">
+                      <Calendar className="w-3 h-3 text-teal-400" /> วันที่ติดตั้งวิทยุมารีน
+                    </label>
+                    <input
+                      type="date"
+                      value={cameraForm.marineRadioInstallDate || ''}
+                      onChange={e => setCameraForm(f => ({ ...f, marineRadioInstallDate: e.target.value }))}
+                      className="w-full bg-black/60 border border-teal-500/40 focus:border-teal-400 rounded-lg px-3 py-2 text-xs text-teal-200 outline-none font-mono"
+                    />
+                  </div>
+
+                  {/* รูปภาพวิทยุมารีน */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-mono text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                        <ImageIcon className="w-3 h-3 text-teal-400" /> รูปภาพวิทยุมารีน
+                      </label>
+                      <span className="text-[10px] text-slate-500 font-mono">{cameraForm.marineRadioImages?.length || 0} รูป</span>
+                    </div>
+                    <label className="w-full py-2.5 px-3 rounded-lg border border-dashed border-teal-500/40 hover:border-teal-400 bg-teal-950/10 hover:bg-teal-950/20 transition-all cursor-pointer flex items-center justify-center gap-2">
+                      <Upload className="w-3.5 h-3.5 text-teal-400" />
+                      <span className="text-xs font-mono text-teal-300">คลิกเพื่ออัปโหลดรูปภาพวิทยุมารีน</span>
+                      <input type="file" multiple accept="image/*" onChange={handleMarineRadioImageUpload} className="hidden" />
+                    </label>
+                    {cameraForm.marineRadioImages && cameraForm.marineRadioImages.length > 0 && (
+                      <div className="grid grid-cols-4 gap-2 pt-1 max-h-36 overflow-y-auto">
+                        {cameraForm.marineRadioImages.map((img, idx) => (
+                          <div key={idx} className="relative group/thumb rounded-lg overflow-hidden border border-slate-700 aspect-square bg-black">
+                            <img src={img} alt={`marine-radio-${idx}`} className="w-full h-full object-cover" />
+                            <button type="button" onClick={(e) => { e.stopPropagation(); openLightbox(cameraForm.marineRadioImages!, idx); }} className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity z-10" title="ดูรูปขยาย">
+                              <Eye className="w-4 h-4 text-white" />
+                            </button>
+                            <button type="button" onClick={(e) => { e.stopPropagation(); removeMarineRadioImage(idx); }} className="absolute top-1 right-1 p-1 rounded-full bg-red-600 hover:bg-red-500 text-white opacity-0 group-hover/thumb:opacity-100 transition-opacity z-20 shadow-md cursor-pointer" title="ลบรูปนี้">
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
