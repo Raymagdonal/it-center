@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard | ร้านชุดไทยน้องหนู</title>
+  <meta name="robots" content="noindex">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="admin-body">
+
+<!-- ==================== LOGIN PAGE ==================== -->
+<div class="login-page" id="loginPage">
+  <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none;">
+    <div style="position:absolute;top:10%;left:5%;font-size:60px;opacity:0.05;animation:float 5s ease-in-out infinite;">👑</div>
+    <div style="position:absolute;top:60%;right:8%;font-size:40px;opacity:0.05;animation:float 7s ease-in-out infinite 1s;">🌸</div>
+    <div style="position:absolute;bottom:15%;left:15%;font-size:50px;opacity:0.05;animation:float 6s ease-in-out infinite 2s;">✨</div>
+  </div>
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="big-icon">👑</div>
+      <h2>ชุดไทยน้องหนู</h2>
+      <p>ระบบจัดการร้านค้า - สำหรับผู้ดูแลระบบ</p>
+    </div>
+    <form class="login-form" onsubmit="doLogin(event)">
+      <div class="form-group">
+        <label>👤 ชื่อผู้ใช้</label>
+        <input type="text" class="form-control" id="loginUser" placeholder="admin" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label>🔒 รหัสผ่าน</label>
+        <input type="password" class="form-control" id="loginPass" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <div id="loginError" style="color:var(--danger);font-size:13px;margin-bottom:12px;display:none;">❌ ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง</div>
+      <button type="submit" class="btn btn-gold btn-block btn-lg">🔐 เข้าสู่ระบบ</button>
+      <p style="text-align:center;margin-top:16px;font-size:12px;color:rgba(255,255,255,0.4);">
+        ค่าเริ่มต้น: admin / admin123
+      </p>
+    </form>
+  </div>
+</div>
+
+<!-- ==================== ADMIN DASHBOARD ==================== -->
+<div id="adminApp" style="display:none;">
+
+  <!-- Sidebar -->
+  <aside class="admin-sidebar" id="adminSidebar">
+    <div class="admin-sidebar-brand">
+      <div class="navbar-brand" style="margin-bottom:8px;">
+        <div class="brand-icon" style="animation:none;">👑</div>
+        <div class="brand-text">
+          <span class="brand-name">ชุดไทยน้องหนู</span>
+          <span class="brand-sub">Admin Panel</span>
+        </div>
+      </div>
+      <div class="sidebar-badge">⚙️ ผู้ดูแลระบบ</div>
+    </div>
+    <nav class="admin-nav">
+      <div class="admin-nav-section">
+        <div class="admin-nav-section-title">หลัก</div>
+        <button class="admin-nav-item active" id="navDashboard" onclick="showPage('dashboard')">
+          <span class="nav-icon">📊</span> แผงควบคุม
+        </button>
+        <button class="admin-nav-item" id="navOrders" onclick="showPage('orders')">
+          <span class="nav-icon">📋</span> คำสั่งซื้อ/จอง
+          <span class="nav-notification" id="pendingBadge">0</span>
+        </button>
+      </div>
+      <div class="admin-nav-section">
+        <div class="admin-nav-section-title">สินค้า</div>
+        <button class="admin-nav-item" id="navProducts" onclick="showPage('products')">
+          <span class="nav-icon">👗</span> จัดการสินค้า
+        </button>
+        <button class="admin-nav-item" id="navStock" onclick="showPage('stock')">
+          <span class="nav-icon">📦</span> สต็อกสินค้า
+        </button>
+      </div>
+      <div class="admin-nav-section">
+        <div class="admin-nav-section-title">อื่นๆ</div>
+        <button class="admin-nav-item" id="navContacts" onclick="showPage('contacts')">
+          <span class="nav-icon">📩</span> ข้อความลูกค้า
+        </button>
+        <button class="admin-nav-item" onclick="goToStore()">
+          <span class="nav-icon">🏪</span> ดูหน้าร้าน
+        </button>
+        <button class="admin-nav-item" onclick="doLogout()">
+          <span class="nav-icon">🚪</span> ออกจากระบบ
+        </button>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- Mobile Sidebar Overlay -->
+  <div class="sidebar-overlay" id="adminOverlay" onclick="toggleMobileSidebar()"></div>
+
+  <!-- Main Content -->
+  <main class="admin-main">
+    <!-- Topbar -->
+    <div class="admin-topbar">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button style="display:none;background:none;border:none;font-size:22px;cursor:pointer;color:var(--wine);" id="mobileMenuBtn" onclick="toggleMobileSidebar()">☰</button>
+        <div class="topbar-title" id="pageTitle">📊 แผงควบคุม</div>
+      </div>
+      <div class="topbar-actions">
+        <div class="topbar-date" id="topbarDate"></div>
+        <button class="btn btn-wine btn-sm" onclick="showPage('products'); setTimeout(openAddProduct,100)">+ เพิ่มสินค้าใหม่</button>
+      </div>
+    </div>
+
+    <!-- Content Area -->
+    <div class="admin-content">
+
+      <!-- ===== DASHBOARD PAGE ===== -->
+      <div id="page-dashboard">
+        <div class="stats-grid">
+          <div class="stat-card stat-card-1">
+            <div class="stat-card-icon">📋</div>
+            <div class="stat-card-value" id="statOrders">0</div>
+            <div class="stat-card-label">คำสั่งซื้อทั้งหมด</div>
+            <div class="stat-card-trend trend-up" id="statOrdersTrend">↑ ใหม่</div>
+          </div>
+          <div class="stat-card stat-card-2">
+            <div class="stat-card-icon">💰</div>
+            <div class="stat-card-value" id="statRevenue">฿0</div>
+            <div class="stat-card-label">รายได้รวม</div>
+            <div class="stat-card-trend trend-up">เงินสด</div>
+          </div>
+          <div class="stat-card stat-card-3">
+            <div class="stat-card-icon">👗</div>
+            <div class="stat-card-value" id="statProducts">0</div>
+            <div class="stat-card-label">สินค้าทั้งหมด</div>
+            <div class="stat-card-trend trend-up">รายการ</div>
+          </div>
+          <div class="stat-card stat-card-4">
+            <div class="stat-card-icon">⚠️</div>
+            <div class="stat-card-value" id="statLowStock">0</div>
+            <div class="stat-card-label">สินค้าใกล้หมด</div>
+            <div class="stat-card-trend trend-down" id="lowStockTrend">ตรวจสอบ</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+          <!-- Recent Orders -->
+          <div class="admin-card">
+            <div class="admin-card-header">
+              <span class="admin-card-title">📋 คำสั่งซื้อล่าสุด</span>
+              <button class="btn btn-outline-gold btn-sm" onclick="showPage('orders')">ดูทั้งหมด</button>
+            </div>
+            <div class="admin-card-body" id="recentOrdersTable"></div>
+          </div>
+          <!-- Low Stock -->
+          <div class="admin-card">
+            <div class="admin-card-header">
+              <span class="admin-card-title">📦 สินค้าใกล้หมดสต็อก</span>
+              <button class="btn btn-outline-gold btn-sm" onclick="showPage('stock')">จัดการสต็อก</button>
+            </div>
+            <div class="admin-card-body" id="lowStockTable"></div>
+          </div>
+        </div>
+
+        <!-- Contacts -->
+        <div class="admin-card" style="margin-top:24px;">
+          <div class="admin-card-header">
+            <span class="admin-card-title">📩 ข้อความลูกค้าล่าสุด</span>
+            <button class="btn btn-outline-gold btn-sm" onclick="showPage('contacts')">ดูทั้งหมด</button>
+          </div>
+          <div class="admin-card-body" id="recentContacts"></div>
+        </div>
+      </div>
+
+      <!-- ===== ORDERS PAGE ===== -->
+      <div id="page-orders" class="hidden">
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <span class="admin-card-title">📋 รายการคำสั่งซื้อ/จอง</span>
+            <div style="display:flex;gap:12px;align-items:center;">
+              <select class="filter-select" id="orderStatusFilter" onchange="renderOrdersPage()" style="min-width:140px;padding:8px 12px;">
+                <option value="all">ทุกสถานะ</option>
+                <option value="pending">รอยืนยัน</option>
+                <option value="confirmed">ยืนยันแล้ว</option>
+                <option value="delivered">จัดส่งแล้ว</option>
+                <option value="completed">เสร็จสิ้น</option>
+                <option value="cancelled">ยกเลิก</option>
+              </select>
+              <input type="text" id="orderSearch" class="form-control" placeholder="ค้นหาออเดอร์..." style="min-width:200px;padding:8px 14px;" oninput="renderOrdersPage()">
+            </div>
+          </div>
+          <div class="admin-card-body">
+            <div style="overflow-x:auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>หมายเลข</th>
+                    <th>ลูกค้า</th>
+                    <th>โทร/LINE</th>
+                    <th>รายการ</th>
+                    <th>ยอดรวม</th>
+                    <th>สถานะ</th>
+                    <th>วันที่</th>
+                    <th>จัดการ</th>
+                  </tr>
+                </thead>
+                <tbody id="ordersTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== PRODUCTS PAGE ===== -->
+      <div id="page-products" class="hidden">
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <span class="admin-card-title">👗 จัดการสินค้า</span>
+            <button class="btn btn-wine" onclick="openAddProduct()">+ เพิ่มสินค้าใหม่</button>
+          </div>
+          <div class="admin-card-body">
+            <div style="padding:16px;border-bottom:1px solid #E8EDF2;">
+              <input type="text" class="form-control" id="productSearch" placeholder="ค้นหาสินค้า..." oninput="renderProductsTable()" style="max-width:300px;">
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>รูป</th>
+                    <th>ชื่อสินค้า</th>
+                    <th>หมวดหมู่</th>
+                    <th>ราคาเช่า/วัน</th>
+                    <th>ราคาซื้อ</th>
+                    <th>สต็อกรวม</th>
+                    <th>สถานะ</th>
+                    <th>จัดการ</th>
+                  </tr>
+                </thead>
+                <tbody id="productsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== STOCK PAGE ===== -->
+      <div id="page-stock" class="hidden">
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <span class="admin-card-title">📦 จัดการสต็อกสินค้า</span>
+          </div>
+          <div class="admin-card-body">
+            <div style="overflow-x:auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>รูป</th>
+                    <th>ชื่อสินค้า</th>
+                    <th>S (3-4ปี)</th>
+                    <th>M (5-6ปี)</th>
+                    <th>L (7-8ปี)</th>
+                    <th>XL (9-10ปี)</th>
+                    <th>รวม</th>
+                    <th>สถานะ</th>
+                  </tr>
+                </thead>
+                <tbody id="stockTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== CONTACTS PAGE ===== -->
+      <div id="page-contacts" class="hidden">
+        <div class="admin-card">
+          <div class="admin-card-header">
+            <span class="admin-card-title">📩 ข้อความจากลูกค้า</span>
+            <button class="btn btn-outline-gold btn-sm" onclick="clearContacts()">🗑️ ล้างทั้งหมด</button>
+          </div>
+          <div class="admin-card-body">
+            <div style="overflow-x:auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>ชื่อ</th>
+                    <th>โทร/LINE</th>
+                    <th>ข้อความ</th>
+                    <th>วันที่</th>
+                  </tr>
+                </thead>
+                <tbody id="contactsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end admin-content -->
+  </main>
+</div><!-- end adminApp -->
+
+<!-- ==================== PRODUCT FORM MODAL ==================== -->
+<div class="modal-overlay hidden" id="productFormModal" onclick="closeProductForm(event)">
+  <div class="modal" style="max-width:700px;" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title" id="productFormTitle">เพิ่มสินค้าใหม่</h2>
+      <button class="modal-close" onclick="closeProductForm()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editProductId">
+      <div class="form-grid-2">
+        <div class="form-group" style="grid-column:1/-1;">
+          <label>ชื่อสินค้า <span>*</span></label>
+          <input type="text" class="form-control" id="pName" placeholder="เช่น ชุดไทยหญิง สีชมพูทอง">
+        </div>
+        <div class="form-group">
+          <label>หมวดหมู่ <span>*</span></label>
+          <select class="form-control" id="pCategory">
+            <option value="thai-girl">ชุดไทยหญิง</option>
+            <option value="thai-boy">ชุดไทยชาย</option>
+            <option value="mermaid">ชุดนางเงือก</option>
+            <option value="princess">ชุดประกวดหญิง</option>
+            <option value="prince">ชุดกษัตริย์</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>เพศ <span>*</span></label>
+          <select class="form-control" id="pGender">
+            <option value="girl">หญิง</option>
+            <option value="boy">ชาย</option>
+            <option value="unisex">ไม่ระบุ</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>ราคาเช่า/วัน (฿) <span>*</span></label>
+          <input type="number" class="form-control" id="pPriceRent" placeholder="0" min="0">
+        </div>
+        <div class="form-group">
+          <label>ราคาซื้อ (฿) <span>*</span></label>
+          <input type="number" class="form-control" id="pPriceBuy" placeholder="0" min="0">
+        </div>
+        <div class="form-group" style="grid-column:1/-1;">
+          <label>คำอธิบายสินค้า</label>
+          <textarea class="form-control" id="pDesc" rows="3" placeholder="รายละเอียดชุด วัสดุ คุณสมบัติ..."></textarea>
+        </div>
+      </div>
+
+      <!-- Sizes & Stock -->
+      <div style="margin-bottom:16px;">
+        <label style="font-weight:700;font-size:14px;display:block;margin-bottom:12px;">📦 สต็อกแต่ละขนาด</label>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+          <div class="form-group">
+            <label>S (3-4ปี)</label>
+            <input type="number" class="form-control" id="stockS" value="0" min="0">
+          </div>
+          <div class="form-group">
+            <label>M (5-6ปี)</label>
+            <input type="number" class="form-control" id="stockM" value="0" min="0">
+          </div>
+          <div class="form-group">
+            <label>L (7-8ปี)</label>
+            <input type="number" class="form-control" id="stockL" value="0" min="0">
+          </div>
+          <div class="form-group">
+            <label>XL (9-10ปี)</label>
+            <input type="number" class="form-control" id="stockXL" value="0" min="0">
+          </div>
+        </div>
+      </div>
+
+      <!-- Flags -->
+      <div style="display:flex;gap:20px;margin-bottom:20px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;">
+          <input type="checkbox" id="pIsNew" style="width:16px;height:16px;accent-color:var(--wine);">
+          ✨ สินค้าใหม่
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;">
+          <input type="checkbox" id="pIsPopular" style="width:16px;height:16px;accent-color:var(--wine);">
+          🔥 ยอดนิยม
+        </label>
+      </div>
+
+      <!-- Image Upload -->
+      <div class="form-group">
+        <label>📷 รูปภาพสินค้า</label>
+        <div class="img-upload-box" id="productImgBox">
+          <input type="file" id="productImgInput" accept="image/*" onchange="previewProductImg(this)">
+          <div style="font-size:32px;margin-bottom:8px;color:var(--gold);">📷</div>
+          <div style="font-size:14px;font-weight:600;margin-bottom:4px;">คลิกเพื่อเลือกรูปภาพ</div>
+          <div style="font-size:12px;color:var(--text-muted);">JPG, PNG (ขนาดไม่เกิน 5MB)</div>
+        </div>
+        <div id="productImgPreview" style="margin-top:12px;display:none;">
+          <img id="productImgPreviewImg" style="width:120px;height:120px;object-fit:cover;border-radius:var(--radius-md);border:2px solid var(--gold);">
+        </div>
+        <input type="hidden" id="productImgData">
+        <div style="font-size:12px;color:var(--text-muted);margin-top:8px;" id="currentImgNote"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline-gold" onclick="closeProductForm()">ยกเลิก</button>
+      <button class="btn btn-wine" onclick="saveProduct()">💾 บันทึกสินค้า</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== ORDER DETAIL MODAL ==================== -->
+<div class="modal-overlay hidden" id="orderDetailModal" onclick="closeOrderModal(event)">
+  <div class="modal" style="max-width:620px;" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title" id="orderDetailTitle">รายละเอียดคำสั่งซื้อ</h2>
+      <button class="modal-close" onclick="closeOrderModal()">✕</button>
+    </div>
+    <div class="modal-body" id="orderDetailBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline-gold" onclick="closeOrderModal()">ปิด</button>
+      <select class="filter-select" id="orderStatusUpdate" style="min-width:160px;padding:10px 14px;">
+        <option value="pending">⏳ รอยืนยัน</option>
+        <option value="confirmed">✅ ยืนยันแล้ว</option>
+        <option value="delivered">🚚 จัดส่งแล้ว</option>
+        <option value="completed">✔️ เสร็จสิ้น</option>
+        <option value="cancelled">❌ ยกเลิก</option>
+      </select>
+      <button class="btn btn-wine" onclick="updateOrderStatus()">บันทึกสถานะ</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== TOAST ==================== -->
+<div class="toast-container" id="adminToastContainer"></div>
+
+<script src="admin.js"></script>
+</body>
+</html>

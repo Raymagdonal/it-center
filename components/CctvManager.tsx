@@ -59,6 +59,11 @@ export type CctvFaultCause =
   | 'ใช้งานได้ปกติ';
 
 // Camera Registry Entry
+export interface SpeakerPhotoEntry {
+  image: string;  // base64 data URL
+  note: string;   // note/remark for this speaker photo
+}
+
 export interface CctvCamera {
   id: string;
   locationType: CctvLocationType;
@@ -74,6 +79,11 @@ export interface CctvCamera {
   nvrModel?: string;              // NVR Model e.g. "Dahua NVR 16CH (4TB)"
   nvrSerialNumber?: string;       // S/N ของ NVR 16CH
   nvrImages?: string[];           // รูปภาพ NVR 16CH
+  // ── แอมป์เสียงในเรือ ──
+  ampImages?: string[];           // รูปภาพแอมป์
+  ampInstallDate?: string;        // วันที่ติดตั้งแอมป์
+  // ── ลำโพงในเรือ (สูงสุด 8 ตัว) ──
+  speakerPhotos?: SpeakerPhotoEntry[];  // รูปภาพลำโพง พร้อมหมายเหตุ (max 8)
   routerModel?: string;           // Router #1 4G Model / Name
   routerSerialNumber?: string;    // Router #1 4G S/N
   simPhoneNumber?: string;        // เบอร์โทรศัพท์ซิม AIS #1
@@ -546,6 +556,9 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
     nvrModel: 'Dahua NVR 16CH (4TB)',
     nvrSerialNumber: '',
     nvrImages: [],
+    ampImages: [],
+    ampInstallDate: '',
+    speakerPhotos: Array(8).fill(null).map(() => ({ image: '', note: '' })),
     routerModel: 'Router 4G',
     routerSerialNumber: '',
     simPhoneNumber: '',
@@ -773,6 +786,71 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
     setCameraForm(prev => ({ ...prev, router2Images: (prev.router2Images || []).filter((_, idx) => idx !== indexToRemove) }));
   };
 
+  // ── Amp image handlers ──
+  const handleAmpImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setIsUploading(true);
+    const newImages: string[] = [];
+    for (let i = 0; i < files.length; i++) {
+      try {
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(files[i]);
+        });
+        newImages.push(await compressImage(base64, 1024, 0.75));
+      } catch (err) { console.error('Amp image error:', err); }
+    }
+    setCameraForm(prev => ({ ...prev, ampImages: [...(prev.ampImages || []), ...newImages] }));
+    setIsUploading(false);
+    if (e.target) e.target.value = '';
+  };
+
+  const removeAmpImage = (indexToRemove: number) => {
+    setCameraForm(prev => ({ ...prev, ampImages: (prev.ampImages || []).filter((_, idx) => idx !== indexToRemove) }));
+  };
+
+  // ── Speaker photo handlers ──
+  const handleSpeakerImageUpload = async (slotIdx: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploading(true);
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const compressed = await compressImage(base64, 1024, 0.75);
+      setCameraForm(prev => {
+        const speakers = [...(prev.speakerPhotos || Array(8).fill(null).map(() => ({ image: '', note: '' })))];
+        speakers[slotIdx] = { ...speakers[slotIdx], image: compressed };
+        return { ...prev, speakerPhotos: speakers };
+      });
+    } catch (err) { console.error('Speaker image error:', err); }
+    setIsUploading(false);
+    if (e.target) e.target.value = '';
+  };
+
+  const removeSpeakerImage = (slotIdx: number) => {
+    setCameraForm(prev => {
+      const speakers = [...(prev.speakerPhotos || Array(8).fill(null).map(() => ({ image: '', note: '' })))];
+      speakers[slotIdx] = { ...speakers[slotIdx], image: '' };
+      return { ...prev, speakerPhotos: speakers };
+    });
+  };
+
+  const updateSpeakerNote = (slotIdx: number, note: string) => {
+    setCameraForm(prev => {
+      const speakers = [...(prev.speakerPhotos || Array(8).fill(null).map(() => ({ image: '', note: '' })))];
+      speakers[slotIdx] = { ...speakers[slotIdx], note };
+      return { ...prev, speakerPhotos: speakers };
+    });
+  };
+
   const handleFaultImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -858,6 +936,15 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
       nvrModel: cam.nvrModel || 'Dahua NVR 16CH (4TB)',
       nvrSerialNumber: cam.nvrSerialNumber || '',
       nvrImages: cam.nvrImages || [],
+      ampImages: cam.ampImages || [],
+      ampInstallDate: cam.ampInstallDate || '',
+      speakerPhotos: (() => {
+        const existing = cam.speakerPhotos || [];
+        const result: SpeakerPhotoEntry[] = Array(8).fill(null).map((_, i) =>
+          existing[i] ? { ...existing[i] } : { image: '', note: '' }
+        );
+        return result;
+      })(),
       routerModel: cam.routerModel || 'Router 4G',
       routerSerialNumber: cam.routerSerialNumber || '',
       simPhoneNumber: cam.simPhoneNumber || '',
@@ -1202,6 +1289,60 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
 
             {cam.notes && (
               <p className="mt-2 text-[11px] text-slate-400 line-clamp-2">{cam.notes}</p>
+            )}
+
+            {/* 🔊 แอมป์ + ลำโพง Display in Card (vessel only) */}
+            {cam.locationType === 'ในเรือ' && (cam.ampImages?.length || cam.ampInstallDate || cam.speakerPhotos?.some(s => s.image)) && (
+              <div className="mt-2.5 space-y-2">
+                {/* Amp */}
+                {(cam.ampImages?.length || cam.ampInstallDate) && (
+                  <div className="p-2 bg-black/30 rounded-lg border border-orange-500/30 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[9px] text-orange-400 uppercase tracking-wider font-mono flex items-center gap-1 font-bold">
+                        <span>🔊</span> แอมป์เสียง
+                      </p>
+                      {cam.ampImages && cam.ampImages.length > 0 && (
+                        <button onClick={() => openLightbox(cam.ampImages!, 0)} className="text-[9px] text-orange-400 hover:text-orange-300 font-mono flex items-center gap-0.5">
+                          <ImageIcon className="w-2.5 h-2.5" /> รูป ({cam.ampImages.length})
+                        </button>
+                      )}
+                    </div>
+                    {cam.ampInstallDate && (
+                      <p className="text-[10px] font-mono text-slate-300">
+                        <span className="text-slate-500">ติดตั้ง:</span> <span className="text-orange-300 font-bold">{cam.ampInstallDate}</span>
+                      </p>
+                    )}
+                    {cam.ampImages && cam.ampImages.length > 0 && (
+                      <div className="flex gap-1.5 overflow-x-auto pt-0.5 pb-0.5">
+                        {cam.ampImages.map((img, aIdx) => (
+                          <div key={aIdx} onClick={() => openLightbox(cam.ampImages!, aIdx)} className="w-12 h-12 rounded-lg border border-orange-500/40 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity shrink-0">
+                            <img src={img} alt={`Amp-${aIdx}`} className="w-full h-full object-cover" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Speakers */}
+                {cam.speakerPhotos?.some(s => s.image) && (
+                  <div className="p-2 bg-black/30 rounded-lg border border-purple-500/30 space-y-1.5">
+                    <p className="text-[9px] text-purple-400 uppercase tracking-wider font-mono flex items-center gap-1 font-bold">
+                      <span>🔉</span> รูปลำโพง ({cam.speakerPhotos.filter(s => s.image).length} รูป)
+                    </p>
+                    <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+                      {cam.speakerPhotos.map((sp, sIdx) => sp.image ? (
+                        <div key={sIdx} className="flex flex-col items-center gap-0.5 shrink-0">
+                          <div onClick={() => openLightbox(cam.speakerPhotos!.filter(s => s.image).map(s => s.image), cam.speakerPhotos!.filter(s=>s.image).findIndex((_,i)=>cam.speakerPhotos![sIdx]===cam.speakerPhotos!.filter(s=>s.image)[i]))} className="w-10 h-10 rounded border border-purple-500/40 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity">
+                            <img src={sp.image} alt={`Speaker-${sIdx+1}`} className="w-full h-full object-cover" />
+                          </div>
+                          <span className="text-[8px] text-purple-300 font-mono">#{sIdx+1}</span>
+                        </div>
+                      ) : null)}
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Photo Gallery on Card */}
@@ -1854,6 +1995,104 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                         ))}
                       </div>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {/* 🔊 แอมป์เสียง (สำหรับในเรือ) */}
+              {cameraForm.locationType === 'ในเรือ' && (
+                <div className="space-y-3 p-3.5 bg-black/40 rounded-xl border border-orange-500/40">
+                  <div className="flex items-center justify-between border-b border-orange-900/40 pb-2">
+                    <label className="text-xs font-bold text-orange-400 uppercase tracking-widest flex items-center gap-1.5 font-mono">
+                      <span>🔊</span> แอมป์เสียง
+                    </label>
+                  </div>
+                  {/* วันที่ติดตั้งแอมป์ */}
+                  <div>
+                    <label className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block mb-1 flex items-center gap-1">
+                      <Calendar className="w-3 h-3 text-orange-400" /> วันที่ติดตั้งแอมป์
+                    </label>
+                    <input
+                      type="date"
+                      value={cameraForm.ampInstallDate || ''}
+                      onChange={e => setCameraForm(f => ({ ...f, ampInstallDate: e.target.value }))}
+                      className="w-full bg-black/60 border border-orange-500/40 focus:border-orange-400 rounded-lg px-3 py-2 text-xs text-orange-200 outline-none font-mono"
+                    />
+                  </div>
+                  {/* รูปภาพแอมป์ */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-mono text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                        <ImageIcon className="w-3 h-3 text-orange-400" /> รูปภาพแอมป์
+                      </label>
+                      <span className="text-[10px] text-slate-500 font-mono">{cameraForm.ampImages?.length || 0} รูป</span>
+                    </div>
+                    <label className="w-full py-2.5 px-3 rounded-lg border border-dashed border-orange-500/40 hover:border-orange-400 bg-orange-950/10 hover:bg-orange-950/20 transition-all cursor-pointer flex items-center justify-center gap-2">
+                      <Upload className="w-3.5 h-3.5 text-orange-400" />
+                      <span className="text-xs font-mono text-orange-300">คลิกเพื่ออัปโหลดรูปภาพแอมป์</span>
+                      <input type="file" multiple accept="image/*" onChange={handleAmpImageUpload} className="hidden" />
+                    </label>
+                    {cameraForm.ampImages && cameraForm.ampImages.length > 0 && (
+                      <div className="grid grid-cols-4 gap-2 pt-1 max-h-36 overflow-y-auto">
+                        {cameraForm.ampImages.map((img, idx) => (
+                          <div key={idx} className="relative group/thumb rounded-lg overflow-hidden border border-slate-700 aspect-square bg-black">
+                            <img src={img} alt={`amp-${idx}`} className="w-full h-full object-cover" />
+                            <button type="button" onClick={(e) => { e.stopPropagation(); openLightbox(cameraForm.ampImages!, idx); }} className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity z-10" title="ดูรูปขยาย">
+                              <Eye className="w-4 h-4 text-white" />
+                            </button>
+                            <button type="button" onClick={(e) => { e.stopPropagation(); removeAmpImage(idx); }} className="absolute top-1 right-1 p-1 rounded-full bg-red-600 hover:bg-red-500 text-white opacity-0 group-hover/thumb:opacity-100 transition-opacity z-20 shadow-md cursor-pointer" title="ลบรูปนี้">
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* 🔉 รูปลำโพง (สำหรับในเรือ) 8 slots */}
+              {cameraForm.locationType === 'ในเรือ' && (
+                <div className="space-y-3 p-3.5 bg-black/40 rounded-xl border border-purple-500/40">
+                  <div className="flex items-center justify-between border-b border-purple-900/40 pb-2">
+                    <label className="text-xs font-bold text-purple-400 uppercase tracking-widest flex items-center gap-1.5 font-mono">
+                      <span>🔉</span> รูปลำโพง (สูงสุด 8 ตัว)
+                    </label>
+                    <span className="text-[10px] text-purple-500 font-mono font-bold bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/30">
+                      {cameraForm.speakerPhotos?.filter(s => s.image).length || 0} / 8
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {(cameraForm.speakerPhotos || Array(8).fill({ image: '', note: '' })).map((sp, sIdx) => (
+                      <div key={sIdx} className="space-y-1.5 p-2 rounded-lg bg-black/30 border border-purple-500/20">
+                        <p className="text-[9px] font-mono text-purple-300 font-bold uppercase tracking-wider">ลำโพง #{sIdx + 1}</p>
+                        {sp.image ? (
+                          <div className="relative group/spthumb w-full aspect-video rounded overflow-hidden border border-purple-500/40 bg-black">
+                            <img src={sp.image} alt={`speaker-${sIdx+1}`} className="w-full h-full object-cover" />
+                            <button type="button" onClick={(e) => { e.stopPropagation(); openLightbox([sp.image], 0); }} className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover/spthumb:opacity-100 transition-opacity z-10" title="ดูรูปขยาย">
+                              <Eye className="w-4 h-4 text-white" />
+                            </button>
+                            <button type="button" onClick={(e) => { e.stopPropagation(); removeSpeakerImage(sIdx); }} className="absolute top-1 right-1 p-1 rounded-full bg-red-600 hover:bg-red-500 text-white opacity-0 group-hover/spthumb:opacity-100 transition-opacity z-20 shadow-md cursor-pointer" title="ลบรูปนี้">
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <label className="w-full py-3 rounded-lg border border-dashed border-purple-500/30 hover:border-purple-400 bg-purple-950/10 hover:bg-purple-950/20 transition-all cursor-pointer flex flex-col items-center justify-center gap-1">
+                            <Upload className="w-4 h-4 text-purple-400" />
+                            <span className="text-[9px] font-mono text-purple-400">อัปโหลดรูป</span>
+                            <input type="file" accept="image/*" onChange={e => handleSpeakerImageUpload(sIdx, e)} className="hidden" />
+                          </label>
+                        )}
+                        {/* ช่องหมายเหตุ */}
+                        <input
+                          type="text"
+                          placeholder={`หมายเหตุลำโพง #${sIdx + 1}...`}
+                          value={sp.note || ''}
+                          onChange={e => updateSpeakerNote(sIdx, e.target.value)}
+                          className="w-full bg-black/60 border border-purple-500/30 focus:border-purple-400 rounded px-2 py-1.5 text-[10px] text-purple-100 outline-none font-mono placeholder-slate-600"
+                        />
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
