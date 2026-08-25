@@ -4,7 +4,8 @@ import {
   Hash, Calendar, FileText, MapPin,
   Filter, RefreshCcw, Loader2, CloudOff, Cloud, CheckSquare, Square,
   AlertTriangle, Check, Upload, Image as ImageIcon, Eye, ZoomIn,
-  ChevronLeft, ChevronRight, Maximize2
+  ChevronLeft, ChevronRight, Maximize2,
+  GripVertical, ArrowUp, ArrowDown, ArrowUpDown, Move
 } from 'lucide-react';
 import { TicketMachine } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
@@ -83,6 +84,13 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
   const [isLoading, setIsLoading] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+
+  // Drag & drop reordering state
+  const [draggedKey, setDraggedKey] = useState<string | null>(null);
+  const [dragOverKey, setDragOverKey] = useState<string | null>(null);
+  const [dragOverPosition, setDragOverPosition] = useState<'top' | 'bottom' | null>(null);
+  const [jumpModalItem, setJumpModalItem] = useState<{ item: TicketMachine; currentIndex: number } | null>(null);
+  const [jumpTargetIndex, setJumpTargetIndex] = useState<number>(1);
 
   // Lightbox & image upload state
   const [lightboxImages, setLightboxImages] = useState<string[] | null>(null);
@@ -176,6 +184,112 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
 
   const clearSelection = () => {
     setSelectedKeys(new Set());
+  };
+
+  // ── Reordering Handlers ──
+  const moveItem = (sourceKey: string, targetKey: string, position: 'top' | 'bottom' = 'bottom') => {
+    if (sourceKey === targetKey) return;
+    const sourceIdx = items.findIndex((i, idx) => getItemKey(i, idx) === sourceKey);
+    const targetIdx = items.findIndex((i, idx) => getItemKey(i, idx) === targetKey);
+    if (sourceIdx === -1 || targetIdx === -1) return;
+
+    const newItems = [...items];
+    const [movedItem] = newItems.splice(sourceIdx, 1);
+    
+    let insertIdx = newItems.findIndex((i, idx) => getItemKey(i, idx) === targetKey);
+    if (position === 'bottom') {
+      insertIdx += 1;
+    }
+    newItems.splice(insertIdx, 0, movedItem);
+    onUpdate(newItems);
+  };
+
+  const moveItemStep = (key: string, direction: 'up' | 'down') => {
+    const idx = items.findIndex((i, index) => getItemKey(i, index) === key);
+    if (idx === -1) return;
+    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= items.length) return;
+
+    const newItems = [...items];
+    const temp = newItems[idx];
+    newItems[idx] = newItems[targetIdx];
+    newItems[targetIdx] = temp;
+    onUpdate(newItems);
+  };
+
+  const jumpItemToIndex = (key: string, target1BasedIndex: number) => {
+    const sourceIdx = items.findIndex((i, index) => getItemKey(i, index) === key);
+    if (sourceIdx === -1) return;
+    const clampedTarget = Math.max(0, Math.min(items.length - 1, target1BasedIndex - 1));
+    if (sourceIdx === clampedTarget) return;
+
+    const newItems = [...items];
+    const [movedItem] = newItems.splice(sourceIdx, 1);
+    newItems.splice(clampedTarget, 0, movedItem);
+    onUpdate(newItems);
+  };
+
+  const moveSelectedItemsTo = (destination: 'top' | 'bottom') => {
+    if (selectedKeys.size === 0) return;
+    const selectedList: TicketMachine[] = [];
+    const unselectedList: TicketMachine[] = [];
+    items.forEach((item, idx) => {
+      if (selectedKeys.has(getItemKey(item, idx))) {
+        selectedList.push(item);
+      } else {
+        unselectedList.push(item);
+      }
+    });
+
+    if (destination === 'top') {
+      onUpdate([...selectedList, ...unselectedList]);
+    } else {
+      onUpdate([...unselectedList, ...selectedList]);
+    }
+  };
+
+  const handleDragStart = (e: React.DragEvent, key: string) => {
+    setDraggedKey(key);
+    e.dataTransfer.setData('text/plain', key);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, key: string) => {
+    e.preventDefault();
+    if (!draggedKey || draggedKey === key) return;
+    e.dataTransfer.dropEffect = 'move';
+    
+    const rect = e.currentTarget.getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+    const position = e.clientY < midY ? 'top' : 'bottom';
+    
+    if (dragOverKey !== key || dragOverPosition !== position) {
+      setDragOverKey(key);
+      setDragOverPosition(position);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent, key: string) => {
+    if (dragOverKey === key) {
+      setDragOverKey(null);
+      setDragOverPosition(null);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent, targetKey: string) => {
+    e.preventDefault();
+    if (draggedKey && draggedKey !== targetKey) {
+      moveItem(draggedKey, targetKey, dragOverPosition || 'bottom');
+    }
+    setDraggedKey(null);
+    setDragOverKey(null);
+    setDragOverPosition(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedKey(null);
+    setDragOverKey(null);
+    setDragOverPosition(null);
   };
 
 // Helper to filter out corrupted or invalid image strings
@@ -475,8 +589,14 @@ const sanitizeImages = (imgs?: any[]): string[] => {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-900/90 border-b border-cyan-900/50">
+                  {/* Drag Handle Header */}
+                  <th className="py-4 px-2 text-[10px] font-mono font-bold text-cyan-600 uppercase tracking-widest text-center w-14" title="ลากเพื่อสลับตำแหน่ง">
+                    <div className="flex items-center justify-center gap-1">
+                      <ArrowUpDown className="w-3.5 h-3.5 text-cyan-500" />
+                    </div>
+                  </th>
                   {/* Select All Checkbox Header */}
-                  <th className="py-4 pl-4 pr-2 w-12 text-center">
+                  <th className="py-4 pl-2 pr-2 w-10 text-center">
                     <div
                       onClick={toggleSelectAll}
                       className="cursor-pointer inline-flex items-center justify-center p-1 text-slate-400 hover:text-cyan-400 transition-colors"
@@ -489,7 +609,9 @@ const sanitizeImages = (imgs?: any[]): string[] => {
                       )}
                     </div>
                   </th>
-                  <th className="py-4 px-2 text-[10px] font-mono font-bold text-cyan-600 uppercase tracking-widest w-12">#</th>
+                  <th className="py-4 px-2 text-[10px] font-mono font-bold text-cyan-600 uppercase tracking-widest w-14 text-center">
+                    <span title="ลำดับ (คลิกเพื่อย้าย)"># ลำดับ</span>
+                  </th>
                   <th className="py-4 px-4 text-[10px] font-mono font-bold text-cyan-600 uppercase tracking-widest">
                     <div className="flex items-center gap-2"><Hash className="w-3 h-3" /> เลข SERIAL NO.</div>
                   </th>
@@ -514,7 +636,7 @@ const sanitizeImages = (imgs?: any[]): string[] => {
               <tbody className="divide-y divide-slate-800/60">
                 {filteredItems.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="py-16 text-center">
+                    <td colSpan={10} className="py-16 text-center">
                       <Tablet className="w-12 h-12 text-slate-800 mx-auto mb-3" />
                       <p className="text-slate-500 font-mono text-sm">ไม่พบข้อมูลเครื่องจำหน่ายตั๋ว</p>
                       <Button onClick={() => handleOpenModal()} className="mt-4" size="sm">
@@ -528,19 +650,71 @@ const sanitizeImages = (imgs?: any[]): string[] => {
                     const isSelected = selectedKeys.has(key);
                     const rawImages = Array.isArray(item.images) ? item.images : (item.imageUrl ? [item.imageUrl] : []);
                     const itemImages = sanitizeImages(rawImages);
+                    const fullListIndex = items.findIndex((it, idx) => getItemKey(it, idx) === key);
+                    const displayIndex = fullListIndex >= 0 ? fullListIndex + 1 : index + 1;
 
                     return (
                       <tr
                         key={key}
-                        className={`transition-colors ${
-                          isSelected
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, key)}
+                        onDragOver={(e) => handleDragOver(e, key)}
+                        onDragLeave={(e) => handleDragLeave(e, key)}
+                        onDrop={(e) => handleDrop(e, key)}
+                        onDragEnd={handleDragEnd}
+                        className={`transition-all ${
+                          draggedKey === key
+                            ? 'opacity-30 bg-cyan-950/30 scale-[0.99] border-2 border-dashed border-cyan-500'
+                            : dragOverKey === key
+                            ? dragOverPosition === 'top'
+                              ? 'border-t-4 border-t-cyan-400 bg-cyan-900/20 shadow-[0_-4px_12px_rgba(0,242,255,0.3)]'
+                              : 'border-b-4 border-b-cyan-400 bg-cyan-900/20 shadow-[0_4px_12px_rgba(0,242,255,0.3)]'
+                            : isSelected
                             ? 'bg-cyan-950/60 border-l-4 border-cyan-400'
                             : 'hover:bg-cyan-900/10'
                         }`}
                       >
+                        {/* Drag Handle & Step Buttons */}
+                        <td className="py-3.5 px-2 text-center select-none">
+                          <div className="flex items-center justify-center gap-0.5">
+                            <div
+                              className="cursor-grab active:cursor-grabbing p-1 text-slate-500 hover:text-cyan-400 hover:bg-cyan-950/60 rounded transition-all"
+                              title="ลากเพื่อสลับตำแหน่งอย่างอิสระ"
+                            >
+                              <GripVertical className="w-4 h-4" />
+                            </div>
+                            <div className="flex flex-col">
+                              <button
+                                type="button"
+                                disabled={fullListIndex <= 0}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  moveItemStep(key, 'up');
+                                }}
+                                className="text-slate-500 hover:text-cyan-400 disabled:opacity-20 disabled:hover:text-slate-500 transition-colors p-0.5"
+                                title="เลื่อนขึ้น 1 ตำแหน่ง"
+                              >
+                                <ArrowUp className="w-3 h-3" />
+                              </button>
+                              <button
+                                type="button"
+                                disabled={fullListIndex >= items.length - 1}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  moveItemStep(key, 'down');
+                                }}
+                                className="text-slate-500 hover:text-cyan-400 disabled:opacity-20 disabled:hover:text-slate-500 transition-colors p-0.5"
+                                title="เลื่อนลง 1 ตำแหน่ง"
+                              >
+                                <ArrowDown className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+                        </td>
+
                         {/* Row Checkbox */}
                         <td
-                          className="py-3.5 pl-4 pr-2 text-center cursor-pointer select-none"
+                          className="py-3.5 pl-2 pr-2 text-center cursor-pointer select-none"
                           onClick={() => toggleSelectItem(key)}
                         >
                           <div className="inline-flex items-center justify-center">
@@ -551,8 +725,22 @@ const sanitizeImages = (imgs?: any[]): string[] => {
                             )}
                           </div>
                         </td>
-                        <td className="py-3.5 px-2">
-                          <span className="text-slate-500 font-mono text-sm font-bold">{index + 1}</span>
+
+                        {/* Order Number (Click to jump) */}
+                        <td className="py-3.5 px-2 text-center">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setJumpModalItem({ item, currentIndex: displayIndex });
+                              setJumpTargetIndex(displayIndex);
+                            }}
+                            className="group/num inline-flex items-center justify-center gap-1 px-2 py-1 rounded bg-black/40 hover:bg-cyan-950/80 border border-slate-800 hover:border-cyan-500/50 text-slate-400 hover:text-cyan-300 font-mono text-sm font-bold transition-all cursor-pointer shadow-sm"
+                            title="คลิกเพื่อย้ายไปลำดับที่ต้องการ"
+                          >
+                            <span>{displayIndex}</span>
+                            <Move className="w-2.5 h-2.5 opacity-0 group-hover/num:opacity-100 text-cyan-400" />
+                          </button>
                         </td>
                         <td className="py-3.5 px-4">
                           <span className="text-cyan-300 font-mono text-sm tracking-wide font-medium">{item.serialNumber}</span>
@@ -667,6 +855,29 @@ const sanitizeImages = (imgs?: any[]): string[] => {
 
             <div className="h-6 w-[1px] bg-slate-800" />
 
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => moveSelectedItemsTo('top')}
+                className="px-3.5 py-2 bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/50 text-cyan-300 hover:text-white rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+                title="ย้ายรายการที่เลือกทั้งหมดไปไว้บนสุด"
+              >
+                <ArrowUp className="w-3.5 h-3.5 text-cyan-400" />
+                ย้ายไปบนสุด
+              </button>
+              <button
+                type="button"
+                onClick={() => moveSelectedItemsTo('bottom')}
+                className="px-3.5 py-2 bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/50 text-cyan-300 hover:text-white rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+                title="ย้ายรายการที่เลือกทั้งหมดไปไว้ล่างสุด"
+              >
+                <ArrowDown className="w-3.5 h-3.5 text-cyan-400" />
+                ย้ายไปล่างสุด
+              </button>
+            </div>
+
+            <div className="h-6 w-[1px] bg-slate-800" />
+
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -685,6 +896,103 @@ const sanitizeImages = (imgs?: any[]): string[] => {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Position Jump Modal */}
+      {jumpModalItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <Card className="w-full max-w-md border-cyan-500 bg-slate-950 shadow-[0_0_50px_rgba(0,242,255,0.25)]">
+            <CardHeader className="flex flex-row justify-between items-center bg-cyan-900/20 border-b border-cyan-500/30 py-4 px-6">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Move className="w-4 h-4 text-cyan-400" /> ย้ายลำดับอุปกรณ์
+              </CardTitle>
+              <button
+                onClick={() => setJumpModalItem(null)}
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
+              <div className="p-3 bg-black/50 border border-slate-800 rounded-lg space-y-1 text-xs font-mono">
+                <p className="text-slate-400">
+                  อุปกรณ์: <span className="text-white font-bold">{jumpModalItem.item.deviceName}</span>
+                </p>
+                <p className="text-slate-400 truncate">
+                  S/N: <span className="text-cyan-300 font-bold">{jumpModalItem.item.serialNumber}</span>
+                </p>
+                <p className="text-slate-400">
+                  สถานที่: <span className="text-amber-300 font-bold">{jumpModalItem.item.location}</span>
+                </p>
+                <p className="text-slate-400">
+                  ลำดับปัจจุบัน: <span className="text-sky-400 font-bold">#{jumpModalItem.currentIndex}</span> จากทั้งหมด <span className="text-white">{items.length}</span>
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-mono font-bold text-cyan-600 uppercase mb-2 tracking-widest">
+                  ย้ายไปลำดับที่ (1 - {items.length})
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={1}
+                    max={items.length}
+                    value={jumpTargetIndex}
+                    onChange={(e) => setJumpTargetIndex(Math.max(1, Math.min(items.length, parseInt(e.target.value) || 1)))}
+                    className="w-full bg-black border border-cyan-500/50 p-3 text-cyan-300 focus:border-cyan-400 outline-none font-mono text-base font-bold rounded text-center"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        jumpItemToIndex(getItemKey(jumpModalItem.item), jumpTargetIndex);
+                        setJumpModalItem(null);
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Quick shortcut buttons */}
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setJumpTargetIndex(1)}
+                  className="px-3 py-2 bg-slate-900 border border-slate-700 hover:border-cyan-500 rounded text-xs font-mono text-slate-300 hover:text-white transition-all flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  <ArrowUp className="w-3.5 h-3.5 text-cyan-400" /> ไปบนสุด (#1)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setJumpTargetIndex(items.length)}
+                  className="px-3 py-2 bg-slate-900 border border-slate-700 hover:border-cyan-500 rounded text-xs font-mono text-slate-300 hover:text-white transition-all flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  <ArrowDown className="w-3.5 h-3.5 text-cyan-400" /> ไปท้ายสุด (#{items.length})
+                </button>
+              </div>
+
+              <div className="flex gap-3 justify-end pt-3 border-t border-slate-800">
+                <Button
+                  variant="ghost"
+                  type="button"
+                  onClick={() => setJumpModalItem(null)}
+                >
+                  ยกเลิก
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    jumpItemToIndex(getItemKey(jumpModalItem.item), jumpTargetIndex);
+                    setJumpModalItem(null);
+                  }}
+                  className="bg-cyan-500 hover:bg-cyan-400 text-black font-bold font-mono"
+                >
+                  <Check className="w-4 h-4 mr-1.5" /> ยืนยันการย้าย
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
