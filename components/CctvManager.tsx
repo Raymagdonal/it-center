@@ -4,7 +4,8 @@ import {
   CheckCircle, MapPin, Ship, User, Calendar, HardDrive,
   Camera, Eye, Layers, ShieldCheck, Database, Smartphone,
   Upload, Image as ImageIcon, Maximize2, ChevronLeft, ChevronRight, Loader2,
-  WifiOff, LayoutGrid, ExternalLink, Tag, Hash, Wifi, Radio, Phone
+  WifiOff, LayoutGrid, ExternalLink, Tag, Hash, Wifi, Radio, Phone,
+  ZoomIn, ZoomOut, RotateCw, RefreshCw
 } from 'lucide-react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
@@ -491,18 +492,98 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
   const [lightboxImages, setLightboxImages] = useState<string[] | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [lightboxTitles, setLightboxTitles] = useState<string[] | null>(null);
+  const [zoomScale, setZoomScale] = useState(1);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [startPan, setStartPan] = useState({ x: 0, y: 0 });
+  const [rotation, setRotation] = useState(0);
 
-  // Keyboard navigation for Lightbox
+  const resetZoom = () => {
+    setZoomScale(1);
+    setPanOffset({ x: 0, y: 0 });
+    setRotation(0);
+    setIsPanning(false);
+  };
+
+  const handleZoomIn = () => {
+    setZoomScale(prev => Math.min(6, Number((prev + 0.5).toFixed(1))));
+  };
+
+  const handleZoomOut = () => {
+    setZoomScale(prev => {
+      const next = Math.max(1, Number((prev - 0.5).toFixed(1)));
+      if (next === 1) setPanOffset({ x: 0, y: 0 });
+      return next;
+    });
+  };
+
+  const handleRotate = () => {
+    setRotation(prev => (prev + 90) % 360);
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    e.stopPropagation();
+    if (e.deltaY < 0) {
+      setZoomScale(prev => Math.min(6, Number((prev + 0.25).toFixed(2))));
+    } else {
+      setZoomScale(prev => {
+        const next = Math.max(1, Number((prev - 0.25).toFixed(2)));
+        if (next === 1) setPanOffset({ x: 0, y: 0 });
+        return next;
+      });
+    }
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (zoomScale > 1) {
+      e.preventDefault();
+      setIsPanning(true);
+      setStartPan({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isPanning && zoomScale > 1) {
+      e.preventDefault();
+      setPanOffset({
+        x: e.clientX - startPan.x,
+        y: e.clientY - startPan.y
+      });
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsPanning(false);
+  };
+
+  const handleDoubleClick = () => {
+    if (zoomScale > 1) {
+      resetZoom();
+    } else {
+      setZoomScale(2.5);
+    }
+  };
+
+  // Keyboard navigation & zoom shortcuts for Lightbox
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!lightboxImages || lightboxImages.length === 0) return;
       if (e.key === 'Escape') {
         setLightboxImages(null);
         setLightboxTitles(null);
+        resetZoom();
       } else if (e.key === 'ArrowRight') {
         setLightboxIndex((prev) => (prev < lightboxImages.length - 1 ? prev + 1 : 0));
+        resetZoom();
       } else if (e.key === 'ArrowLeft') {
         setLightboxIndex((prev) => (prev > 0 ? prev - 1 : lightboxImages.length - 1));
+        resetZoom();
+      } else if (e.key === '+' || e.key === '=') {
+        handleZoomIn();
+      } else if (e.key === '-' || e.key === '_') {
+        handleZoomOut();
+      } else if (e.key === '0' || e.key === 'r' || e.key === 'R') {
+        resetZoom();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -2869,27 +2950,50 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
           onClick={() => {
             setLightboxImages(null);
             setLightboxTitles(null);
+            resetZoom();
           }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-md p-4 animate-in fade-in duration-200 select-none"
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          className="fixed inset-0 z-50 flex flex-col items-center justify-between bg-black/95 backdrop-blur-md p-4 animate-in fade-in duration-200 select-none overflow-hidden"
         >
-          {/* Close button */}
-          <button
-            onClick={() => {
-              setLightboxImages(null);
-              setLightboxTitles(null);
-            }}
-            className="absolute top-4 right-4 p-2.5 rounded-full bg-slate-800/80 hover:bg-red-600 text-white transition-all z-20 cursor-pointer shadow-lg hover:scale-105"
-            title="ปิด (Esc)"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          {/* Top Bar */}
+          <div className="w-full flex items-center justify-between z-20 pointer-events-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3">
+              {lightboxTitles && lightboxTitles[lightboxIndex] && (
+                <div className="px-4 py-1.5 rounded-full bg-cyan-950/90 border border-cyan-500/50 text-cyan-300 text-xs md:text-sm font-mono font-bold shadow-lg max-w-md truncate">
+                  {lightboxTitles[lightboxIndex]}
+                </div>
+              )}
+              {zoomScale > 1 && (
+                <div className="px-3 py-1.5 rounded-full bg-cyan-950/80 border border-cyan-400 text-cyan-300 font-mono text-xs font-bold animate-pulse">
+                  ซูม {(zoomScale * 100).toFixed(0)}% (คลิกลากเพื่อเลื่อนดู S/N)
+                </div>
+              )}
+            </div>
+
+            {/* Close button */}
+            <button
+              type="button"
+              onClick={() => {
+                setLightboxImages(null);
+                setLightboxTitles(null);
+                resetZoom();
+              }}
+              className="p-2.5 rounded-full bg-slate-800/90 hover:bg-red-600 text-white transition-all shadow-lg hover:scale-105 cursor-pointer"
+              title="ปิด (Esc)"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
 
           {/* Left / Previous button */}
           {lightboxImages.length > 1 && (
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 setLightboxIndex((prev) => (prev > 0 ? prev - 1 : lightboxImages.length - 1));
+                resetZoom();
               }}
               className="absolute left-3 md:left-6 top-1/2 -translate-y-1/2 p-3.5 md:p-4 rounded-full bg-black/70 hover:bg-sky-600 border border-slate-700/80 text-white shadow-2xl transition-all z-20 hover:scale-110 cursor-pointer"
               title="รูปก่อนหน้า (ลูกศรซ้าย)"
@@ -2901,9 +3005,11 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
           {/* Right / Next button */}
           {lightboxImages.length > 1 && (
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 setLightboxIndex((prev) => (prev < lightboxImages.length - 1 ? prev + 1 : 0));
+                resetZoom();
               }}
               className="absolute right-3 md:right-6 top-1/2 -translate-y-1/2 p-3.5 md:p-4 rounded-full bg-black/70 hover:bg-sky-600 border border-slate-700/80 text-white shadow-2xl transition-all z-20 hover:scale-110 cursor-pointer"
               title="รูปถัดไป (ลูกศรขวา)"
@@ -2912,32 +3018,94 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
             </button>
           )}
 
-          {/* Main Image Container */}
+          {/* Main Image Container with Zoom & Pan */}
           <div
             onClick={(e) => e.stopPropagation()}
-            className="flex flex-col items-center max-w-5xl max-h-[90vh] w-full"
+            onWheel={handleWheel}
+            onMouseDown={handleMouseDown}
+            onDoubleClick={handleDoubleClick}
+            className="flex-1 w-full flex items-center justify-center overflow-hidden my-2 cursor-default relative"
+            style={{
+              cursor: zoomScale > 1 ? (isPanning ? 'grabbing' : 'grab') : 'zoom-in'
+            }}
           >
-            {/* Title / Caption */}
-            {lightboxTitles && lightboxTitles[lightboxIndex] && (
-              <div className="mb-2 px-4 py-1.5 rounded-full bg-cyan-950/80 border border-cyan-500/40 text-cyan-300 text-xs md:text-sm font-mono font-bold shadow-lg text-center max-w-full truncate">
-                {lightboxTitles[lightboxIndex]}
-              </div>
-            )}
-
-            {/* Photo */}
-            <div className="relative flex items-center justify-center max-h-[70vh] w-full">
+            <div
+              className="transition-transform duration-100 ease-out will-change-transform flex items-center justify-center"
+              style={{
+                transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomScale}) rotate(${rotation}deg)`
+              }}
+            >
               <img
                 src={lightboxImages[lightboxIndex]}
                 alt={`cctv-full-${lightboxIndex}`}
-                className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-2xl border border-slate-800"
+                className="max-w-[85vw] max-h-[62vh] object-contain rounded-lg shadow-2xl border border-slate-800 pointer-events-none select-none"
+                draggable={false}
               />
+            </div>
+          </div>
+
+          {/* Bottom Floating Toolbar & Thumbnails */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="z-20 pointer-events-auto flex flex-col items-center gap-2 w-full"
+          >
+            {/* Zoom Controls */}
+            <div className="bg-slate-950/90 border border-cyan-500/50 rounded-2xl px-4 py-2 backdrop-blur-xl shadow-[0_0_30px_rgba(0,242,255,0.3)] flex items-center gap-2 md:gap-3">
+              <button
+                type="button"
+                onClick={handleZoomOut}
+                disabled={zoomScale <= 1}
+                className="p-2 rounded-xl bg-slate-900/80 border border-slate-700 hover:border-cyan-400 text-slate-300 hover:text-cyan-300 disabled:opacity-30 transition-all cursor-pointer"
+                title="ซูมออก (-)"
+              >
+                <ZoomOut className="w-5 h-5" />
+              </button>
+
+              <button
+                type="button"
+                onClick={resetZoom}
+                className="px-3 py-1.5 rounded-xl bg-cyan-950/80 border border-cyan-500/50 text-cyan-300 font-mono text-xs font-bold hover:bg-cyan-900 transition-all cursor-pointer min-w-[70px] text-center"
+                title="คลิกเพื่อรีเซ็ตขนาด 100%"
+              >
+                {(zoomScale * 100).toFixed(0)}%
+              </button>
+
+              <button
+                type="button"
+                onClick={handleZoomIn}
+                disabled={zoomScale >= 6}
+                className="p-2 rounded-xl bg-slate-900/80 border border-slate-700 hover:border-cyan-400 text-slate-300 hover:text-cyan-300 disabled:opacity-30 transition-all cursor-pointer"
+                title="ซูมเข้า (+)"
+              >
+                <ZoomIn className="w-5 h-5" />
+              </button>
+
+              <div className="h-5 w-[1px] bg-slate-800" />
+
+              <button
+                type="button"
+                onClick={handleRotate}
+                className="p-2 rounded-xl bg-slate-900/80 border border-slate-700 hover:border-cyan-400 text-slate-300 hover:text-cyan-300 transition-all cursor-pointer"
+                title="หมุนภาพ 90°"
+              >
+                <RotateCw className="w-5 h-5" />
+              </button>
+
+              <button
+                type="button"
+                onClick={resetZoom}
+                className="p-2 rounded-xl bg-slate-900/80 border border-slate-700 hover:border-cyan-400 text-slate-300 hover:text-cyan-300 transition-all cursor-pointer"
+                title="รีเซ็ตตำแหน่งและขนาดเดิม"
+              >
+                <RefreshCw className="w-5 h-5" />
+              </button>
             </div>
 
             {/* Counter and Thumbnails */}
-            <div className="mt-3 flex flex-col items-center gap-2">
-              <div className="px-4 py-1 rounded-full bg-black/70 border border-slate-800 text-slate-300 text-xs font-mono">
+            <div className="flex flex-col items-center gap-1.5">
+              <div className="px-4 py-0.5 rounded-full bg-black/70 border border-slate-800 text-slate-300 text-[11px] font-mono">
                 รูปที่ <span className="text-sky-400 font-bold">{lightboxIndex + 1}</span> จากทั้งหมด <span className="font-bold">{lightboxImages.length}</span> รูป
-                {lightboxImages.length > 1 && <span className="text-slate-500 ml-2">(กดปุ่มซ้าย/ขวา หรือ แป้นพิมพ์ ◀ ▶ เพื่อเลื่อน)</span>}
+                <span className="text-slate-500 ml-2">(เลื่อนลูกกลิ้งเพื่อซูม • ดับเบิ้ลคลิกซูมด่วน)</span>
               </div>
 
               {/* Thumbnails list */}
@@ -2947,8 +3115,11 @@ export const CctvManager: React.FC<CctvManagerProps> = ({ data, onUpdate }) => {
                     <button
                       key={i}
                       type="button"
-                      onClick={() => setLightboxIndex(i)}
-                      className={`relative w-11 h-11 rounded overflow-hidden border transition-all shrink-0 cursor-pointer ${
+                      onClick={() => {
+                        setLightboxIndex(i);
+                        resetZoom();
+                      }}
+                      className={`relative w-10 h-10 rounded overflow-hidden border transition-all shrink-0 cursor-pointer ${
                         i === lightboxIndex
                           ? 'border-sky-400 ring-2 ring-sky-400/50 scale-105 opacity-100'
                           : 'border-slate-700 opacity-50 hover:opacity-100'

@@ -3,7 +3,7 @@ import {
   Tablet, Search, Plus, Edit, Trash2, X, Save,
   Hash, Calendar, FileText, MapPin,
   Filter, RefreshCcw, Loader2, CloudOff, Cloud, CheckSquare, Square,
-  AlertTriangle, Check, Upload, Image as ImageIcon, Eye, ZoomIn,
+  AlertTriangle, Check, Upload, Image as ImageIcon, Eye, ZoomIn, ZoomOut, RotateCw, RefreshCw,
   ChevronLeft, ChevronRight, Maximize2,
   GripVertical, ArrowUp, ArrowDown, ArrowUpDown, Move
 } from 'lucide-react';
@@ -93,9 +93,14 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
   const [jumpModalItem, setJumpModalItem] = useState<{ item: TicketMachine; currentIndex: number } | null>(null);
   const [jumpTargetIndex, setJumpTargetIndex] = useState<number>(1);
 
-  // Lightbox & image upload state
+  // Lightbox & image zoom/pan/rotate state
   const [lightboxImages, setLightboxImages] = useState<string[] | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [zoomScale, setZoomScale] = useState(1);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [startPan, setStartPan] = useState({ x: 0, y: 0 });
+  const [rotation, setRotation] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -314,26 +319,103 @@ const sanitizeImages = (imgs?: any[]): string[] => {
   return imgs.filter(img => typeof img === 'string' && (img.startsWith('data:image') || img.startsWith('http') || img.startsWith('/')));
 };
 
-// Lightbox handlers
+  // Lightbox & Zoom Handlers
+  const resetZoom = () => {
+    setZoomScale(1);
+    setPanOffset({ x: 0, y: 0 });
+    setRotation(0);
+    setIsPanning(false);
+  };
+
   const openLightbox = (images: string[], index = 0) => {
     const valid = sanitizeImages(images);
     if (valid.length === 0) return;
     setLightboxImages(valid);
     setLightboxIndex(index);
+    resetZoom();
   };
 
   const closeLightbox = () => {
     setLightboxImages(null);
     setLightboxIndex(0);
+    resetZoom();
   };
 
-  // Keyboard navigation for Lightbox
+  const handleZoomIn = () => {
+    setZoomScale(prev => Math.min(6, Number((prev + 0.5).toFixed(1))));
+  };
+
+  const handleZoomOut = () => {
+    setZoomScale(prev => {
+      const next = Math.max(1, Number((prev - 0.5).toFixed(1)));
+      if (next === 1) setPanOffset({ x: 0, y: 0 });
+      return next;
+    });
+  };
+
+  const handleRotate = () => {
+    setRotation(prev => (prev + 90) % 360);
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    e.stopPropagation();
+    if (e.deltaY < 0) {
+      setZoomScale(prev => Math.min(6, Number((prev + 0.25).toFixed(2))));
+    } else {
+      setZoomScale(prev => {
+        const next = Math.max(1, Number((prev - 0.25).toFixed(2)));
+        if (next === 1) setPanOffset({ x: 0, y: 0 });
+        return next;
+      });
+    }
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (zoomScale > 1) {
+      e.preventDefault();
+      setIsPanning(true);
+      setStartPan({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isPanning && zoomScale > 1) {
+      e.preventDefault();
+      setPanOffset({
+        x: e.clientX - startPan.x,
+        y: e.clientY - startPan.y
+      });
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsPanning(false);
+  };
+
+  const handleDoubleClick = () => {
+    if (zoomScale > 1) {
+      resetZoom();
+    } else {
+      setZoomScale(2.5);
+    }
+  };
+
+  // Keyboard navigation & zoom shortcuts for Lightbox
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!lightboxImages) return;
       if (e.key === 'Escape') closeLightbox();
-      if (e.key === 'ArrowRight') setLightboxIndex(prev => (prev + 1) % lightboxImages.length);
-      if (e.key === 'ArrowLeft') setLightboxIndex(prev => (prev - 1 + lightboxImages.length) % lightboxImages.length);
+      if (e.key === 'ArrowRight') {
+        setLightboxIndex(prev => (prev + 1) % lightboxImages.length);
+        resetZoom();
+      }
+      if (e.key === 'ArrowLeft') {
+        setLightboxIndex(prev => (prev - 1 + lightboxImages.length) % lightboxImages.length);
+        resetZoom();
+      }
+      if (e.key === '+' || e.key === '=') handleZoomIn();
+      if (e.key === '-' || e.key === '_') handleZoomOut();
+      if (e.key === '0' || e.key === 'r' || e.key === 'R') resetZoom();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -1209,67 +1291,159 @@ const sanitizeImages = (imgs?: any[]): string[] => {
         </div>
       )}
 
-      {/* Lightbox Modal for Fullscreen Image Viewing */}
+      {/* Lightbox Modal for Fullscreen Image Viewing & S/N Zoom Inspection */}
       {lightboxImages && lightboxImages.length > 0 && (
         <div
-          className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-200 select-none"
+          className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-between p-4 animate-in fade-in duration-200 select-none overflow-hidden"
           onClick={closeLightbox}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
         >
-          {/* Close Button */}
-          <button
-            type="button"
-            onClick={closeLightbox}
-            className="absolute top-5 right-5 p-3 rounded-full bg-slate-900/80 border border-cyan-500/40 text-cyan-400 hover:bg-cyan-500 hover:text-black transition-all shadow-[0_0_20px_rgba(0,242,255,0.4)] z-10"
-            title="ปิด (ESC)"
-          >
-            <X className="w-6 h-6" />
-          </button>
+          {/* Top Bar */}
+          <div className="w-full flex items-center justify-between z-20 pointer-events-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3">
+              <div className="px-4 py-2 rounded-full bg-slate-900/90 border border-cyan-500/40 text-cyan-300 font-mono text-sm tracking-wider shadow-[0_0_15px_rgba(0,242,255,0.2)]">
+                รูปที่ <span className="text-white font-bold">{lightboxIndex + 1}</span> / {lightboxImages.length}
+              </div>
+              {zoomScale > 1 && (
+                <div className="px-3 py-1.5 rounded-full bg-cyan-950/80 border border-cyan-400 text-cyan-300 font-mono text-xs font-bold animate-pulse">
+                  ซูม {(zoomScale * 100).toFixed(0)}% (คลิกลากเพื่อเลื่อนดู S/N)
+                </div>
+              )}
+            </div>
 
-          {/* Image Counter */}
-          <div className="absolute top-5 left-5 px-4 py-2 rounded-full bg-slate-900/80 border border-cyan-500/30 text-cyan-300 font-mono text-sm tracking-wider z-10">
-            รูปที่ {lightboxIndex + 1} / {lightboxImages.length}
+            <button
+              type="button"
+              onClick={closeLightbox}
+              className="p-3 rounded-full bg-slate-900/90 border border-cyan-500/40 text-cyan-400 hover:bg-red-600 hover:text-white hover:border-red-500 transition-all shadow-[0_0_20px_rgba(0,242,255,0.4)] cursor-pointer"
+              title="ปิด (ESC)"
+            >
+              <X className="w-6 h-6" />
+            </button>
           </div>
 
-          {/* Previous Button */}
+          {/* Left / Previous Button */}
           {lightboxImages.length > 1 && (
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 setLightboxIndex(prev => (prev - 1 + lightboxImages.length) % lightboxImages.length);
+                resetZoom();
               }}
-              className="absolute left-5 top-1/2 -translate-y-1/2 p-3 rounded-full bg-slate-900/80 border border-cyan-500/40 text-cyan-400 hover:bg-cyan-500 hover:text-black transition-all shadow-[0_0_20px_rgba(0,242,255,0.3)] z-10"
+              className="absolute left-5 top-1/2 -translate-y-1/2 p-3.5 rounded-full bg-slate-900/90 border border-cyan-500/40 text-cyan-400 hover:bg-cyan-500 hover:text-black transition-all shadow-[0_0_25px_rgba(0,242,255,0.4)] z-20 cursor-pointer hover:scale-110"
               title="รูปก่อนหน้า (←)"
             >
-              <ChevronLeft className="w-6 h-6" />
+              <ChevronLeft className="w-7 h-7" />
             </button>
           )}
 
-          {/* Next Button */}
+          {/* Right / Next Button */}
           {lightboxImages.length > 1 && (
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 setLightboxIndex(prev => (prev + 1) % lightboxImages.length);
+                resetZoom();
               }}
-              className="absolute right-5 top-1/2 -translate-y-1/2 p-3 rounded-full bg-slate-900/80 border border-cyan-500/40 text-cyan-400 hover:bg-cyan-500 hover:text-black transition-all shadow-[0_0_20px_rgba(0,242,255,0.3)] z-10"
+              className="absolute right-5 top-1/2 -translate-y-1/2 p-3.5 rounded-full bg-slate-900/90 border border-cyan-500/40 text-cyan-400 hover:bg-cyan-500 hover:text-black transition-all shadow-[0_0_25px_rgba(0,242,255,0.4)] z-20 cursor-pointer hover:scale-110"
               title="รูปถัดไป (→)"
             >
-              <ChevronRight className="w-6 h-6" />
+              <ChevronRight className="w-7 h-7" />
             </button>
           )}
 
-          {/* Main Image */}
+          {/* Image Container with Zoom & Pan */}
           <div
-            className="max-w-5xl max-h-[85vh] flex items-center justify-center"
+            className="flex-1 w-full flex items-center justify-center overflow-hidden my-2 cursor-default relative"
+            onClick={(e) => e.stopPropagation()}
+            onWheel={handleWheel}
+            onMouseDown={handleMouseDown}
+            onDoubleClick={handleDoubleClick}
+            style={{
+              cursor: zoomScale > 1 ? (isPanning ? 'grabbing' : 'grab') : 'zoom-in'
+            }}
+          >
+            <div
+              className="transition-transform duration-100 ease-out will-change-transform flex items-center justify-center"
+              style={{
+                transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomScale}) rotate(${rotation}deg)`
+              }}
+            >
+              <img
+                src={lightboxImages[lightboxIndex]}
+                alt={`Full view ${lightboxIndex + 1}`}
+                className="max-w-[85vw] max-h-[70vh] object-contain rounded-xl border border-cyan-500/40 shadow-[0_0_50px_rgba(0,242,255,0.25)] pointer-events-none select-none"
+                draggable={false}
+              />
+            </div>
+          </div>
+
+          {/* Bottom Floating Toolbar */}
+          <div
+            className="z-20 pointer-events-auto flex flex-col items-center gap-2"
             onClick={(e) => e.stopPropagation()}
           >
-            <img
-              src={lightboxImages[lightboxIndex]}
-              alt={`Full view ${lightboxIndex + 1}`}
-              className="max-w-full max-h-[85vh] object-contain rounded-xl border border-cyan-500/50 shadow-[0_0_50px_rgba(0,242,255,0.25)] animate-in zoom-in-95 duration-200"
-            />
+            <div className="bg-slate-950/90 border border-cyan-500/50 rounded-2xl px-4 py-2 backdrop-blur-xl shadow-[0_0_30px_rgba(0,242,255,0.3)] flex items-center gap-2 md:gap-3">
+              {/* Zoom Out Button */}
+              <button
+                type="button"
+                onClick={handleZoomOut}
+                disabled={zoomScale <= 1}
+                className="p-2 rounded-xl bg-slate-900/80 border border-slate-700 hover:border-cyan-400 text-slate-300 hover:text-cyan-300 disabled:opacity-30 disabled:hover:border-slate-700 disabled:hover:text-slate-300 transition-all cursor-pointer"
+                title="ซูมออก (-)"
+              >
+                <ZoomOut className="w-5 h-5" />
+              </button>
+
+              {/* Zoom Scale Display / Reset Button */}
+              <button
+                type="button"
+                onClick={resetZoom}
+                className="px-3 py-1.5 rounded-xl bg-cyan-950/80 border border-cyan-500/50 text-cyan-300 font-mono text-xs font-bold hover:bg-cyan-900 transition-all cursor-pointer min-w-[70px] text-center"
+                title="คลิกเพื่อรีเซ็ตขนาด 100%"
+              >
+                {(zoomScale * 100).toFixed(0)}%
+              </button>
+
+              {/* Zoom In Button */}
+              <button
+                type="button"
+                onClick={handleZoomIn}
+                disabled={zoomScale >= 6}
+                className="p-2 rounded-xl bg-slate-900/80 border border-slate-700 hover:border-cyan-400 text-slate-300 hover:text-cyan-300 disabled:opacity-30 disabled:hover:border-slate-700 disabled:hover:text-slate-300 transition-all cursor-pointer"
+                title="ซูมเข้า (+)"
+              >
+                <ZoomIn className="w-5 h-5" />
+              </button>
+
+              <div className="h-5 w-[1px] bg-slate-800" />
+
+              {/* Rotate Button */}
+              <button
+                type="button"
+                onClick={handleRotate}
+                className="p-2 rounded-xl bg-slate-900/80 border border-slate-700 hover:border-cyan-400 text-slate-300 hover:text-cyan-300 transition-all cursor-pointer"
+                title="หมุนภาพ 90°"
+              >
+                <RotateCw className="w-5 h-5" />
+              </button>
+
+              {/* Reset All Button */}
+              <button
+                type="button"
+                onClick={resetZoom}
+                className="p-2 rounded-xl bg-slate-900/80 border border-slate-700 hover:border-cyan-400 text-slate-300 hover:text-cyan-300 transition-all cursor-pointer"
+                title="รีเซ็ตตำแหน่งและขนาดเดิม"
+              >
+                <RefreshCw className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-[11px] font-mono text-slate-400 tracking-wide text-center">
+              💡 เลื่อนลูกกลิ้งเมาส์เพื่อซูม • ดับเบิ้ลคลิกเพื่อซูมด่วน • ลากเมาส์เพื่อเลื่อนดู S/N
+            </p>
           </div>
         </div>
       )}
