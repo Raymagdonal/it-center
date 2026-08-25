@@ -272,12 +272,18 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
   // Get current folder based on selection
   const currentFolder = useMemo(() => {
     if (!selectedCategory || !selectedLocation || selectedMonth === null) return null;
-    return folders.find(
+    const matchingFolders = folders.filter(
       f => f.year === selectedYear &&
         f.locationType === selectedCategory &&
         f.locationName === selectedLocation &&
         f.month === selectedMonth
     );
+    if (matchingFolders.length === 0) return null;
+    if (matchingFolders.length === 1) return matchingFolders[0];
+    return {
+      ...matchingFolders[0],
+      items: matchingFolders.flatMap(f => f.items || [])
+    };
   }, [folders, selectedYear, selectedCategory, selectedLocation, selectedMonth]);
 
   // Filter items by search term
@@ -306,19 +312,18 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
     }
   };
 
-  // Get folder item count for a location
+  // Get folder item count for a location (sum across all months for that location)
   const getFolderItemCount = (locationType: ProcurementLocationType, locationName: string) => {
-    const folder = folders.find(
-      f => f.year === selectedYear && f.locationType === locationType && f.locationName === locationName
-    );
-    return folder?.items.length || 0;
+    return folders
+      .filter(f => f.year === selectedYear && f.locationType === locationType && f.locationName === locationName)
+      .reduce((sum, f) => sum + (f.items?.length || 0), 0);
   };
 
   // Get total items for a category
   const getCategoryItemCount = (category: ProcurementLocationType) => {
     return folders
       .filter(f => f.year === selectedYear && f.locationType === category)
-      .reduce((sum, f) => sum + f.items.length, 0);
+      .reduce((sum, f) => sum + (f.items?.length || 0), 0);
   };
 
   // Navigation handlers
@@ -471,14 +476,20 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
       };
       updatedFolders.push(newFolder);
     } else {
-      // Update existing folder
+      // Update existing folder immutably
+      const target = updatedFolders[folderIndex];
+      let newItems: ProcurementFolderItem[];
       if (editingItem && itemsToAdd.length === 1) {
-        updatedFolders[folderIndex].items = updatedFolders[folderIndex].items.map(
+        newItems = (target.items || []).map(
           i => i.id === editingItem.id ? itemsToAdd[0] : i
         );
       } else {
-        updatedFolders[folderIndex].items = [...updatedFolders[folderIndex].items, ...itemsToAdd];
+        newItems = [...(target.items || []), ...itemsToAdd];
       }
+      updatedFolders[folderIndex] = {
+        ...target,
+        items: newItems
+      };
     }
 
     onUpdate(updatedFolders);
@@ -491,7 +502,7 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
 
     const updatedFolders = folders.map(f => {
       if (f.year === selectedYear && f.locationType === selectedCategory && f.locationName === selectedLocation && f.month === selectedMonth) {
-        return { ...f, items: f.items.filter(i => i.id !== id) };
+        return { ...f, items: (f.items || []).filter(i => i.id !== id) };
       }
       return f;
     });
@@ -692,13 +703,13 @@ export const InventoryManager: React.FC<InventoryManagerProps> = ({
           {getViewLevel() === 'month' && (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 animate-in fade-in duration-300">
               {THAI_MONTHS.map((monthName, idx) => {
-                const folder = folders.find(
+                const monthFolders = folders.filter(
                   f => f.year === selectedYear &&
                     f.locationType === selectedCategory &&
                     f.locationName === selectedLocation &&
                     f.month === idx
                 );
-                const count = folder?.items.length || 0;
+                const count = monthFolders.reduce((sum, f) => sum + (f.items?.length || 0), 0);
                 return (
                   <Card
                     key={monthName}
