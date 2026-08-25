@@ -79,6 +79,7 @@ const getItemKey = (item: TicketMachine, index?: number): string => {
 export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ items, onUpdate, onReset }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterLocation, setFilterLocation] = useState('ALL');
+  const [filterDevice, setFilterDevice] = useState('ALL');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<TicketMachine | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -127,10 +128,24 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
     }
   }, [onUpdate]);
 
-  // Get unique locations from data
+  // Get unique device names with counts
+  const uniqueDevices = useMemo(() => {
+    const map = new Map<string, number>();
+    items.forEach(i => {
+      const dev = (i.deviceName || '').trim() || 'ไม่ระบุ';
+      map.set(dev, (map.get(dev) || 0) + 1);
+    });
+    return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+  }, [items]);
+
+  // Get unique locations from data with counts
   const uniqueLocations = useMemo(() => {
-    const locs = new Set(items.map(i => i.location));
-    return Array.from(locs).sort();
+    const map = new Map<string, number>();
+    items.forEach(i => {
+      const loc = (i.location || '').trim() || 'ไม่ระบุ';
+      map.set(loc, (map.get(loc) || 0) + 1);
+    });
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0], 'th'));
   }, [items]);
 
   // Filtered items
@@ -142,9 +157,10 @@ export const TicketMachineManager: React.FC<TicketMachineManagerProps> = ({ item
         item.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.notes.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesLocation = filterLocation === 'ALL' || item.location === filterLocation;
-      return matchesSearch && matchesLocation;
+      const matchesDevice = filterDevice === 'ALL' || item.deviceName === filterDevice;
+      return matchesSearch && matchesLocation && matchesDevice;
     });
-  }, [items, searchTerm, filterLocation]);
+  }, [items, searchTerm, filterLocation, filterDevice]);
 
   // Check if all currently visible filtered items are selected
   const isAllSelected = useMemo(() => {
@@ -528,58 +544,115 @@ const sanitizeImages = (imgs?: any[]): string[] => {
       )}
 
       {/* Search & Filter Bar */}
-      <div className="bg-black/60 border border-cyan-900/30 p-3 rounded-lg flex flex-col md:flex-row items-center justify-between gap-3 sticky top-0 z-30 backdrop-blur-md">
-        <div className="relative w-full md:max-w-lg group">
-          <input
-            type="text"
-            placeholder="ค้นหา Serial No. / ชื่ออุปกรณ์ / สถานที่..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-slate-900/50 border border-slate-700 rounded-lg py-2.5 pl-10 pr-4 text-sm text-cyan-300 focus:border-cyan-500 outline-none transition-all placeholder-slate-600 font-mono"
-          />
-          <Search className="absolute left-3 top-2.5 h-5 w-5 text-slate-500 group-focus-within:text-cyan-400 transition-colors" />
-        </div>
+      <div className="bg-black/60 border border-cyan-900/30 p-3 rounded-lg flex flex-col gap-3 sticky top-0 z-30 backdrop-blur-md">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+          <div className="relative w-full md:max-w-md group">
+            <input
+              type="text"
+              placeholder="ค้นหา Serial No. / ชื่ออุปกรณ์ / สถานที่..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-slate-900/50 border border-slate-700 rounded-lg py-2.5 pl-10 pr-4 text-sm text-cyan-300 focus:border-cyan-500 outline-none transition-all placeholder-slate-600 font-mono"
+            />
+            <Search className="absolute left-3 top-2.5 h-5 w-5 text-slate-500 group-focus-within:text-cyan-400 transition-colors" />
+          </div>
 
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
-          {/* Quick Select All / Unselect All */}
-          <button
-            type="button"
-            onClick={toggleSelectAll}
-            className="px-3 py-2 bg-slate-900 border border-slate-700 hover:border-cyan-500 text-xs font-mono font-bold text-slate-300 hover:text-white rounded-lg flex items-center gap-2 transition-all"
-          >
-            {isAllSelected ? (
-              <>
-                <CheckSquare className="w-4 h-4 text-cyan-400" />
-                ยกเลิกเลือกทั้งหมด
-              </>
-            ) : (
-              <>
-                <Square className="w-4 h-4 text-slate-500" />
-                เลือกทั้งหมดในหน้านี้ ({filteredItems.length})
-              </>
-            )}
-          </button>
-
-          {/* Location Filter */}
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-slate-500" />
-            <select
-              value={filterLocation}
-              onChange={(e) => setFilterLocation(e.target.value)}
-              className="bg-black border border-slate-700 rounded-lg px-3 py-2 text-sm text-cyan-400 font-bold outline-none focus:border-cyan-500 cursor-pointer appearance-none pr-8"
-              style={{ backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2394a3b8\' stroke-width=\'2\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '16px' }}
+          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
+            {/* Quick Select All / Unselect All */}
+            <button
+              type="button"
+              onClick={toggleSelectAll}
+              className="px-3 py-2 bg-slate-900 border border-slate-700 hover:border-cyan-500 text-xs font-mono font-bold text-slate-300 hover:text-white rounded-lg flex items-center gap-2 transition-all cursor-pointer"
             >
-              <option value="ALL">ทุกสถานที่ ({items.length})</option>
-              {uniqueLocations.map(loc => (
-                <option key={loc} value={loc}>{loc}</option>
-              ))}
-            </select>
-          </div>
+              {isAllSelected ? (
+                <>
+                  <CheckSquare className="w-4 h-4 text-cyan-400" />
+                  ยกเลิกเลือกทั้งหมด
+                </>
+              ) : (
+                <>
+                  <Square className="w-4 h-4 text-slate-500" />
+                  เลือกทั้งหมดในหน้านี้ ({filteredItems.length})
+                </>
+              )}
+            </button>
 
-          <div className="text-xs font-mono text-cyan-600 uppercase tracking-widest font-bold flex items-center gap-2">
-            แสดง: <span className="text-white">{filteredItems.length}</span> / {items.length}
+            {/* Device Filter Dropdown */}
+            <div className="flex items-center gap-2">
+              <Tablet className="w-4 h-4 text-cyan-400" />
+              <select
+                value={filterDevice}
+                onChange={(e) => setFilterDevice(e.target.value)}
+                className="bg-black border border-slate-700 rounded-lg px-3 py-2 text-sm text-cyan-400 font-bold outline-none focus:border-cyan-500 cursor-pointer appearance-none pr-8"
+                style={{ backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2394a3b8\' stroke-width=\'2\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '16px' }}
+              >
+                <option value="ALL">ทุกอุปกรณ์ ({items.length})</option>
+                {uniqueDevices.map(([dev, count]) => (
+                  <option key={dev} value={dev}>{dev} ({count})</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Location Filter Dropdown */}
+            <div className="flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-slate-500" />
+              <select
+                value={filterLocation}
+                onChange={(e) => setFilterLocation(e.target.value)}
+                className="bg-black border border-slate-700 rounded-lg px-3 py-2 text-sm text-cyan-400 font-bold outline-none focus:border-cyan-500 cursor-pointer appearance-none pr-8"
+                style={{ backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2394a3b8\' stroke-width=\'2\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '16px' }}
+              >
+                <option value="ALL">ทุกสถานที่ ({items.length})</option>
+                {uniqueLocations.map(([loc, count]) => (
+                  <option key={loc} value={loc}>{loc} ({count})</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="text-xs font-mono text-cyan-600 uppercase tracking-widest font-bold flex items-center gap-2">
+              แสดง: <span className="text-white">{filteredItems.length}</span> / {items.length}
+            </div>
           </div>
         </div>
+
+        {/* Quick Device Filter Chips */}
+        {uniqueDevices.length > 1 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto pt-2 pb-0.5 border-t border-slate-800/60 scrollbar-none">
+            <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1">
+              <Filter className="w-3 h-3 text-cyan-500" /> อุปกรณ์:
+            </span>
+            <button
+              type="button"
+              onClick={() => setFilterDevice('ALL')}
+              className={`px-3 py-1 rounded-full text-xs font-mono font-bold transition-all shrink-0 cursor-pointer ${
+                filterDevice === 'ALL'
+                  ? 'bg-cyan-500 text-black shadow-[0_0_12px_rgba(0,242,255,0.4)]'
+                  : 'bg-slate-900 border border-slate-700 text-slate-400 hover:text-white hover:border-slate-500'
+              }`}
+            >
+              ทั้งหมด ({items.length})
+            </button>
+            {uniqueDevices.map(([dev, count]) => (
+              <button
+                key={dev}
+                type="button"
+                onClick={() => setFilterDevice(prev => prev === dev ? 'ALL' : dev)}
+                className={`px-3 py-1 rounded-full text-xs font-mono font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
+                  filterDevice === dev
+                    ? 'bg-cyan-500 text-black shadow-[0_0_12px_rgba(0,242,255,0.4)]'
+                    : 'bg-slate-900 border border-slate-700 text-slate-300 hover:text-white hover:border-cyan-500/50'
+                }`}
+              >
+                <span>{dev}</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                  filterDevice === dev ? 'bg-black/40 text-black font-bold' : 'bg-black/60 text-cyan-400 font-bold'
+                }`}>
+                  {count}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Data Table */}
